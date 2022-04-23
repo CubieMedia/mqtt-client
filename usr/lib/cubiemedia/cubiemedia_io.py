@@ -7,7 +7,8 @@ import json
 
 try:
     import RPi.GPIO as GPIO
-except ModuleNotFoundError:
+except (ModuleNotFoundError, RuntimeError) as e:
+    print("... demo mode [%s]" % e)
     GPIO = None
 
 sys.path.append('/usr/lib/cubiemedia/')
@@ -38,7 +39,8 @@ def action(device):
 def send(data):
     print("... ... send data[%s] from HA" % data)
     logging.info("... ... send data[%s] from HA" % data)
-    GPIO.output(int(data['id']), GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
+    if GPIO:
+        GPIO.output(int(data['id']), GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
 
 
 def update():
