@@ -1,0 +1,36 @@
+<!doctype html>
+<title>CubieMedia - Configuration</title>
+<h1>{{ application.replace('cubiemedia-', '').upper() }} Devices ({% if application ==
+    "cubiemedia-enocean" %}Learn Mode enabled: <a href="/function/{{ application }}/learn_mode">{{ learn_mode
+        }}</a>{% endif %}):
+</h1>
+{% if not application %}
+<h3>ERROR: No Application or wrong Application selected!</h3>
+{% elif device_list|length == 0 %}
+<h3>No Devices in List!</h3>
+{% else %}
+<h3>{{ device_list|length }} Devices</h3>
+<div style="margin-left: 30px; list-style-type: decimal-leading-zero">
+    {% for item in device_list %}
+    <li><b>{{ item.id.upper() }}</b> (
+        {% if application == "cubiemedia-io" %}
+        <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
+        {% else %}
+        <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
+        {% endif %}
+        )
+    </li>
+    <ul>
+        <li>{{ item.type }}</li>
+        <li>{{ item.client_id }}</li>
+        <li>{{ item.dbm }}</li>
+    </ul>
+    {% endfor %}
+</div>
+
+<br/>
+
+{% if application != "cubiemedia-io" %}
+<a href="/delete/{{ application }}/all" style="color: red;">Delete all devices!</a>
+{% endif %}
+{% endif %}

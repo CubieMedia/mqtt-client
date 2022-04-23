@@ -1,0 +1,7 @@
+{
+    "deviceList": [],
+    "host": "homeassistant",
+    "learn_mode": true,
+    "password": "autoInstall",
+    "username": "mqtt"
+}

@@ -1,0 +1,56 @@
+{
+    "deviceList": [
+        {
+            "function": "IN",
+            "id": 7,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "IN",
+            "id": 11,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "IN",
+            "id": 13,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "IN",
+            "id": 15,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "OUT",
+            "id": 12,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "OUT",
+            "id": 16,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "OUT",
+            "id": 18,
+            "type": "GPIO",
+            "value": 0
+        },
+        {
+            "function": "OUT",
+            "id": 22,
+            "type": "GPIO",
+            "value": 0
+        }
+    ],
+    "host": "homeassistant",
+    "learn_mode": true,
+    "password": "autoInstall",
+    "username": "mqtt"
+}
