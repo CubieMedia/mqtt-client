@@ -31,7 +31,10 @@ parts:
 
 architectures:
   - build-on: [armhf, arm64]
-    run-on: [armhf, arm64, amd64]
+    run-on: [armhf, arm64]
+  - build-on: amd64
+    run-on: amd64
+    build-error: ignore
 
 apps:
   cubiemedia-mqtt-client:
