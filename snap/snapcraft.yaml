@@ -22,7 +22,7 @@ parts:
     build-environment:
       - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 #    build-snaps: []
-    python-packages: [wheel, paho-mqtt, requests, netifaces, enocean]
+#    python-packages: [wheel, paho-mqtt, requests, netifaces, enocean]
     stage-packages: [python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
 
 architectures:
