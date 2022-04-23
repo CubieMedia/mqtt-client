@@ -29,9 +29,9 @@ parts:
 #    stage-packages: [python3-wheel]
     stage-packages: [python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
 
-architectures:
-  - build-on: [armhf, arm64, amd64]
-    run-on: all
+#architectures:
+#  - build-on: [armhf, arm64, amd64]
+#    run-on: all
 
 apps:
   cubiemedia-mqtt-client:
