@@ -1,9 +1,9 @@
 name: cubiemedia-mqtt-client
 base: core20
-version: '0.1'
+version: '0.2'
 summary: Gateway for different Protocols or Devices
 description: |
-  GCubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
+  CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
 grade: devel 
 confinement: devmode 
 
@@ -18,17 +18,17 @@ parts:
   python:
     source: .
     plugin: python
-    build-packages: [python3, python3-dev, python3-pip, python3-setuptools, python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-rpi.gpio, python3-serial, python3-requests, python3-flask]
-    build-environment:
-      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
+#    override-build: |
+#      snapcraftctl build
+#      pip3 install wheel
+#    build-packages: [python3, python3-dev, python3-setuptools, python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
+#    build-environment:
+#      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 #    build-snaps: []
-#    python-packages: [wheel, paho-mqtt, requests, netifaces, enocean]
-    stage-packages: [python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
-
-architectures:
-  - build-on: [armhf, arm64]
-    run-on: [armhf, arm64, amd64]
-
+    python-packages: [paho-mqtt, requests, netifaces, enocean]
+#    stage-packages: [python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
+   
+    
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
