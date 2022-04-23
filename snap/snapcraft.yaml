@@ -24,8 +24,8 @@ parts:
 #    stage-packages: [python3-paho-mqtt]
 
 architectures:
-  - build-on: armhf, arm64
-    run-on: armhf, arm64, amd64
+  - build-on: [armhf, arm64]
+    run-on: [armhf, arm64, amd64]
 
 apps:
   cubiemedia-mqtt-client:
