@@ -31,7 +31,7 @@ parts:
 
 architectures:
   - build-on: [armhf, amd64]
-#    run-on: all
+    run-on: all
 
 apps:
   cubiemedia-mqtt-client:

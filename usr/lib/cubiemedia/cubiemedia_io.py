@@ -6,7 +6,7 @@ import sys
 import time
 import json
 
-from usr.lib.cubiemedia.cubiemedia_common import install_package
+from cubiemedia_common import install_package
 
 if os.environ.get('SNAP_ARCH') == 'armhf':
     try:
@@ -15,7 +15,7 @@ if os.environ.get('SNAP_ARCH') == 'armhf':
         install_package("rpi-gpio")
         import RPi.GPIO as GPIO
 else:
-    print("... demo mode []")
+    print("... demo mode [can not load GPIO module]")
     GPIO = None
 
 sys.path.append('/usr/lib/cubiemedia/')
