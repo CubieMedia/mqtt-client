@@ -12,7 +12,7 @@ if os.environ.get('SNAP_ARCH') == 'armhf':
     try:
         import RPi.GPIO as GPIO
     except (ModuleNotFoundError, RuntimeError) as e:
-        install_package("rpi-gpio")
+        install_package("RPi.GPIO")
         import RPi.GPIO as GPIO
 else:
     print("... demo mode [can not load GPIO module]")
