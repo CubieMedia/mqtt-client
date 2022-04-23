@@ -27,7 +27,7 @@ parts:
 #    build-snaps: []
 #    python-packages: [requests, netifaces, enocean, rpi.gpio, paho-mqtt]
 #    python-packages: [paho-mqtt]
-    stage-packages: [python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-rpi.gpio, python3-serial, python3-requests, python3-flask]
+    stage-packages: [python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
 
 #architectures:
 #  - build-on: [armhf]
