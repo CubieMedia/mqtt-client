@@ -22,8 +22,11 @@ parts:
 #    build-snaps: []
 #    python-packages: [paho-mqtt, requests, netifaces, enocean]
 #    stage-packages: [python3-paho-mqtt]
-    
-    
+
+architectures:
+  - build-on: armhf, arm64
+    run-on: armhf, arm64, amd64
+
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
