@@ -18,23 +18,20 @@ parts:
   python:
     source: .
     plugin: python
-    override-build: |
-      snapcraftctl build
-      pip3 install wheel
+#    override-build: |
+#      snapcraftctl build
+#      pip3 install wheel
 #    build-packages: [python3-dev, python3-setuptools, python3-wheel]
-    build-environment:
-      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
+#    build-environment:
+#      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 #    build-snaps: []
 #    python-packages: [requests, netifaces, enocean, rpi.gpio, paho-mqtt]
-    python-packages: [paho-mqtt]
+#    python-packages: [paho-mqtt]
     stage-packages: [python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-rpi.gpio, python3-serial, python3-requests, python3-flask]
 
-architectures:
-  - build-on: [armhf, arm64]
-    run-on: [armhf, arm64]
-  - build-on: amd64
-    run-on: amd64
-    build-error: ignore
+#architectures:
+#  - build-on: [armhf]
+#    run-on: all
 
 apps:
   cubiemedia-mqtt-client:
