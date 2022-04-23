@@ -26,7 +26,7 @@ parts:
 #      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 #    build-snaps: []
 #    python-packages: [requests, netifaces, enocean, rpi.gpio, paho-mqtt]
-#    python-packages: [paho-mqtt]
+    python-packages: [rpi.gpio]
     stage-packages: [python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
 
 #architectures:

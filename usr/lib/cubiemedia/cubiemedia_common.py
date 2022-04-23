@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
+import sys
 import logging
+import subprocess
 import netifaces as net
 
 # interfaces / devices #
@@ -53,3 +55,7 @@ def get_ip_address_of_interface(interfaces):
                 return net.ifaddresses(interface)[2][0]['addr']
 
     return None
+
+
+def install_package(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])

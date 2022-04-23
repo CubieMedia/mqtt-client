@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
+import os
 import sys
 import time
 import json
 
-try:
-    import RPi.GPIO as GPIO
-except (ModuleNotFoundError, RuntimeError) as e:
-    print("... demo mode [%s]" % e)
+from usr.lib.cubiemedia.cubiemedia_common import install_package
+
+if os.environ.get('SNAP_ARCH') == 'armhf':
+    try:
+        import RPi.GPIO as GPIO
+    except (ModuleNotFoundError, RuntimeError) as e:
+        install_package("rpi-gpio")
+        import RPi.GPIO as GPIO
+else:
+    print("... demo mode []")
     GPIO = None
 
 sys.path.append('/usr/lib/cubiemedia/')
