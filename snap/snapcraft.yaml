@@ -7,16 +7,16 @@ description: |
 grade: devel
 confinement: devmode
 
-layout:
-  /usr/lib/cubiemedia:
-    bind: $SNAP/usr/lib/cubiemedia
+#layout:
+#  /usr/lib/cubiemedia:
+#    bind: $SNAP/usr/lib/cubiemedia
 
 parts:
   cubiemedia-mqtt-client:
     plugin: dump
     source: .
   python:
-    source: .
+    source: ./src
     plugin: python
 #    override-build: |
 #      snapcraftctl build
@@ -25,22 +25,16 @@ parts:
 #    build-environment:
 #      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 #    build-snaps: []
-    python-packages: [pip, wheel, requests, zeroconf, flask, serial, netifaces, enocean, paho-mqtt]
+#    python-packages: [pip, wheel, requests, zeroconf, flask, serial, netifaces, enocean, paho-mqtt]
 #    python-packages: [paho-mqtt]
 #    stage-packages: [build-essential, python3-dev, python3-pip, python3-setuptools, python3-wheel, python3-rpi.gpio, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
-    stage-packages: [python3-rpi.gpio, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
+#    stage-packages: [python3-rpi.gpio, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
 
-architectures:
-  - build-on: [armhf, arm64]
+#architectures:
+#  - build-on: [armhf, arm64]
 #    run-on: all
 
 apps:
   cubiemedia-mqtt-client:
-    command: usr/bin/cubiemedia-mqtt-client
-  enocean:
-    command: usr/bin/cubiemedia-mqtt-client enocean
-  relay:
-    command: usr/bin/cubiemedia-mqtt-client relay
-  io:
-    command: usr/bin/cubiemedia-mqtt-client io
+    command: cubiemedia-mqtt-client
 
