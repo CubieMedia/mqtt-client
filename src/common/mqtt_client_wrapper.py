@@ -4,10 +4,14 @@
 import json
 import logging
 
-from paho.mqtt import client
-
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, install_package
 from common.network import get_ip_address  # noqa
+
+try:
+    from paho.mqtt import client
+except (ModuleNotFoundError, RuntimeError) as e:
+    install_package("paho-mqtt")
+    from paho.mqtt import client
 
 
 class CubieMediaMQTTClient:

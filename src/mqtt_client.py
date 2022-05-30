@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-__version__ = "0.2.3"
-
 import logging
 import signal
 import sys
 import time
 from functools import partial
+from logging import StreamHandler
+from logging.handlers import SysLogHandler
 
 from common import CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY  # noqa
 from common.network import get_ip_address  # noqa
@@ -19,6 +19,12 @@ def get_execution_mode(argv: []) -> str:
         raise RuntimeError("ERROR: Please give Mode [%s,%s,%s] for script" % (CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY))
 
     return argv[1]
+
+
+def configure_logger():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+    logging.getLogger().addHandler(StreamHandler(sys.stdout))
+    logging.getLogger().addHandler(SysLogHandler(address='/dev/log'))
 
 
 def get_system(execution_mode: str):
@@ -37,9 +43,7 @@ def get_system(execution_mode: str):
 
 def main():
     mode = get_execution_mode(sys.argv)
-    logging.basicConfig(filename=f'./cubiemedia_mqtt_client_{mode}.log', level=logging.INFO,
-                        format='%(asctime)s %(message)s')
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+    configure_logger()
 
     logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
 
