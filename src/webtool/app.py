@@ -14,7 +14,7 @@ from flask import Flask, url_for, render_template
 from cubiemedia_common import get_ip_address # noqa
 
 app = Flask(__name__)
-service_list = {"cubiemedia-io": "CubieMedia-IO", "cubiemedia-enocean": "CubieMedia-EnOcean",
+service_list = {"cubiemedia-io": "CubieMedia-IO", "cubiemedia-enoocean": "CubieMedia-EnOcean",
                 "cubiemedia-relay": "CubieMedia-Relay"}
 
 
@@ -100,7 +100,7 @@ def get_config(application):
 def get_path(application):
     if application == "cubiemedia-io":
         return './gpioList.json'
-    elif application == "cubiemedia-enocean":
+    elif application == "cubiemedia-enoocean":
         return './deviceList.json'
     elif application == "cubiemedia-relay":
         return './relayList.json'
