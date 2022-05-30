@@ -14,7 +14,7 @@ confinement: devmode
 parts:
   cubiemedia-mqtt-client:
     plugin: dump
-    source: ./snap/usr
+    source: .
   python:
     source: ./src
     plugin: python
