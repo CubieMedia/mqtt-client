@@ -13,6 +13,9 @@ confinement: devmode
 
 parts:
   cubiemedia-mqtt-client:
+    plugin: dump
+    source: ./snap/usr
+  python:
     source: ./src
     plugin: python
 #    override-build: |
@@ -33,5 +36,5 @@ parts:
 
 apps:
   cubiemedia-mqtt-client:
-    command: bin/cubiemedia-mqtt-client
+    command: usr/bin/cubiemedia-mqtt-client
 

@@ -64,8 +64,7 @@ def main():
         time.sleep(.2)
 
     print('... all done, exit program')
-    sys.exit()
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
