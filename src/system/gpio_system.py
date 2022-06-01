@@ -33,8 +33,7 @@ class GPIOSystem(BaseSystem):
     def init(self, client_id):
         if not GPIO:
             logging.warning(
-                f"{COLOR_YELLOW}WARNING{COLOR_DEFAULT} ... could not initialise GPIO,"
-                f" running in development mode? {COLOR_YELLOW}WARNING{COLOR_DEFAULT}")
+                f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode? WARNING{COLOR_DEFAULT}")
 
         super().init(client_id)
 

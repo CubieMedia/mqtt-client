@@ -3,7 +3,8 @@ import json
 import time
 import logging
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE
+from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, COLOR_YELLOW, \
+    COLOR_DEFAULT
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 
 
@@ -54,7 +55,7 @@ class BaseSystem(abc.ABC):
                 self.learn_mode = config['learn_mode']
                 self.known_device_list = config['deviceList']
         except (IOError, ValueError):
-            logging.error("... ... could not read file, creating default config...")
+            logging.warning(f"{COLOR_YELLOW}... ... could not read file, creating default config...{COLOR_DEFAULT}")
             self.save()
             self.load()
 

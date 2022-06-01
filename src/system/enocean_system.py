@@ -17,7 +17,7 @@ from common import *
 try:
     import queue
 except ImportError:
-    logging.warning(f"{COLOR_YELLOW}WARNING{COLOR_DEFAULT}: queue not found, trying Queue {COLOR_YELLOW}WARNING{COLOR_DEFAULT}")
+    logging.warning(f"{COLOR_YELLOW}queue not found, trying Queue WARNING{COLOR_DEFAULT}")
     import Queue as queue
 
 
@@ -32,8 +32,8 @@ class EnoceanSystem(BaseSystem):
         try:
             self.communicator = SerialCommunicator(ENOCEAN_PORT)
         except SerialException:
-            logging.info(
-                f"{COLOR_YELLOW}WARNING{COLOR_DEFAULT} could not initialise serial communication, running in development mode? {COLOR_YELLOW}WARNING{COLOR_DEFAULT}")
+            logging.warning(
+                f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
 
     def action(self, device):
         should_save = False

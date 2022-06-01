@@ -32,7 +32,7 @@ def is_verbose(argv: []) -> bool:
 
 def configure_logger():
     logging.basicConfig(level=logging.DEBUG if is_verbose(sys.argv) else logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+                        format='%(asctime)s - %(levelname)-8s - %(message)s')
 
     # added for enocean module bug with wrong parser configuration
     warnings.simplefilter("ignore")

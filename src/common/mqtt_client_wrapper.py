@@ -106,6 +106,6 @@ class CubieMediaMQTTClient:
     @staticmethod
     def on_disconnect(client, userdata, rc):
         if rc == 0:
-            logging.debug("... ...disconnected from Service [%s] with result [%s]" % (client._host, rc))
+            logging.info("... ...disconnected from Service [%s] with result [%s]" % (client._host, rc))
         else:
-            logging.debug("... ... lost connection to Service [%s] with result [%s]" % (client._host, rc))
+            logging.warning("... ... lost connection to Service [%s] with result [%s]" % (client._host, rc))

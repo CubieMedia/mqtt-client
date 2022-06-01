@@ -27,7 +27,7 @@ parts:
 #      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 #    build-snaps: []
 #    python-packages: [requests, zeroconf, flask, serial, netifaces, enocean, paho-mqtt]
-    python-packages: [pip, wheel, venv, setuptools, enocean]
+    python-packages: [pip, wheel, setuptools, enocean]
 #    stage-packages: [build-essential, python3-dev, python3-pip, python3-setuptools, python3-wheel, python3-paho-mqtt, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
     stage-packages: [build-essential, python3-dev, python3-pip, python3-setuptools, python3-wheel, python3-venv, python3-paho-mqtt, python3-lxml, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask]
 #    stage-packages: [python3-paho-mqtt]
