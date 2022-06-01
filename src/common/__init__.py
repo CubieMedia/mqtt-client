@@ -35,3 +35,9 @@ TIMEOUT_UPDATE_SEND = 30
 CONFIG_FILE_NAME_ENOCEAN = "./config_enocean.json"
 CONFIG_FILE_NAME_RELAY = "./config_relay.json"
 CONFIG_FILE_NAME_GPIO = "./config_gpio.json"
+
+# Colors for Logging #
+COLOR_YELLOW = "\x1b[33;20m"
+COLOR_RED = "\x1b[31;20m"
+COLOR_GREY = "\x1b[38;20m"
+COLOR_DEFAULT = "\x1b[0m"

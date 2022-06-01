@@ -54,7 +54,7 @@ class RelaySystem(BaseSystem):
                 if 'toggle' in known_device and int(data['id']) in known_device['toggle']:
                     toggle = True
         logging.debug("... ... send data[%s] from HA with toggle[%s]" % (data, toggle))
-        self.set_status(data['ip'], data['id'], data['state'], toggle)
+        self._set_status(data['ip'], data['id'], data['state'], toggle)
         self.last_update = -1 if toggle else 0
 
     def update(self):
@@ -70,7 +70,7 @@ class RelaySystem(BaseSystem):
                         known_device = temp_device
 
                 relayboard = {'id': str(module), 'type': RELAY_BOARD}
-                status_list = self.read_status(module)
+                status_list = self._read_status(module)
                 relay_state_list = {}
                 relay_state_changed_list = {}
                 count = 1

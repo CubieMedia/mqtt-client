@@ -7,7 +7,7 @@ import os
 import time
 
 from system import BaseSystem
-from common import install_package
+from common import install_package, COLOR_YELLOW, COLOR_DEFAULT
 
 if os.environ.get('SNAP_ARCH') == 'armhf':
     try:
@@ -32,7 +32,9 @@ class GPIOSystem(BaseSystem):
 
     def init(self, client_id):
         if not GPIO:
-            logging.warning("WARNING ... could not initialise GPIO, running in development mode?")
+            logging.warning(
+                f"{COLOR_YELLOW}WARNING{COLOR_DEFAULT} ... could not initialise GPIO,"
+                f" running in development mode? {COLOR_YELLOW}WARNING{COLOR_DEFAULT}")
 
         super().init(client_id)
 
@@ -114,13 +116,13 @@ class GPIOSystem(BaseSystem):
         if new_device is None:
             if self.known_device_list is None or len(self.known_device_list) == 0:
                 self.known_device_list = [{'id': 7, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                     {'id': 11, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                     {'id': 13, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                     {'id': 15, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                     {'id': 12, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                     {'id': 16, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                     {'id': 18, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                     {'id': 22, 'function': "OUT", 'type': "GPIO", 'value': 0}]
+                                          {'id': 11, 'function': "IN", 'type': "GPIO", 'value': 0},
+                                          {'id': 13, 'function': "IN", 'type': "GPIO", 'value': 0},
+                                          {'id': 15, 'function': "IN", 'type': "GPIO", 'value': 0},
+                                          {'id': 12, 'function': "OUT", 'type': "GPIO", 'value': 0},
+                                          {'id': 16, 'function': "OUT", 'type': "GPIO", 'value': 0},
+                                          {'id': 18, 'function': "OUT", 'type': "GPIO", 'value': 0},
+                                          {'id': 22, 'function': "OUT", 'type': "GPIO", 'value': 0}]
 
             with open(self.config_file_name, 'w') as json_file:
                 config = {'host': self.mqtt_server, 'username': self.mqtt_user,

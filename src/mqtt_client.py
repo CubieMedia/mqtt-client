@@ -9,22 +9,30 @@ from functools import partial
 from logging import StreamHandler
 from logging.handlers import SysLogHandler
 
-from common import CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY  # noqa
+from common import CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED  # noqa
 from common.network import get_ip_address  # noqa
 from common.python import exit_gracefully
 
 
 def get_execution_mode(argv: []) -> str:
     if len(argv) < 2 or (argv[1] != CUBIE_IO and argv[1] != CUBIE_ENOCEAN and argv[1] != CUBIE_RELAY):
-        raise RuntimeError("ERROR: Please give Mode [%s,%s,%s] for script" % (CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY))
+        raise RuntimeError(f"Please give Mode [%s,%s,%s] for script" % (CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY))
 
     return argv[1]
 
 
+def is_verbose(argv: []) -> bool:
+    for arg in argv:
+        if 'verbose' in arg:
+            return True
+
+    return False
+
+
 def configure_logger():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-    logging.getLogger().addHandler(StreamHandler(sys.stdout))
-    logging.getLogger().addHandler(SysLogHandler(address='/dev/log'))
+    logging.basicConfig(level=logging.DEBUG if is_verbose(sys.argv) else logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+#    logging.getLogger().addHandler(StreamHandler(sys.stdout))
+#    logging.getLogger().addHandler(SysLogHandler(address='/dev/log'))
 
 
 def get_system(execution_mode: str):
@@ -38,7 +46,7 @@ def get_system(execution_mode: str):
         from system.relay_system import RelaySystem
         return RelaySystem()
     else:
-        raise RuntimeError(f"ERROR: could not find system for mode[{execution_mode}]")
+        raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 
 
 def main():
@@ -67,8 +75,16 @@ def main():
 
         time.sleep(.2)
 
-    print('... all done, exit program')
+    logging.info('all done, exit program')
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except RuntimeError as e:
+        if is_verbose(sys.argv):
+            raise e
+        else:
+            logging.error(e)
+
+    sys.exit(1)

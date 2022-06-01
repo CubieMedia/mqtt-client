@@ -17,7 +17,7 @@ from common import *
 try:
     import queue
 except ImportError:
-    logging.warning("WARNING: queue not found, trying Queue")
+    logging.warning(f"{COLOR_YELLOW}WARNING{COLOR_DEFAULT}: queue not found, trying Queue {COLOR_YELLOW}WARNING{COLOR_DEFAULT}")
     import Queue as queue
 
 
@@ -32,11 +32,12 @@ class EnoceanSystem(BaseSystem):
         try:
             self.communicator = SerialCommunicator(ENOCEAN_PORT)
         except SerialException:
-            logging.info("WARNING ... could not initialise serial communication, running in development mode?")
+            logging.info(
+                f"{COLOR_YELLOW}WARNING{COLOR_DEFAULT} could not initialise serial communication, running in development mode? {COLOR_YELLOW}WARNING{COLOR_DEFAULT}")
 
     def action(self, device):
         should_save = False
-        client_id = self.mqtt_client._client_id.decode()
+        client_id = self.mqtt_client.mqtt_client._client_id.decode()
 
         for known_device in self.known_device_list:
             if str(device['id']).upper() == str(known_device['id']).upper():
@@ -128,7 +129,7 @@ class EnoceanSystem(BaseSystem):
 
     def set_availability(self, state: bool):
         for device in self.known_device_list:
-            if device['client_id'] == self.mqtt_client._client_id.decode():
+            if device['client_id'] == self.mqtt_client.mqtt_client._client_id.decode():
                 self.mqtt_client.publish(CUBIEMEDIA + str(device['id']).lower() + '/online', str(state).lower())
 
     def send(self, data):
@@ -213,7 +214,7 @@ class EnoceanSystem(BaseSystem):
 
     def announce(self):
         for device in self.known_device_list:
-            if device['client_id'] == self.mqtt_client._client_id.decode():
+            if device['client_id'] == self.mqtt_client.mqtt_client._client_id.decode():
                 logging.info("... ... announce device [%s]" % device['id'])
                 self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
                 for topic in device['state']:
