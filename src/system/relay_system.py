@@ -38,8 +38,7 @@ class RelaySystem(BaseSystem):
                         logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
                             device['id'], relay, device['state'][relay]))
                         self.mqtt_client.publish(CUBIEMEDIA + device['id'].replace(".", "_") + "/" + relay,
-                                                 device['state'][relay], 0,
-                                                 True)
+                                                 device['state'][relay])
                         known_device['state'][relay] = device['state'][relay]
                 return True
 

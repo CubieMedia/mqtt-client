@@ -8,10 +8,10 @@ from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, inst
 from common.network import get_ip_address  # noqa
 
 try:
-    from paho.mqtt import client
+    from paho.mqtt import client as mqtt
 except (ModuleNotFoundError, RuntimeError) as e:
     install_package("paho-mqtt")
-    from paho.mqtt import client
+    from paho.mqtt import client as mqtt
 
 
 class CubieMediaMQTTClient:
@@ -20,7 +20,7 @@ class CubieMediaMQTTClient:
 
     def __init__(self, client_id):
         self.client_id = client_id
-        self.mqtt_client = client.Client(client_id=client_id, clean_session=True, userdata=None, transport="tcp")
+        self.mqtt_client = mqtt.Client(client_id=client_id, clean_session=True, userdata=None, transport="tcp")
 
     def connect(self, system):
         self.system = system
@@ -38,7 +38,7 @@ class CubieMediaMQTTClient:
         self.mqtt_client.disconnect()
 
     def publish(self, topic, payload):
-        self.mqtt_client.publish(topic, payload)
+        self.mqtt_client.publish(topic, payload, 0, True)
 
     def subscribe(self, topic, qos):
         self.mqtt_client.subscribe(topic, qos)
