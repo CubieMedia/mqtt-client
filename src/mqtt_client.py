@@ -21,6 +21,7 @@ def get_execution_mode(argv: []) -> str:
 
 
 def is_verbose(argv: []) -> bool:
+    logging.info(argv)
     for arg in argv:
         if 'verbose' in arg:
             return True
