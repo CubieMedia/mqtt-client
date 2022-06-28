@@ -7,8 +7,6 @@ import sys
 import time
 import warnings
 from functools import partial
-from logging import StreamHandler
-from logging.handlers import SysLogHandler
 
 from common import CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED  # noqa
 from common.network import get_ip_address  # noqa
@@ -56,8 +54,8 @@ def get_system(execution_mode: str):
 
 
 def main():
-    mode = get_execution_mode(sys.argv)
     configure_logger()
+    mode = get_execution_mode(sys.argv)
 
     logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
 
