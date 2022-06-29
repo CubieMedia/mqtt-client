@@ -7,10 +7,6 @@ description: |
 grade: stable
 confinement: strict
 
-#layout:
-#  /usr/lib/cubiemedia:
-#    bind: $SNAP/usr/lib/cubiemedia
-
 parts:
   cubiemedia-mqtt-client:
     plugin: dump
@@ -18,23 +14,10 @@ parts:
   python:
     source: ./src
     plugin: python
-    #override-build: |
-      #snapcraftctl build
-      #pip3 install wheel
-#    build-packages: [build-essential, libpython3-dev, try: [python3-rpi.gpio]]
-    #build-environment:
-      #- PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
-    #build-snaps: []
-    #python-packages: [requests, zeroconf, flask, serial, netifaces, enocean, paho-mqtt]
-#    python-packages: [pip, wheel, setuptools, enocean]
     python-packages: [enocean]
-#    stage-packages: [gcc, build-essential, libpython3-dev, libc6-dev, python3-pip, python3-setuptools, python3-wheel, python3-venv, python3-paho-mqtt, python3-lxml, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask, try: [python3-rpi.gpio]]
     stage-packages: [python3-paho-mqtt, python3-lxml, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask, try: [python3-rpi.gpio]]
-#architectures:
-#  - build-on: [armhf, arm64]
-#    run-on: all
 
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
-    plugs: [network, network-bind, serial-port]
+    plugs: [network, network-bind, serial-port, gpio, gpio-control, gpio-memory-control]

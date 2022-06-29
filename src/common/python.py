@@ -10,7 +10,6 @@ from common import CONFIG_FILE_NAME_RELAY, CUBIE_RELAY, CUBIE_GPIO, CUBIE_ENOCEA
 
 def get_config_file_name(execution_mode) -> str:
     snap_user_data = os.getenv('SNAP_USER_DATA')
-    logging.info(f"PATH [{snap_user_data}]")
     if execution_mode == CUBIE_RELAY:
         return f"{snap_user_data}/{CONFIG_FILE_NAME_RELAY}"
     elif execution_mode == CUBIE_GPIO:
