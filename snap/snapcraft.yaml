@@ -1,11 +1,11 @@
 name: cubiemedia-mqtt-client
 base: core20
-version: '0.3.1'
+version: '0.3.2'
 summary: Gateway for different Protocols or Devices
 description: |
   CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
-grade: devel
-confinement: devmode
+grade: stable
+confinement: strict
 
 #layout:
 #  /usr/lib/cubiemedia:
@@ -37,4 +37,4 @@ parts:
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
-    plugs: [network]
+    plugs: [network, serial-port]
