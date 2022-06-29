@@ -6,8 +6,9 @@ import logging
 import os
 import time
 
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO
+from common.python import get_config_file_name, install_package
 from system import BaseSystem
-from common import install_package, COLOR_YELLOW, COLOR_DEFAULT
 
 if os.environ.get('SNAP_ARCH') == 'armhf':
     try:
@@ -18,7 +19,7 @@ if os.environ.get('SNAP_ARCH') == 'armhf':
 else:
     GPIO = None
 
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE, CONFIG_FILE_NAME_GPIO
+from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
 from common.network import get_ip_address
 
 
@@ -27,7 +28,7 @@ class GPIOSystem(BaseSystem):
 
     def __init__(self):
         super().__init__()
-        self.config_file_name = CONFIG_FILE_NAME_GPIO
+        self.config_file_name = get_config_file_name(CUBIE_GPIO)
         self.ip_address = get_ip_address()
 
     def init(self, client_id):

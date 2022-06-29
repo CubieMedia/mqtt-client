@@ -1,8 +1,5 @@
-from .network import get_ip_address
-from .python import install_package, exit_gracefully
-
 # wording #
-CUBIE_IO = "gpio"
+CUBIE_GPIO = "gpio"
 CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
 CUBIE_RESET = "reset"

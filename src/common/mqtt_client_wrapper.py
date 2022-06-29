@@ -4,8 +4,9 @@
 import json
 import logging
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, install_package
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS
 from common.network import get_ip_address  # noqa
+from common.python import install_package
 
 try:
     from paho.mqtt import client as mqtt

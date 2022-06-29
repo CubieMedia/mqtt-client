@@ -3,16 +3,17 @@
 
 import copy
 import json
-import time
 import logging
+import time
 from threading import Timer
 
 from enocean.communicators.serialcommunicator import SerialCommunicator
 from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
-from system import BaseSystem
 from common import *
+from common.python import get_config_file_name
+from system import BaseSystem
 
 try:
     import queue
@@ -28,7 +29,7 @@ class EnoceanSystem(BaseSystem):
 
     def __init__(self):
         super().__init__()
-        self.config_file_name = CONFIG_FILE_NAME_ENOCEAN
+        self.config_file_name = get_config_file_name(CUBIE_ENOCEAN)
         try:
             self.communicator = SerialCommunicator(ENOCEAN_PORT)
         except SerialException:

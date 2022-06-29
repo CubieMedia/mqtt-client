@@ -10,7 +10,8 @@ import time
 import requests
 
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_BOARD, RELAY_USERNAME, RELAY_PASSWORD, STATE_UNKNOWN, \
-    TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CONFIG_FILE_NAME_RELAY
+    TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY
+from common.python import get_config_file_name
 from system import BaseSystem
 
 
@@ -22,7 +23,7 @@ class RelaySystem(BaseSystem):
 
     def __init__(self):
         super().__init__()
-        self.config_file_name = CONFIG_FILE_NAME_RELAY
+        self.config_file_name = get_config_file_name(CUBIE_RELAY)
 
     def action(self, device):
         if not device['id'] in self.subscription_list:
