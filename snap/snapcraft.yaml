@@ -37,4 +37,4 @@ parts:
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
-    plugs: [network, serial-port]
+    plugs: [network, network-bind, serial-port]
