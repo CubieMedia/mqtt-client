@@ -13,16 +13,20 @@ from common.network import get_ip_address  # noqa
 from common.python import exit_gracefully
 
 
-def get_execution_mode(argv: []) -> str:
-    if len(argv) < 2 or (argv[1] != CUBIE_IO and argv[1] != CUBIE_ENOCEAN and argv[1] != CUBIE_RELAY):
-        raise RuntimeError(f"Please give Mode [%s,%s,%s] for script" % (CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY))
+def get_execution_mode() -> str:
+    for arg in sys.argv:
+        if arg == CUBIE_IO:
+            return CUBIE_IO
+        elif arg == CUBIE_ENOCEAN:
+            return CUBIE_ENOCEAN
+        elif arg == CUBIE_RELAY:
+            return CUBIE_RELAY
 
-    return argv[1]
+    raise RuntimeError(f"Please give Mode [%s,%s,%s] for script" % (CUBIE_IO, CUBIE_ENOCEAN, CUBIE_RELAY))
 
 
-def is_verbose(argv: []) -> bool:
-    logging.info(argv)
-    for arg in argv:
+def is_verbose() -> bool:
+    for arg in sys.argv:
         if 'verbose' in arg:
             return True
 
@@ -30,7 +34,7 @@ def is_verbose(argv: []) -> bool:
 
 
 def configure_logger():
-    logging.basicConfig(level=logging.DEBUG if is_verbose(sys.argv) else logging.INFO,
+    logging.basicConfig(level=logging.DEBUG if is_verbose() else logging.INFO,
                         format='%(asctime)s - %(levelname)-8s - %(message)s')
 
     # added for enocean module bug with wrong parser configuration
@@ -56,7 +60,7 @@ def get_system(execution_mode: str):
 
 def main():
     configure_logger()
-    mode = get_execution_mode(sys.argv)
+    mode = get_execution_mode()
 
     logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
 
@@ -87,9 +91,9 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except RuntimeError as e:
-        if is_verbose(sys.argv):
+        if is_verbose():
             raise e
         else:
             logging.error(e)
 
-    sys.exit(1)
+    sys.exit(77)
