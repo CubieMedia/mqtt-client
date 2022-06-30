@@ -20,4 +20,4 @@ parts:
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
-    plugs: [network, network-bind, serial-port, gpio, gpio-control, gpio-memory-control]
+    plugs: [network, network-bind, serial-port, gpio]
