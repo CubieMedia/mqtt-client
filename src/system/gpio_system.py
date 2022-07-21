@@ -10,7 +10,7 @@ from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO
 from common.python import get_config_file_name, install_package
 from system import BaseSystem
 
-if os.environ.get('SNAP_ARCH') == 'armhf':
+if "arm" in os.environ.get('SNAP_ARCH'):
     try:
         import RPi.GPIO as GPIO
     except (ModuleNotFoundError, RuntimeError) as e:
