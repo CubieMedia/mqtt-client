@@ -7,7 +7,9 @@ description: |
 grade: stable
 confinement: strict
 
-# architectures: [amd64, armhf, arm64]
+architectures:
+  - build-on: [armhf, arm64]
+    run-on: [amd64, armhf, arm64]
 
 parts:
   cubiemedia-mqtt-client:
@@ -23,3 +25,15 @@ apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
     plugs: [network, network-bind, serial-port, gpio, gpio-memory-control]
+  cubiemedia-enocean:
+    command: usr/bin/cubiemedia-mqtt-client enocean
+    daemon: simple
+    install-mode: disable
+  cubiemedia-relay:
+    command: usr/bin/cubiemedia-mqtt-client relay
+    daemon: simple
+    install-mode: disable
+  cubiemedia-gpio:
+    command: usr/bin/cubiemedia-mqtt-client gpio
+    daemon: simple
+    install-mode: disable

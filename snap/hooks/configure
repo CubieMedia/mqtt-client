@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+echo "Doing nothing!"
+#snapctl restart cubiemedia-enocean
