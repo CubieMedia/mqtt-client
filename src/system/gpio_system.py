@@ -39,12 +39,13 @@ class GPIOSystem(BaseSystem):
         super().init(client_id)
 
         if GPIO:
-            GPIO.setmode(GPIO.BOARD)
-            # GPIO.setmode(GPIO.BCM)
+            # GPIO.setmode(GPIO.BOARD)
+            GPIO.setmode(GPIO.BCM)
             for device in self.known_device_list:
                 if device['function'] == "IN":
                     logging.info("... set Pin %d as INPUT" % device['id'])
-                    GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+                    # GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+                    GPIO.setup(device['id'], GPIO.IN)
                 elif device['function'] == "OUT":
                     logging.info("... set Pin %d as OUTPUT" % device['id'])
                     GPIO.setup(device['id'], GPIO.OUT)
@@ -115,14 +116,14 @@ class GPIOSystem(BaseSystem):
     def save(self, new_device=None, client=None):
         if new_device is None:
             if self.known_device_list is None or len(self.known_device_list) == 0:
-                self.known_device_list = [{'id': 7, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 11, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 13, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 15, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 12, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                          {'id': 16, 'function': "OUT", 'type': "GPIO", 'value': 0},
+                self.known_device_list = [{'id': 4, 'function': "IN", 'type': "GPIO", 'value': 0},
+                                          {'id': 17, 'function': "IN", 'type': "GPIO", 'value': 0},
+                                          {'id': 27, 'function': "IN", 'type': "GPIO", 'value': 0},
+                                          {'id': 22, 'function': "IN", 'type': "GPIO", 'value': 0},
                                           {'id': 18, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                          {'id': 22, 'function': "OUT", 'type': "GPIO", 'value': 0}]
+                                          {'id': 23, 'function': "OUT", 'type': "GPIO", 'value': 0},
+                                          {'id': 24, 'function': "OUT", 'type': "GPIO", 'value': 0},
+                                          {'id': 25, 'function': "OUT", 'type': "GPIO", 'value': 0}]
 
             with open(self.config_file_name, 'w') as json_file:
                 config = {'host': self.mqtt_server, 'username': self.mqtt_user,
