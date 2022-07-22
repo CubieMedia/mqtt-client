@@ -28,11 +28,6 @@ RELAY_PASSWORD = 'password'
 TIMEOUT_UPDATE = 10
 TIMEOUT_UPDATE_SEND = 30
 
-# Config Files #
-CONFIG_FILE_NAME_ENOCEAN = "./config_enocean.json"
-CONFIG_FILE_NAME_RELAY = "./config_relay.json"
-CONFIG_FILE_NAME_GPIO = "./config_gpio.json"
-
 # Colors for Logging #
 COLOR_YELLOW = "\x1b[33;20m"
 COLOR_RED = "\x1b[31;20m"

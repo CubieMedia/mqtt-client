@@ -3,9 +3,9 @@ import json
 import time
 import logging
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, COLOR_YELLOW, \
-    COLOR_DEFAULT
+from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
+from common.python import get_configuration, set_configuration
 
 
 class BaseSystem(abc.ABC):
@@ -16,7 +16,7 @@ class BaseSystem(abc.ABC):
     learn_mode: bool = DEFAULT_LEARN_MODE
     last_update = time.time()
     known_device_list: [] = []
-    config_file_name = "./device_list.json"
+    execution_mode = None
 
     def init(self, client_id: str):
         self.mqtt_client = CubieMediaMQTTClient(client_id)
@@ -45,19 +45,17 @@ class BaseSystem(abc.ABC):
         raise NotImplemented()
 
     def load(self):
-        try:
-            logging.info("... loading config")
-            with open(self.config_file_name) as json_file:
-                config = json.load(json_file)
-                self.mqtt_server = config['host']
-                self.mqtt_user = config['username']
-                self.mqtt_password = config['password']
-                self.learn_mode = config['learn_mode']
-                self.known_device_list = config['deviceList']
-        except (IOError, ValueError):
-            logging.warning(f"{COLOR_YELLOW}... ... could not read file, creating default config...{COLOR_DEFAULT}")
-            self.save()
-            self.load()
+        logging.info("... loading config")
+
+        config = get_configuration("common")
+        self.mqtt_server = config['host']
+        self.mqtt_user = config['username']
+        self.mqtt_password = config['password']
+        self.learn_mode = config['learn_mode']
+        self.known_device_list = get_configuration(self.execution_mode)
+
+    def save(self):
+        set_configuration(self.execution_mode, self.known_device_list)
 
     def delete(self, device):
         deleted = False
@@ -71,7 +69,7 @@ class BaseSystem(abc.ABC):
         if deleted:
             logging.info(f"... deleted device [{device}]")
         else:
-            logging.warning(f"... could find device [{device}] to delete")
+            logging.warning(f"... could not find device [{device}] to delete")
 
     def reset(self):
         self.known_device_list = []

@@ -7,15 +7,10 @@ import os
 import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO
-from common.python import get_config_file_name, install_package
 from system import BaseSystem
 
 if "arm" in os.environ.get('SNAP_ARCH'):
-    try:
-        import RPi.GPIO as GPIO
-    except (ModuleNotFoundError, RuntimeError) as e:
-        install_package("RPi.GPIO")
-        import RPi.GPIO as GPIO
+    import RPi.GPIO as GPIO
 else:
     GPIO = None
 
@@ -28,7 +23,7 @@ class GPIOSystem(BaseSystem):
 
     def __init__(self):
         super().__init__()
-        self.config_file_name = get_config_file_name(CUBIE_GPIO)
+        self.execution_mode = CUBIE_GPIO
         self.ip_address = get_ip_address()
 
     def init(self, client_id):
@@ -44,8 +39,7 @@ class GPIOSystem(BaseSystem):
             for device in self.known_device_list:
                 if device['function'] == "IN":
                     logging.info("... set Pin %d as INPUT" % device['id'])
-                    # GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-                    GPIO.setup(device['id'], GPIO.IN)
+                    GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
                 elif device['function'] == "OUT":
                     logging.info("... set Pin %d as OUTPUT" % device['id'])
                     GPIO.setup(device['id'], GPIO.OUT)
@@ -113,23 +107,9 @@ class GPIOSystem(BaseSystem):
     def set_availability(self, state: bool):
         self.mqtt_client.publish(CUBIEMEDIA + self.ip_address.replace(".", "_") + '/online', str(state).lower())
 
-    def save(self, new_device=None, client=None):
+    def save(self, new_device=None):
         if new_device is None:
-            if self.known_device_list is None or len(self.known_device_list) == 0:
-                self.known_device_list = [{'id': 4, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 17, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 27, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 22, 'function': "IN", 'type': "GPIO", 'value': 0},
-                                          {'id': 18, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                          {'id': 23, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                          {'id': 24, 'function': "OUT", 'type': "GPIO", 'value': 0},
-                                          {'id': 25, 'function': "OUT", 'type': "GPIO", 'value': 0}]
-
-            with open(self.config_file_name, 'w') as json_file:
-                config = {'host': self.mqtt_server, 'username': self.mqtt_user,
-                          'password': self.mqtt_password,
-                          'learn_mode': self.learn_mode, 'deviceList': self.known_device_list}
-                json.dump(config, json_file, indent=4, sort_keys=True)
+            super().save()
 
     def delete(self, device):
         logging.warning("... delete not supported for GPIO devices, please change config locally")

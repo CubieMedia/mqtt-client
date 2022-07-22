@@ -12,7 +12,6 @@ from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
 from common import *
-from common.python import get_config_file_name
 from system import BaseSystem
 
 try:
@@ -29,7 +28,7 @@ class EnoceanSystem(BaseSystem):
 
     def __init__(self):
         super().__init__()
-        self.config_file_name = get_config_file_name(CUBIE_ENOCEAN)
+        self.execution_mode = CUBIE_ENOCEAN
         try:
             self.communicator = SerialCommunicator(ENOCEAN_PORT)
         except SerialException:
@@ -254,11 +253,7 @@ class EnoceanSystem(BaseSystem):
             should_save = True
 
         if should_save:
-            with open(self.config_file_name, 'w') as json_file:
-                config = {'host': self.mqtt_server, 'username': self.mqtt_user, 'password': self.mqtt_password,
-                          'learn_mode': self.learn_mode,
-                          'deviceList': self.known_device_list}
-                json.dump(config, json_file, indent=4, sort_keys=True)
+            super().save()
 
         if device is not None:
             self.action(device)
