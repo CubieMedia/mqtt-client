@@ -52,6 +52,7 @@ class BaseSystem(abc.ABC):
         self.mqtt_password = config['password']
         self.learn_mode = config['learn-mode']
         self.known_device_list = get_configuration(self.execution_mode)
+        logging.info(self.known_device_list)
 
     def save(self):
         set_configuration(self.execution_mode, self.known_device_list)
