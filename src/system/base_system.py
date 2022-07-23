@@ -18,9 +18,9 @@ class BaseSystem(abc.ABC):
     execution_mode = None
 
     def init(self, client_id: str):
+        self.load()
         self.mqtt_client = CubieMediaMQTTClient(client_id)
         self.mqtt_client.connect(self)
-        self.load()
 
     def shutdown(self):
         raise NotImplementedError
@@ -52,7 +52,6 @@ class BaseSystem(abc.ABC):
         self.mqtt_password = config['password']
         self.learn_mode = config['learn-mode']
         self.known_device_list = get_configuration(self.execution_mode)
-        logging.info(self.known_device_list)
 
     def save(self):
         set_configuration(self.execution_mode, self.known_device_list)
