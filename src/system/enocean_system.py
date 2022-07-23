@@ -62,17 +62,16 @@ class EnoceanSystem(BaseSystem):
                                 print("... ... action for [%s]" % channel_topic)
                                 logging.info("... ... action for [%s]" % channel_topic)
                                 if channel_topic in self.timers and self.timers[channel_topic] is not True:
-                                    self.mqtt_client.publish(channel_topic, 1, 0, True)
+                                    self.mqtt_client.publish(channel_topic, 1)
                                     timer = self.timers[channel_topic]
                                     timer.cancel()
                                     del self.timers[channel_topic]
-                                    short_press_timer = Timer(0.5, self.mqtt_client.publish,
-                                                              [channel_topic, 0, 0, True])
+                                    short_press_timer = Timer(0.5, self.mqtt_client.publish, [channel_topic, 0])
                                     short_press_timer.start()
                                 else:
                                     if channel_topic in self.timers:
                                         del self.timers[channel_topic]
-                                    self.mqtt_client.publish(channel_topic + "/longpush", 0, 0, True)
+                                    self.mqtt_client.publish(channel_topic + "/longpush", 0)
                             should_save = True
                     known_device['state'] = device['state']
                     if device['dbm'] > known_device['dbm']:
@@ -96,12 +95,12 @@ class EnoceanSystem(BaseSystem):
             timer.start()
         elif force:
             logging.info("... ... sending longpush [%s]" % channel_topic)
-            self.mqtt_client.publish(channel_topic + "/longpush", 1, 0, True)
+            self.mqtt_client.publish(channel_topic + "/longpush", 1)
 
     def longpress_timer(self, channel_topic):
         self.timers[channel_topic] = True
         logging.info("... ... sending longpush [%s]" % channel_topic)
-        self.mqtt_client.publish(channel_topic + "/longpush", 1, 0, True)
+        self.mqtt_client.publish(channel_topic + "/longpush", 1)
 
         topic_array = channel_topic.split('/')
         device_id = topic_array[1]

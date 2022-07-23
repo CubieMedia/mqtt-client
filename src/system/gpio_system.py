@@ -59,7 +59,7 @@ class GPIOSystem(BaseSystem):
     def action(self, device):
         logging.info("... ... action for [%s]" % device)
         self.mqtt_client.publish('cubiemedia/' + device['ip'].replace(".", "_") + "/" + str(device['id']),
-                                 json.dumps(device['value']), 0, True)
+                                 json.dumps(device['value']))
 
     def update(self):
         data = {}
