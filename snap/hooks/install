@@ -1,14 +1,14 @@
 #!/bin/sh -e
 
-snapctl set common={host: "homeassistant", username: "mqtt", password: "autoInstall", learn_mode: True}
+snapctl set common='{"host": "homeassistant", "username": "mqtt", "password": "autoInstall", "learn-mode": true}'
 
-snapctl set gpio=[{'id': 4, 'function': "IN", 'type': "GPIO",'value': 0}, \
-  {'id': 17, 'function': "IN", 'type': "GPIO", 'value': 0}, \
-  {'id': 27, 'function': "IN", 'type': "GPIO", 'value': 0}, \
-  {'id': 22, 'function': "IN", 'type': "GPIO", 'value': 0}, \
-  {'id': 18, 'function': "OUT", 'type': "GPIO", 'value': 0}, \
-  {'id': 23, 'function': "OUT", 'type': "GPIO", 'value': 0}, \
-  {'id': 24, 'function': "OUT", 'type': "GPIO", 'value': 0}, \
-  {'id': 25, 'function': "OUT", 'type': "GPIO", 'value': 0}]
-snapctl set relay=[]
-snapctl set enocean=[]
+snapctl set gpio='[{"id": 4, "function": "IN", "type": "GPIO","value": 0},
+  {"id": 17, "function": "IN", "type": "GPIO", "value": 0},
+  {"id": 27, "function": "IN", "type": "GPIO", "value": 0},
+  {"id": 22, "function": "IN", "type": "GPIO", "value": 0},
+  {"id": 18, "function": "OUT", "type": "GPIO", "value": 0},
+  {"id": 23, "function": "OUT", "type": "GPIO", "value": 0},
+  {"id": 24, "function": "OUT", "type": "GPIO", "value": 0},
+  {"id": 25, "function": "OUT", "type": "GPIO", "value": 0}]'
+snapctl set relay='[]'
+snapctl set enocean='[]'

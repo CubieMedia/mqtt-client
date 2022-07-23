@@ -7,9 +7,10 @@ import os
 import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO
-from system import BaseSystem
+from system.base_system import BaseSystem
 
-if "arm" in os.environ.get('SNAP_ARCH'):
+snap_arch = os.environ.get('SNAP_ARCH')
+if snap_arch and "arm" in snap_arch:
     import RPi.GPIO as GPIO
 else:
     GPIO = None

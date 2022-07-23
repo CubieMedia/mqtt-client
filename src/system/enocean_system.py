@@ -12,7 +12,7 @@ from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
 from common import *
-from system import BaseSystem
+from system.base_system import BaseSystem
 
 try:
     import queue

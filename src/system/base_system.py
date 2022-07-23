@@ -1,7 +1,6 @@
 import abc
-import json
-import time
 import logging
+import time
 
 from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
@@ -51,7 +50,7 @@ class BaseSystem(abc.ABC):
         self.mqtt_server = config['host']
         self.mqtt_user = config['username']
         self.mqtt_password = config['password']
-        self.learn_mode = config['learn_mode']
+        self.learn_mode = config['learn-mode']
         self.known_device_list = get_configuration(self.execution_mode)
 
     def save(self):

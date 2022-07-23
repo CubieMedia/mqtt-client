@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
+import json
 import logging
 import subprocess
 
@@ -13,16 +14,18 @@ def exit_gracefully(system, *args):
     system.mqtt_client.disconnect()
 
 
-def execute_command(command: []):
-    subprocess.check_output(command)
+def execute_command(command: []) -> str:
+    return subprocess.check_output(command)
 
 
 def get_configuration(config_name: str) -> {}:
-    return execute_command(["snapctl", "get", "-d", config_name])
+    value = execute_command(["snapctl", "get", "-d", config_name]).strip()
+
+    return json.loads(value)[config_name]
 
 
 def set_configuration(config_name: str, config: {}):
-    execute_command(["snapctl", "set", f"{config_name}={config}"])
+    execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
 
 
 def install_package(package):

@@ -11,7 +11,7 @@ import requests
 
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_BOARD, RELAY_USERNAME, RELAY_PASSWORD, STATE_UNKNOWN, \
     TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY
-from system import BaseSystem
+from system.base_system import BaseSystem
 
 
 class RelaySystem(BaseSystem):
