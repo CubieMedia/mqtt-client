@@ -1,6 +1,6 @@
 name: cubiemedia-mqtt-client
 base: core20
-version: '0.4.1'
+version: '0.5.0'
 summary: Gateway for different Protocols or Devices
 description: |
   CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
@@ -8,8 +8,8 @@ grade: stable
 confinement: strict
 
 architectures:
-  - build-on: [armhf, arm64]
-    run-on: [amd64, armhf, arm64]
+  - build-on: [ armhf, arm64 ]
+    run-on: [ amd64, armhf, arm64 ]
 
 parts:
   cubiemedia-mqtt-client:
@@ -18,13 +18,13 @@ parts:
   python:
     source: ./src
     plugin: python
-    python-packages: [enocean]
-    stage-packages: [python3-paho-mqtt, python3-lxml, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask, try: [python3-rpi.gpio]]
+    python-packages: [ enocean ]
+    stage-packages: [ python3-paho-mqtt, python3-lxml, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask, try: [ python3-rpi.gpio ] ]
 
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
-    plugs: [network, network-bind, serial-port, gpio, gpio-memory-control]
+    plugs: [ network, network-bind, serial-port, gpio, gpio-memory-control ]
   cubiemedia-enocean:
     command: usr/bin/cubiemedia-mqtt-client enocean
     daemon: simple

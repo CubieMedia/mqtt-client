@@ -40,9 +40,6 @@ def configure_logger():
     # added for enocean module bug with wrong parser configuration
     warnings.simplefilter("ignore")
 
-#    logging.getLogger().addHandler(StreamHandler(sys.stdout))
-#    logging.getLogger().addHandler(SysLogHandler(address='/dev/log'))
-
 
 def get_system(execution_mode: str):
     if execution_mode == CUBIE_GPIO:

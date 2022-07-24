@@ -16,7 +16,6 @@ except (ModuleNotFoundError, RuntimeError) as e:
 
 
 class CubieMediaMQTTClient:
-
     system = None
 
     def __init__(self, client_id):

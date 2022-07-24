@@ -11,7 +11,7 @@ sys.path.append('/usr/lib/cubiemedia/')
 sys.path.append('../lib/cubiemedia/')
 
 from flask import Flask, url_for, render_template
-from cubiemedia_common import get_ip_address # noqa
+from cubiemedia_common import get_ip_address  # noqa
 
 app = Flask(__name__)
 service_list = {"cubiemedia-io": "CubieMedia-IO", "cubiemedia-enoocean": "CubieMedia-EnOcean",
