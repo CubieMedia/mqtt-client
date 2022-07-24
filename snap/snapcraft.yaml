@@ -11,6 +11,10 @@ architectures:
   - build-on: [ armhf, arm64 ]
     run-on: [ amd64, armhf, arm64 ]
 
+environment:
+  FLASK_APP: usr/lib/cubiemedia/webtool/app.py
+  FLASK_ENV: development
+
 parts:
   cubiemedia-mqtt-client:
     plugin: dump
@@ -37,3 +41,6 @@ apps:
     command: usr/bin/cubiemedia-mqtt-client gpio
     daemon: simple
     install-mode: disable
+  cubiemedia-webtool:
+    command: usr/bin/flask run --host=0.0.0.0 --port=80
+    daemon: simple
