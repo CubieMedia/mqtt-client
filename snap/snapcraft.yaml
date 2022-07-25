@@ -25,6 +25,7 @@ parts:
     plugin: python
     python-packages:
       - enocean
+      - flask=2.0.1
     stage-packages:
       - python3-paho-mqtt
       - python3-lxml
