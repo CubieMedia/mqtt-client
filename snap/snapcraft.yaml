@@ -1,6 +1,6 @@
 name: cubiemedia-mqtt-client
-base: core20
-version: '0.5.0'
+base: core22
+version: '0.6.0'
 summary: Gateway for different Protocols or Devices
 description: |
   CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
@@ -8,8 +8,13 @@ grade: stable
 confinement: strict
 
 architectures:
-  - build-on: [ armhf, arm64 ]
-    run-on: [ amd64, armhf, arm64 ]
+  - build-on:
+      - armhf
+      - arm64
+    build-to:
+      - amd64
+      - armhf
+      - arm64
 
 parts:
   cubiemedia-mqtt-client:
@@ -18,13 +23,23 @@ parts:
   python:
     source: ./src
     plugin: python
-    python-packages: [ enocean ]
-    stage-packages: [ python3-paho-mqtt, python3-lxml, python3-netifaces, python3-zeroconf, python3-serial, python3-requests, python3-flask, try: [ python3-rpi.gpio ] ]
+    python-packages:
+      - enocean
+    stage-packages:
+      - python3-paho-mqtt
+      - python3-lxml
+      - python3-netifaces
+      - python3-zeroconf
+      - python3-serial
+      - python3-requests
+      - python3-flask
+      - on armhf:
+        - python3-rpi.gpio
 
 apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
-    plugs: [ network, network-bind, serial-port, gpio, gpio-memory-control ]
+    plugs: [ network, network-bind, serial-port, gpio-memory-control ]
   cubiemedia-enocean:
     command: usr/bin/cubiemedia-mqtt-client enocean
     daemon: simple
@@ -38,13 +53,11 @@ apps:
     daemon: simple
     install-mode: disable
   cubiemedia-webtool:
-    command: usr/bin/flask
-    command-chain:
-      - run
-      - --host=0.0.0.0
-      - --port=80
+    command: usr/bin/flask run
     daemon: simple
     environment:
       FLASK_APP: usr/lib/cubiemedia/webtool/app.py
       FLASK_ENV: development
+      FLASK_RUN_PORT: 8888
+      FLASK_RUN_HOST: 0.0.0.0
 
