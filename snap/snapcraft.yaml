@@ -25,7 +25,7 @@ parts:
     plugin: python
     python-packages:
       - enocean
-      - flask=2.0.1
+      - flask
     stage-packages:
       - python3-paho-mqtt
       - python3-lxml
@@ -33,7 +33,6 @@ parts:
       - python3-zeroconf
       - python3-serial
       - python3-requests
-      - python3-flask
       - on armhf:
         - python3-rpi.gpio
 
