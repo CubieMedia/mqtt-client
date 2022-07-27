@@ -1,15 +1,19 @@
 <!doctype html>
 <title>CubieMedia - WebTool</title>
+<h1>CubieMedia WebTool</h1>
+<hr>
 
-<script>    
-     window.setTimeout(function(){
+{% if not application_list %}
+    <h3 style="color: red;">There are no applications running, please activate application first</h3>
+    <hr>
+    {% set application_list = service_list %}
+{% endif %}
+<ul>
+    {% for item in application_list %}
+    <li><a href="{{ url_for('show_application', application=item) }}">{{ application_list[item] }}</a></li>
+    {% endfor %}
+</ul>
+<hr>
+<a href="{{ url_for('show_administration') }}">Cubie-Administration</a>
 
-       // Move to a new location or you can do something else
-       window.location.href = "/";
-
-       }, 3000);
-
-
-</script>
-
-OK - please wait for reboot - this can take up to one minute!
+<br/>

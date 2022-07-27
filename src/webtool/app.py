@@ -1,33 +1,41 @@
 import json
+import logging
 import os
 import sys
 import threading
 import time
 
 import paho.mqtt.client as mqtt
+from flask import Flask, url_for, render_template
 from werkzeug.utils import redirect
 
-sys.path.append('/usr/lib/cubiemedia/')
-sys.path.append('../lib/cubiemedia/')
-
-from flask import Flask, url_for, render_template
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY
 from common.network import get_ip_address  # noqa
+from common.python import get_configuration
 
 app = Flask(__name__)
-service_list = {"cubiemedia-gpio": "CubieMedia-IO", "cubiemedia-enoocean": "CubieMedia-EnOcean",
-                "cubiemedia-relay": "CubieMedia-Relay"}
+service_list = {CUBIE_GPIO: "CubieMedia-GPIO", CUBIE_ENOCEAN: "CubieMedia-EnOcean", CUBIE_RELAY: "CubieMedia-Relay"}
+
+snap_path = os.getenv('SNAP')
+sys.path.append(f'{snap_path}/usr/lib/python3/dist-packages')
+sys.path.append(f'{snap_path}/lib/python3.8/site-packages')
+sys.path.append(f'{snap_path}/lib/python3.9/site-packages')
+sys.path.append(f'{snap_path}/lib/python3.10/site-packages')
 
 
 @app.route('/show/<application>')
 def show_application(application):
-    config = get_config(application)
+    common = get_configuration("common")
+    learn_mode = True
+    if "learn-mode" in common:
+        learn_mode = common['learn-mode']
     return render_template('application.html', application=application, device_list=get_device_list(application),
-                           learn_mode=config['learn_mode'])
+                           learn_mode=learn_mode)
 
 
 @app.route('/delete/<application>/<item>')
 def remove_item_from_application(application, item):
-    config = get_config(application)
+    config = get_configuration(application)
 
     device_list = get_device_list(application)
     if item == "all":
@@ -54,7 +62,7 @@ def switch_io_function_of_item(application, item):
 
 @app.route('/function/<application>/learn_mode')
 def switch_learn_mode(application):
-    config = get_config(application)
+    config = get_configuration(application)
     mqtt_client = connect_mqtt_client(config)
     message = {"mode": "update", "learn_mode": not bool(config['learn_mode'])}
     mqtt_client.publish("cubiemedia/command", json.dumps(message))
@@ -71,35 +79,16 @@ def get_running_applications():
         if state == 0:
             applications[service] = service_list[service]
 
-    if len(applications) == 0:
-        return service_list
     return applications
 
 
 def get_device_list(application):
-    config = get_config(application)
+    config = get_configuration(application)
+    logging.info(config)
     if "deviceList" in config:
         return config["deviceList"]
     else:
         return config
-
-
-def get_config(application):
-    path = get_path(application)
-    if path:
-        with open(path) as json_file:
-            return json.load(json_file)
-
-
-def get_path(application):
-    if application == "cubiemedia-io":
-        return './gpioList.json'
-    elif application == "cubiemedia-enoocean":
-        return './deviceList.json'
-    elif application == "cubiemedia-relay":
-        return './relayList.json'
-    else:
-        return None
 
 
 def delete_item(config, items):
@@ -135,10 +124,5 @@ def system_reboot():
 
 @app.route('/')
 def index():
-    response = '<h1>Running Applications:</h1>'
     application_list = get_running_applications()
-    for application in application_list:
-        response += '<p><a href="' + url_for('show_application', application=application) + '">' + application_list[
-            application] + '</a>'
-    response += '<p><a href="' + url_for('show_administration') + '">Cubie-Administration</a>'
-    return response
+    return render_template('index.html', application_list=application_list, service_list=service_list)

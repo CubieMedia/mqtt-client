@@ -21,7 +21,11 @@ def execute_command(command: []) -> str:
 def get_configuration(config_name: str) -> {}:
     value = execute_command(["snapctl", "get", "-d", config_name]).strip()
 
-    return json.loads(value)[config_name]
+    json_object = json.loads(value)
+    if config_name in json_object:
+        return json_object[config_name]
+    else:
+        return {}
 
 
 def set_configuration(config_name: str, config: {}):

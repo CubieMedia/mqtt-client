@@ -1,18 +1,13 @@
 name: cubiemedia-mqtt-client
 base: core22
-version: '0.6.0'
+version: '0.6.1'
 summary: Gateway for different Protocols or Devices
-description: |
-  CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
+description: CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
 grade: stable
 confinement: strict
 
 architectures:
   - build-on:
-      - armhf
-      - arm64
-    build-to:
-      - amd64
       - armhf
       - arm64
 
@@ -34,7 +29,7 @@ parts:
       - python3-requests
       - python3-flask
       - on armhf:
-        - python3-rpi.gpio
+          - python3-rpi.gpio
 
 apps:
   cubiemedia-mqtt-client:
@@ -56,7 +51,7 @@ apps:
     command: usr/bin/flask run
     daemon: simple
     environment:
-      FLASK_APP: usr/lib/cubiemedia/webtool/app.py
+      FLASK_APP: src/webtool/app.py
       FLASK_ENV: development
       FLASK_RUN_PORT: 8888
       FLASK_RUN_HOST: 0.0.0.0
