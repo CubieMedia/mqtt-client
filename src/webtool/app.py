@@ -11,10 +11,10 @@ sys.path.append('/usr/lib/cubiemedia/')
 sys.path.append('../lib/cubiemedia/')
 
 from flask import Flask, url_for, render_template
-from cubiemedia_common import get_ip_address  # noqa
+from common.network import get_ip_address  # noqa
 
 app = Flask(__name__)
-service_list = {"cubiemedia-io": "CubieMedia-IO", "cubiemedia-enoocean": "CubieMedia-EnOcean",
+service_list = {"cubiemedia-gpio": "CubieMedia-IO", "cubiemedia-enoocean": "CubieMedia-EnOcean",
                 "cubiemedia-relay": "CubieMedia-Relay"}
 
 
@@ -85,16 +85,10 @@ def get_device_list(application):
 
 
 def get_config(application):
-    config = {"deviceList": []}
-    try:
-        path = get_path(application)
-        if path:
-            with open(path) as json_file:
-                config = json.load(json_file)
-    except FileNotFoundError:
-        print("could not load config")
-    finally:
-        return config
+    path = get_path(application)
+    if path:
+        with open(path) as json_file:
+            return json.load(json_file)
 
 
 def get_path(application):
