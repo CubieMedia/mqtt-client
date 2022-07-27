@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sys
 import threading
 import time
 
@@ -15,12 +14,6 @@ from common.python import get_configuration
 
 app = Flask(__name__)
 service_list = {CUBIE_GPIO: "CubieMedia-GPIO", CUBIE_ENOCEAN: "CubieMedia-EnOcean", CUBIE_RELAY: "CubieMedia-Relay"}
-
-snap_path = os.getenv('SNAP')
-sys.path.append(f'{snap_path}/usr/lib/python3/dist-packages')
-sys.path.append(f'{snap_path}/lib/python3.8/site-packages')
-sys.path.append(f'{snap_path}/lib/python3.9/site-packages')
-sys.path.append(f'{snap_path}/lib/python3.10/site-packages')
 
 
 @app.route('/show/<application>')
