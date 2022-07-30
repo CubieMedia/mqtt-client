@@ -18,6 +18,8 @@ parts:
   python:
     source: ./src
     plugin: python
+    build-environment:
+      - PYTHONPATH: ${CRAFT_PART_INSTALL}/usr/lib/python3/dist-packages
     python-packages:
       - enocean
     stage-packages:
