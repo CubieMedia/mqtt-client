@@ -7,11 +7,16 @@ import os
 import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO
+from common.python import install_package
 from system.base_system import BaseSystem
 
 snap_arch = os.environ.get('SNAP_ARCH')
 if snap_arch and "arm" in snap_arch:
-    import RPi.GPIO as GPIO
+    try:
+        import RPi.GPIO as GPIO
+    except (ModuleNotFoundError, RuntimeError) as e:
+        install_package("RPi.GPIO")
+        import RPi.GPIO as GPIO
 else:
     GPIO = None
 
@@ -28,14 +33,11 @@ class GPIOSystem(BaseSystem):
         self.ip_address = get_ip_address()
 
     def init(self, client_id):
+        super().init(client_id)
         if not GPIO:
             logging.warning(
                 f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode? WARNING{COLOR_DEFAULT}")
-
-        super().init(client_id)
-
-        if GPIO:
-            # GPIO.setmode(GPIO.BOARD)
+        else:
             GPIO.setmode(GPIO.BCM)
             for device in self.known_device_list:
                 if device['function'] == "IN":

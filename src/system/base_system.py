@@ -46,12 +46,14 @@ class BaseSystem(abc.ABC):
     def load(self):
         logging.info("... loading config")
 
-        config = get_configuration("common")
-        self.mqtt_server = config['host']
-        self.mqtt_user = config['username']
-        self.mqtt_password = config['password']
-        self.learn_mode = config['learn-mode']
-        self.known_device_list = get_configuration(self.execution_mode)
+        common_config = get_configuration("common")
+        device_list = get_configuration(self.execution_mode)
+
+        self.mqtt_server = common_config['host'] if common_config else DEFAULT_MQTT_SERVER
+        self.mqtt_user = common_config['username'] if common_config else DEFAULT_MQTT_USERNAME
+        self.mqtt_password = common_config['password'] if common_config else DEFAULT_MQTT_PASSWORD
+        self.learn_mode = common_config['learn-mode'] if common_config else DEFAULT_LEARN_MODE
+        self.known_device_list = device_list if device_list else []
 
     def save(self):
         set_configuration(self.execution_mode, self.known_device_list)

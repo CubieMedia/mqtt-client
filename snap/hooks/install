@@ -10,5 +10,6 @@ snapctl set gpio='[{"id": 4, "function": "IN", "type": "GPIO","value": 0},
   {"id": 23, "function": "OUT", "type": "GPIO", "value": 0},
   {"id": 24, "function": "OUT", "type": "GPIO", "value": 0},
   {"id": 25, "function": "OUT", "type": "GPIO", "value": 0}]'
+snapctl set sonar='{"device": "/dev/ttyS0", "update_interval": 10}'
 snapctl set relay='[]'
 snapctl set enocean='[]'

@@ -8,7 +8,7 @@ import time
 import warnings
 from functools import partial
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED  # noqa
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR  # noqa
 from common.network import get_ip_address  # noqa
 from common.python import exit_gracefully
 
@@ -21,8 +21,11 @@ def get_execution_mode() -> str:
             return CUBIE_ENOCEAN
         elif arg == CUBIE_RELAY:
             return CUBIE_RELAY
+        elif arg == CUBIE_SONAR:
+            return CUBIE_SONAR
 
-    raise RuntimeError(f"Please give Mode [%s,%s,%s] for script" % (CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY))
+    raise RuntimeError(
+        f"Please give Mode [%s,%s,%s,%s] for script" % (CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR))
 
 
 def is_verbose() -> bool:
@@ -51,6 +54,9 @@ def get_system(execution_mode: str):
     elif execution_mode == CUBIE_RELAY:
         from system.relay_system import RelaySystem
         return RelaySystem()
+    elif execution_mode == CUBIE_SONAR:
+        from system.sonar_system import SonarSystem
+        return SonarSystem()
     else:
         raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 

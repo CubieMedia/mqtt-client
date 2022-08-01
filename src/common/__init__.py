@@ -2,6 +2,7 @@
 CUBIE_GPIO = "gpio"
 CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
+CUBIE_SONAR = "sonar"
 CUBIE_RESET = "reset"
 CUBIE_ANNOUNCE = "announce"
 CUBIEMEDIA = "cubiemedia/"
@@ -9,6 +10,7 @@ STATE_UNKNOWN = 'unknown'
 
 # devices #
 ENOCEAN_PORT = "/dev/ttyAMA0"
+SONAR_PORT = "/dev/ttyS0"
 
 # MQTT #
 QOS = 2

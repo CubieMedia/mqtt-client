@@ -19,13 +19,15 @@ def execute_command(command: []) -> str:
 
 
 def get_configuration(config_name: str) -> {}:
-    value = execute_command(["snapctl", "get", "-d", config_name]).strip()
+    try:
+        value = execute_command(["snapctl", "get", "-d", config_name]).strip()
 
-    json_object = json.loads(value)
-    if config_name in json_object:
-        return json_object[config_name]
-    else:
-        return {}
+        json_object = json.loads(value)
+        if config_name in json_object:
+            return json_object[config_name]
+    except FileNotFoundError:
+        logging.warning("seems to be a non snap environment, could not load config")
+    return None
 
 
 def set_configuration(config_name: str, config: {}):
