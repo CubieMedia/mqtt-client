@@ -30,7 +30,7 @@ def get_execution_mode() -> str:
 
 def is_verbose() -> bool:
     for arg in sys.argv:
-        if 'verbose' in arg:
+        if 'verbose' in arg or 'debug' in arg:
             return True
 
     return False
@@ -99,4 +99,4 @@ if __name__ == '__main__':
         else:
             logging.error(e)
 
-    sys.exit(77)
+    sys.exit(0)

@@ -40,9 +40,6 @@ class BaseSystem(abc.ABC):
     def set_availability(self, state: bool):
         raise NotImplementedError()
 
-    def save(self, new_device: None):
-        raise NotImplemented()
-
     def load(self):
         logging.info("... loading config")
 
@@ -55,8 +52,9 @@ class BaseSystem(abc.ABC):
         self.learn_mode = common_config['learn-mode'] if common_config else DEFAULT_LEARN_MODE
         self.known_device_list = device_list if device_list else []
 
-    def save(self):
-        set_configuration(self.execution_mode, self.known_device_list)
+    def save(self, new_device=None):
+        if new_device is None:
+            set_configuration(self.execution_mode, self.known_device_list)
 
     def delete(self, device):
         deleted = False

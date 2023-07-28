@@ -3,6 +3,7 @@
 import json
 import logging
 import subprocess
+from subprocess import CalledProcessError
 
 
 def exit_gracefully(system, *args):
@@ -31,7 +32,11 @@ def get_configuration(config_name: str) -> {}:
 
 
 def set_configuration(config_name: str, config: {}):
-    execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
+    try:
+        execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
+    except CalledProcessError:
+        logging.warning("seems to be a non snap environment, could not save config")
+    return None
 
 
 def install_package(package):

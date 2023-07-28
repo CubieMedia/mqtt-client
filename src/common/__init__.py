@@ -30,6 +30,9 @@ RELAY_PASSWORD = 'password'
 TIMEOUT_UPDATE = 10
 TIMEOUT_UPDATE_SEND = 30
 
+# Values
+DEFAULT_OFFSET = 5
+
 # Colors for Logging #
 COLOR_YELLOW = "\x1b[33;20m"
 COLOR_RED = "\x1b[31;20m"

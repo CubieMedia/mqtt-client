@@ -155,7 +155,7 @@ class RelaySystem(BaseSystem):
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.settimeout(1)
         s.sendto(msg.encode(), destination)
-        while not self.search_thread_event.isSet():
+        while not self.search_thread_event.is_set():
             try:
                 (buf, address) = s.recvfrom(30303)
                 if not len(buf):

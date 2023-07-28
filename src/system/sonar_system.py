@@ -7,8 +7,8 @@ import time
 
 from serial import Serial, SerialException
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, DEFAULT_OFFSET
+from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE
 from common.network import get_ip_address
 from system.base_system import BaseSystem
 
@@ -18,7 +18,9 @@ class SonarSystem(BaseSystem):
     communicator = None
     last_update = time.time()
     distance = None
-    update_interval = 10
+    update_interval = 1
+    offset = 0
+    trigger_offset = 5
 
     def __init__(self):
         super().__init__()
@@ -27,9 +29,15 @@ class SonarSystem(BaseSystem):
     def init(self, client_id):
         super().init(client_id)
         self.ip_address = get_ip_address()
-        self.update_interval = self.known_device_list['update_interval']
+        self.update_interval = self.known_device_list[
+            'update_interval'] if 'update_interval' in self.known_device_list else 1
+        self.offset = self.known_device_list[
+            'offset'] if 'offset' in self.known_device_list else 0
+        self.trigger_offset = self.known_device_list[
+            'trigger_offset'] if 'trigger_offset' in self.known_device_list else DEFAULT_OFFSET
         try:
-            self.communicator = Serial(self.known_device_list['device'], 9600)
+            self.communicator = Serial(
+                self.known_device_list['device'] if 'device' in self.known_device_list else SONAR_PORT, 9600)
             self.communicator.flush()
         except SerialException:
             logging.warning(
@@ -55,12 +63,19 @@ class SonarSystem(BaseSystem):
             if self.communicator.inWaiting() > 0:
                 response = str(self.communicator.read(self.communicator.inWaiting()))
                 if "Gap=" in response:
-                    distance = int(response[response.index("Gap=") + 4:response.index("mm")])
+                    distance = int(response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
 
-                    if (not self.distance or self.distance != distance) and 200 < distance < 8000:
-                        self.distance = distance
-                        device = {'id': self.ip_address, 'type': "SONAR", 'value': distance}
-                        device_list.append(device)
+                    if not self.distance or abs(self.distance - distance) > self.trigger_offset:
+                        if 200 <= distance - self.offset <= 8000:
+                            self.distance = distance
+                            device = {'id': self.ip_address, 'type': "SONAR", 'value': self.distance}
+                            device_list.append(device)
+                        else:
+                            logging.warning(
+                                f"Distance [{distance}] is out of range, object too close or cable disconnected")
+                else:
+                    logging.warning(f"Could not find [Gap] in response[{response}]")
+
             self.last_update = time.time()
 
         data['devices'] = device_list
