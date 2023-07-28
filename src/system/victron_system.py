@@ -14,10 +14,13 @@ from system.base_system import BaseSystem
 
 class VictronSystem(BaseSystem):
     topic_read_list = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
+                       "vebus/276/Energy/OutToInverter",
+                       "vebus/276/Energy/InverterToAcOut",
                        "settings/0/Settings/SystemSetup/MaxChargeCurrent",
                        "settings/0/Settings/CGwacs/MaxDischargePower",
                        "settings/0/Settings/CGwacs/AcPowerSetPoint"]
-    service_list = ["battery_power", "battery_soc", "charge", "feed", "gridmode"]
+    service_list = ["battery_power", "battery_soc", "battery_charged_total",
+                    "battery_feeded_total", "charge", "feed", "gridmode"]
     victron_system = {}
     victron_mqtt_client = None
     updated_data = {"devices": []}
@@ -31,13 +34,15 @@ class VictronSystem(BaseSystem):
     def action(self, device):
         logging.debug("... ... received device action [%s]" % device)
         for topic in device.keys():
-            if self.service_list.index(topic) > 1:
+            if not "battery" in topic:
                 if topic == 'charge':
                     payload = 0 if device[topic] < 1 else 1
                 elif topic == 'feed':
                     payload = 0 if device[topic] == 0 else 1
                 else:
                     payload = 1 if device[topic] < 1 else 0
+            elif "total" in topic:
+                payload = device[topic] * 10
             else:
                 payload = device[topic]
             self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic, payload)
@@ -60,7 +65,7 @@ class VictronSystem(BaseSystem):
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/CGwacs/MaxDischargePower", value)
             elif service_index == 4:
                 logging.info("... ... grid master is [%s]" % service_value)
-                value = '{"value": %s}' % (-60 if service_value else 100)
+                value = '{"value": %s}' % (-60 if service_value else 60)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/CGwacs/AcPowerSetPoint", value)
             else:
                 logging.warning("unknown service in data while writing value to victron system [%s]" % data)
