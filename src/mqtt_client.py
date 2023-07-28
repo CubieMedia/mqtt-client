@@ -8,7 +8,7 @@ import time
 import warnings
 from functools import partial
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR  # noqa
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR, CUBIE_VICTRON  # noqa
 from common.network import get_ip_address  # noqa
 from common.python import exit_gracefully
 
@@ -21,6 +21,8 @@ def get_execution_mode() -> str:
             return CUBIE_ENOCEAN
         elif arg == CUBIE_RELAY:
             return CUBIE_RELAY
+        elif arg == CUBIE_VICTRON:
+            return CUBIE_VICTRON
         elif arg == CUBIE_SONAR:
             return CUBIE_SONAR
 
@@ -57,6 +59,9 @@ def get_system(execution_mode: str):
     elif execution_mode == CUBIE_SONAR:
         from system.sonar_system import SonarSystem
         return SonarSystem()
+    elif execution_mode == CUBIE_VICTRON:
+        from system.victron_system import VictronSystem
+        return VictronSystem()
     else:
         raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 
