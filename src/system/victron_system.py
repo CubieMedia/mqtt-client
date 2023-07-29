@@ -16,11 +16,13 @@ class VictronSystem(BaseSystem):
     topic_read_list = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
                        "vebus/276/Energy/OutToInverter",
                        "vebus/276/Energy/InverterToAcOut",
+                       "vebus/276/Energy/AcOutToAcIn1",
+                       "vebus/276/Energy/AcIn1ToAcOut",
                        "settings/0/Settings/SystemSetup/MaxChargeCurrent",
-                       "settings/0/Settings/CGwacs/MaxDischargePower",
-                       "settings/0/Settings/CGwacs/AcPowerSetPoint"]
-    service_list = ["battery_power", "battery_soc", "battery_charged_total",
-                    "battery_feeded_total", "charge", "feed", "gridmode"]
+                       "settings/0/Settings/CGwacs/MaxDischargePower"]
+    service_list = ["battery_power", "battery_soc", "battery_charged", "battery_discharged",
+                    "grid_exported", "grid_imported",
+                    "charge", "feed"]
     victron_system = {}
     victron_mqtt_client = None
     updated_data = {"devices": []}
@@ -34,17 +36,17 @@ class VictronSystem(BaseSystem):
     def action(self, device):
         logging.debug("... ... received device action [%s]" % device)
         for topic in device.keys():
-            if not "battery" in topic:
-                if topic == 'charge':
-                    payload = 0 if device[topic] < 1 else 1
-                elif topic == 'feed':
-                    payload = 0 if device[topic] == 0 else 1
+            if "battery" in topic or "grid" in topic:
+                if "charged" in topic or "ported" in topic:
+                    payload = device[topic] * 10
                 else:
-                    payload = 1 if device[topic] < 1 else 0
-            elif "total" in topic:
-                payload = device[topic] * 10
+                    payload = device[topic]
+            elif topic == 'charge':
+                payload = 0 if device[topic] < 1 else 1
+            elif topic == 'feed':
+                payload = 0 if device[topic] == 0 else 1
             else:
-                payload = device[topic]
+                logging.warning("not logic for topic [%s]" % topic)
             self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic, payload)
         return True
 
@@ -52,21 +54,16 @@ class VictronSystem(BaseSystem):
         logging.debug("... ... send data[%s] from HA" % data)
         # {'ip': '192.168.25.24', 'id': 'charge', 'state': b'1'}
         if "id" in data and "state" in data:
-            service_index = self.service_list.index(data["id"])
             service_value = True if data["state"].decode('UTF-8') == "1" else False
-            if service_index == 2:
+            if data["id"] == self.service_list[6]:
                 logging.info("... ... charging is [%s]" % service_value)
                 value = '{"value": %s}' % (80 if service_value else 0)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/SystemSetup/MaxChargeCurrent",
                                                  value)
-            elif service_index == 3:
+            elif data["id"] == self.service_list[7]:
                 logging.info("... ... feeding is [%s]" % service_value)
                 value = '{"value": %s}' % (-1 if service_value else 0)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/CGwacs/MaxDischargePower", value)
-            elif service_index == 4:
-                logging.info("... ... grid master is [%s]" % service_value)
-                value = '{"value": %s}' % (-60 if service_value else 60)
-                self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/CGwacs/AcPowerSetPoint", value)
             else:
                 logging.warning("unknown service in data while writing value to victron system [%s]" % data)
         else:
@@ -78,7 +75,6 @@ class VictronSystem(BaseSystem):
         return data
 
     def init(self, client_id):
-        self.client_id = client_id
         super().init(client_id)
         self.connect_victron_system(client_id)
 

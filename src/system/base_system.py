@@ -9,6 +9,7 @@ from common.python import get_configuration, set_configuration
 
 class BaseSystem(abc.ABC):
     mqtt_client = None
+    client_id = 'unknown'
     mqtt_server: str = DEFAULT_MQTT_SERVER
     mqtt_user: str = DEFAULT_MQTT_USERNAME
     mqtt_password: str = DEFAULT_MQTT_PASSWORD
@@ -19,6 +20,7 @@ class BaseSystem(abc.ABC):
 
     def init(self, client_id: str):
         self.load()
+        self.client_id = client_id
         self.mqtt_client = CubieMediaMQTTClient(client_id)
         self.mqtt_client.connect(self)
 
