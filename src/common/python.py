@@ -27,7 +27,7 @@ def get_configuration(config_name: str) -> {}:
         if config_name in json_object:
             return json_object[config_name]
     except FileNotFoundError:
-        logging.warning("seems to be a non snap environment, could not load config")
+        logging.warning("seems to be a non snap environment, could not load config [%s]" % config_name)
     return None
 
 
