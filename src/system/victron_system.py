@@ -18,11 +18,12 @@ class VictronSystem(BaseSystem):
                        "vebus/276/Energy/InverterToAcOut",
                        "vebus/276/Energy/AcOutToAcIn1",
                        "vebus/276/Energy/AcIn1ToAcOut",
+                       "vebus/276/Alarms/GridLost",
                        "settings/0/Settings/SystemSetup/MaxChargeCurrent",
                        "settings/0/Settings/CGwacs/MaxDischargePower"]
     service_list = ["battery_power", "battery_soc", "battery_charged", "battery_discharged",
-                    "grid_exported", "grid_imported",
-                    "charge", "feed"]
+                    "grid_exported", "grid_imported", "grid_lost_alarm",
+                    "allow_charge", "allow_discharge"]
     victron_system = {}
     victron_mqtt_client = None
     updated_data = {"devices": []}
@@ -36,18 +37,20 @@ class VictronSystem(BaseSystem):
     def action(self, device):
         logging.debug("... ... received device action [%s]" % device)
         for topic in device.keys():
+            payload = device[topic]
             if "battery" in topic or "grid" in topic:
-                if "charged" in topic or "ported" in topic:
+                if "charged" in topic:
                     payload = device[topic] * 10
-                else:
-                    payload = device[topic]
-            elif topic == 'charge':
+            elif topic == 'allow_charge':
                 payload = 0 if device[topic] < 1 else 1
-            elif topic == 'feed':
+            elif topic == 'allow_discharge':
                 payload = 0 if device[topic] == 0 else 1
             else:
                 logging.warning("not logic for topic [%s]" % topic)
-            self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic, payload)
+
+            if payload:
+                self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic,
+                                         payload)
         return True
 
     def send(self, data):
@@ -75,6 +78,7 @@ class VictronSystem(BaseSystem):
         return data
 
     def init(self, client_id):
+        self.client_id = client_id
         super().init(client_id)
         self.connect_victron_system(client_id)
 
