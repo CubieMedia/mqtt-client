@@ -40,7 +40,7 @@ class VictronSystem(BaseSystem):
             payload = device[topic]
             if "battery" in topic or "grid" in topic:
                 if "charged" in topic:
-                    payload = device[topic] * 10
+                    pass
             elif topic == 'allow_charge':
                 payload = 0 if device[topic] < 1 else 1
             elif topic == 'allow_discharge':
@@ -48,9 +48,7 @@ class VictronSystem(BaseSystem):
             else:
                 logging.warning("not logic for topic [%s]" % topic)
 
-            if payload:
-                self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic,
-                                         payload)
+            self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic, payload)
         return True
 
     def send(self, data):
@@ -58,12 +56,12 @@ class VictronSystem(BaseSystem):
         # {'ip': '192.168.25.24', 'id': 'charge', 'state': b'1'}
         if "id" in data and "state" in data:
             service_value = True if data["state"].decode('UTF-8') == "1" else False
-            if data["id"] == self.service_list[6]:
+            if data["id"] == self.service_list[7]:
                 logging.info("... ... charging is [%s]" % service_value)
                 value = '{"value": %s}' % (80 if service_value else 0)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/SystemSetup/MaxChargeCurrent",
                                                  value)
-            elif data["id"] == self.service_list[7]:
+            elif data["id"] == self.service_list[8]:
                 logging.info("... ... feeding is [%s]" % service_value)
                 value = '{"value": %s}' % (-1 if service_value else 0)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/CGwacs/MaxDischargePower", value)
