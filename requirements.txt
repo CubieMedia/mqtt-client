@@ -1,0 +1,8 @@
+netifaces
+paho-mqtt
+requests
+pyserial
+enocean
+Flask
+Werkzeug
+setuptools

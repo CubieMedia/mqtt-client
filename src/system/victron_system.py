@@ -38,15 +38,16 @@ class VictronSystem(BaseSystem):
         logging.debug("... ... received device action [%s]" % device)
         for topic in device.keys():
             payload = device[topic]
-            if "battery" in topic or "grid" in topic:
-                if "charged" in topic:
-                    pass
-            elif topic == 'allow_charge':
+            if topic is self.service_list[4]:
+                payload = float(payload) / 2.5
+            elif topic is self.service_list[5]:
+                payload = float(payload) / 5
+            elif topic == self.service_list[7]:
                 payload = 0 if device[topic] < 1 else 1
-            elif topic == 'allow_discharge':
+            elif topic == self.service_list[8]:
                 payload = 0 if device[topic] == 0 else 1
             else:
-                logging.warning("not logic for topic [%s]" % topic)
+                logging.warning("no logic for topic [%s]" % topic)
 
             self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic, payload)
         return True
