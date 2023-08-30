@@ -16,8 +16,8 @@ class VictronSystem(BaseSystem):
     topic_read_list = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
                        "vebus/276/Energy/OutToInverter",
                        "vebus/276/Energy/InverterToAcOut",
-                       "vebus/276/Energy/AcOutToAcIn1",
-                       "vebus/276/Energy/AcIn1ToAcOut",
+                       "grid/30/Ac/Energy/Reverse",
+                       "grid/30/Ac/Energy/Forward",
                        "vebus/276/Alarms/GridLost",
                        "settings/0/Settings/SystemSetup/MaxChargeCurrent",
                        "settings/0/Settings/CGwacs/MaxDischargePower"]
@@ -38,10 +38,18 @@ class VictronSystem(BaseSystem):
         logging.debug("... ... received device action [%s]" % device)
         for topic in device.keys():
             payload = device[topic]
-            if topic is self.service_list[4]:
-                payload = float(payload) / 2.5
+            if 'battery' in topic:
+                pass
+            elif topic is self.service_list[4]:
+                payload = round(float(payload), 2)
+                logging.info("exported payload [%s]" % payload)
+                pass
             elif topic is self.service_list[5]:
-                payload = float(payload) / 5
+                payload = round(float(payload), 2)
+                logging.info("imported payload [%s]" % payload)
+                pass
+            elif topic is self.service_list[6]:
+                pass
             elif topic == self.service_list[7]:
                 payload = 0 if device[topic] < 1 else 1
             elif topic == self.service_list[8]:
