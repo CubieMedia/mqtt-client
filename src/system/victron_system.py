@@ -41,12 +41,12 @@ class VictronSystem(BaseSystem):
             if 'battery' in topic:
                 pass
             elif topic is self.service_list[4]:
-                payload = round(float(payload), 2)
-                logging.info("exported payload [%s]" % payload)
+                payload = round(float(payload) / 10, 2)
+                logging.debug("exported payload [%s]" % payload)
                 pass
             elif topic is self.service_list[5]:
-                payload = round(float(payload), 2)
-                logging.info("imported payload [%s]" % payload)
+                payload = round(float(payload) / 10, 2)
+                logging.debug("imported payload [%s]" % payload)
                 pass
             elif topic is self.service_list[6]:
                 pass
