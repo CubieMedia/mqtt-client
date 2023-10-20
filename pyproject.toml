@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cubiemedia-mqtt-client"
-version = "0.1.7"
+version = "x.x.x"
 readme = "README.md"
 description = "Gateway connecting different Protocols and Devices via MQTT"
 dependencies = ["requests", "zeroconf", "flask", "pyserial", "netifaces", "enocean", "paho-mqtt"]

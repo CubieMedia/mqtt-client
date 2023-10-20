@@ -27,7 +27,7 @@ def get_execution_mode() -> str:
             return CUBIE_SONAR
 
     raise RuntimeError(
-        f"Please give Mode [%s,%s,%s,%s] for script" % (CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR))
+        f"Please give Mode [%s,%s,%s,%s,%s] for script" % (CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR, CUBIE_VICTRON))
 
 
 def is_verbose() -> bool:
@@ -67,32 +67,38 @@ def get_system(execution_mode: str):
 
 
 def main():
-    configure_logger()
-    mode = get_execution_mode()
+    try:
+        configure_logger()
+        mode = get_execution_mode()
 
-    logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
+        logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
 
-    ip_address = get_ip_address()
-    system = get_system(mode)
-    client_id = ip_address + "-" + mode + "-client"
-    system.init(client_id)
-    # noinspection PyTypeChecker
-    signal.signal(signal.SIGINT, partial(exit_gracefully, system))
-    # noinspection PyTypeChecker
-    signal.signal(signal.SIGTERM, partial(exit_gracefully, system))
+        ip_address = get_ip_address()
+        system = get_system(mode)
+        client_id = ip_address + "-" + mode + "-client"
+        system.init(client_id)
+        # noinspection PyTypeChecker
+        signal.signal(signal.SIGINT, partial(exit_gracefully, system))
+        # noinspection PyTypeChecker
+        signal.signal(signal.SIGTERM, partial(exit_gracefully, system))
 
-    system.RUN = True
-    while system.RUN:
-        data = system.update()
+        system.RUN = True
+        while system.RUN:
+            data = system.update()
 
-        if 'devices' in data and len(data['devices']) > 0:
-            devices = data['devices']
-            for device in devices:
-                system.action(device)
+            if 'devices' in data and len(data['devices']) > 0:
+                devices = data['devices']
+                for device in devices:
+                    system.action(device)
 
-        time.sleep(.2)
+            time.sleep(.2)
 
-    logging.info('all done, exit program')
+        logging.info('all done, exit program')
+    except RuntimeError as e:
+        if is_verbose():
+            raise e
+        else:
+            logging.error(e)
 
 
 if __name__ == '__main__':

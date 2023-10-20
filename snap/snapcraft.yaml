@@ -1,6 +1,6 @@
 name: cubiemedia-mqtt-client
-base: core20
-version: '0.7.0'
+base: core22
+version: '0.8.0'
 summary: Gateway for different Protocols or Devices
 description: CubieMedia MQTT-Client for EnOcean, GPIOs and Relayboards
 grade: stable
@@ -39,6 +39,10 @@ apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
     plugs: [ network, network-bind, serial-port, gpio-memory-control ]
+  cubiemedia-victron:
+    command: usr/bin/cubiemedia-mqtt-client victron
+    daemon: simple
+    install-mode: disable
   cubiemedia-enocean:
     command: usr/bin/cubiemedia-mqtt-client enocean
     daemon: simple
