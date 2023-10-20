@@ -1,5 +1,5 @@
 name: cubiemedia-mqtt-client
-base: core22
+base: core20
 version: '0.8.0'
 summary: Gateway for different Protocols or Devices
 description: CubieMedia MQTT-Client for EnOcean, GPIOs, ETH008 Relayboards and Victron Energy System
@@ -10,7 +10,7 @@ architectures:
   - build-on:
       - armhf
       - arm64
-    build-for:
+    run-on:
       - amd64
       - armhf
       - arm64
