@@ -8,9 +8,8 @@ confinement: strict
 
 architectures:
   - build-on:
-      - amd64
       - armhf
-      - arm64
+      - amd64
     build-for:
       - armhf
 
