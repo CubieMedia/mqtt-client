@@ -1,6 +1,6 @@
 name: cubiemedia-mqtt-client
 base: core22
-version: '0.8.0'
+version: '0.8.1'
 summary: Gateway for different Protocols or Devices
 description: CubieMedia MQTT-Client for EnOcean, GPIOs, ETH008 Relayboards and Victron Energy System
 grade: stable
