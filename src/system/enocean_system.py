@@ -4,6 +4,7 @@
 import copy
 import json
 import logging
+import platform
 import time
 from threading import Timer
 
@@ -32,8 +33,12 @@ class EnoceanSystem(BaseSystem):
         try:
             self.communicator = SerialCommunicator(ENOCEAN_PORT)
         except SerialException:
-            logging.warning(
-                f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
+            if "arm" in platform.machine():
+                logging.warning(
+                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to bt-serial?{COLOR_DEFAULT}")
+            else:
+                logging.warning(
+                    f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
 
     def action(self, device):
         should_save = False

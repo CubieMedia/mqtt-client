@@ -94,11 +94,13 @@ def main():
             time.sleep(.2)
 
         logging.info('all done, exit program')
-    except RuntimeError as e:
+    except RuntimeError as exception:
         if is_verbose():
-            raise e
+            raise exception
         else:
-            logging.error(e)
+            logging.error(exception)
+        if "Try running as root!" in exception.__str__():
+            logging.error(f"{COLOR_RED}Also remember to connect plugs [gpio-memory-control | serial-port]{COLOR_DEFAULT}")
 
 
 if __name__ == '__main__':

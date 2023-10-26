@@ -7,7 +7,7 @@ import sys
 snap_path = os.getenv('SNAP')
 sys.path.append(f'{snap_path}/src')
 sys.path.append(f'{snap_path}/usr/lib/python3/dist-packages')
-sys.path.append(f'{snap_path}/lib/python3.8/site-packages')
+sys.path.append(f'{snap_path}/lib/python3.10/site-packages')
 
 from mqtt_client import main
 
