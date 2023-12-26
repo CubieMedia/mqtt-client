@@ -70,7 +70,7 @@ apps:
     daemon: simple
     install-mode: disable
   cubiemedia-webtool:
-    command: /usr/bin/flask run
+    command: usr/bin/flask run
     daemon: simple
     environment:
       FLASK_APP: $SNAP/src/webtool/app.py
