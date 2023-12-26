@@ -70,6 +70,7 @@ apps:
     daemon: simple
     install-mode: disable
   cubiemedia-webtool:
+    plugs: [ network, network-bind ]
     command: usr/bin/flask run
     daemon: simple
     environment:
