@@ -54,23 +54,27 @@ apps:
     daemon: simple
     install-mode: disable
   cubiemedia-enocean:
+    plugs: [ network, network-bind ]
     command: usr/bin/cubiemedia-mqtt-client enocean
     daemon: simple
     install-mode: disable
   cubiemedia-relay:
+    plugs: [ network, network-bind ]
     command: usr/bin/cubiemedia-mqtt-client relay
     daemon: simple
     install-mode: disable
   cubiemedia-gpio:
+    plugs: [ network, network-bind ]
     command: usr/bin/cubiemedia-mqtt-client gpio
     daemon: simple
     install-mode: disable
   cubiemedia-core:
+    plugs: [ network, network-bind ]
     command: usr/bin/cubiemedia-mqtt-client core
     daemon: simple
     install-mode: disable
   cubiemedia-webtool:
-    plugs: [ network, network-bind, system-observe ]
+    plugs: [ network, network-bind ]
     command: usr/bin/flask run
     daemon: simple
     environment:
