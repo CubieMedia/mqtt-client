@@ -5,6 +5,8 @@ import logging
 import subprocess
 from subprocess import CalledProcessError
 
+from common import CUBIE_CORE
+
 
 def exit_gracefully(system, *args):
     logging.info("... shutdown process")
@@ -32,7 +34,7 @@ def get_configuration(config_name: str) -> {}:
         except CalledProcessError:
             logging.warning(
                 "seems to be a non snap environment, could not load config [%s]\n"
-                "Maybe try to login to Ubuntu with [snap login]" % config_name)
+                "Try to install Snap locally to create config or login to Ubuntu with [snap login]" % config_name)
     json_object = json.loads(value)
     if config_name in json_object:
         return json_object[config_name]

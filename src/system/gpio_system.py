@@ -32,8 +32,8 @@ class GPIOSystem(BaseSystem):
         self.execution_mode = CUBIE_GPIO
         self.ip_address = get_ip_address()
 
-    def init(self, client_id):
-        super().init(client_id)
+    def init(self, ip_address):
+        super().init(ip_address)
         if not GPIO:
             logging.warning(
                 f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode? WARNING{COLOR_DEFAULT}")
@@ -102,13 +102,10 @@ class GPIOSystem(BaseSystem):
             logging.info("... ... announce gpio device [%s]" % device)
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
-        topic = CUBIEMEDIA + self.ip_address.replace(".", "_") + "/+/command"
+        topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"
         logging.info("... ... subscribing to [%s] for gpio output commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
         self.set_availability(True)
-
-    def set_availability(self, state: bool):
-        self.mqtt_client.publish(CUBIEMEDIA + self.ip_address.replace(".", "_") + '/online', str(state).lower())
 
     def save(self, new_device=None):
         if new_device is None:

@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-snapctl set core='[{"type": "core", "host": "homeassistant", "username": "mqtt", "password": "autoInstall", "learn_mode": true}]'
+snapctl set core='{"type": "core", "host": "homeassistant", "username": "mqtt", "password": "autoInstall", "learn_mode": true}'
 
 snapctl set gpio='[{"id": 4, "function": "IN", "type": "GPIO","value": 0},
   {"id": 17, "function": "IN", "type": "GPIO", "value": 0},

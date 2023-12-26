@@ -30,7 +30,7 @@
             {% else %}
             <div style="margin-left: 10px; list-style-type: decimal-leading-zero">
                 {% for item in device_list %}
-                <li><b>{{ item.type + " - " + (item.id|string).upper() }}</b> (
+                <li><b>{{ (item.id|string).upper() }}</b> (
                     {% if application == "gpio" %}
                     <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
                     {% else %}

@@ -2,7 +2,8 @@ import abc
 import logging
 import time
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIE_CORE
+from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIE_CORE, \
+    CUBIEMEDIA
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.python import get_configuration, set_configuration
 
@@ -10,6 +11,7 @@ from common.python import get_configuration, set_configuration
 class BaseSystem(abc.ABC):
     mqtt_client = None
     client_id = 'unknown'
+    ip_address = None
     mqtt_server: str = DEFAULT_MQTT_SERVER
     mqtt_user: str = DEFAULT_MQTT_USERNAME
     mqtt_password: str = DEFAULT_MQTT_PASSWORD
@@ -18,9 +20,10 @@ class BaseSystem(abc.ABC):
     known_device_list: [] = []
     execution_mode = None
 
-    def init(self, client_id: str):
+    def init(self, ip_address: str):
         self.load()
-        self.client_id = client_id
+        self.ip_address = ip_address
+        self.client_id = client_id = ip_address + "-" + self.execution_mode + "-client"
         self.mqtt_client = CubieMediaMQTTClient(client_id)
         self.mqtt_client.connect(self)
 
@@ -40,12 +43,14 @@ class BaseSystem(abc.ABC):
         raise NotImplementedError()
 
     def set_availability(self, state: bool):
-        raise NotImplementedError()
+        self.mqtt_client.publish(
+            f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/online",
+            str(state).lower())
 
     def load(self):
         logging.info("... loading config")
 
-        core_config = get_configuration(CUBIE_CORE)[0]
+        core_config = get_configuration(CUBIE_CORE)
         device_list = get_configuration(self.execution_mode)
 
         self.mqtt_server = core_config['host'] if core_config else DEFAULT_MQTT_SERVER

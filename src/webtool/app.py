@@ -8,7 +8,8 @@ import paho.mqtt.client as mqtt
 from flask import Flask, url_for, render_template
 from werkzeug.utils import redirect
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE, DEFAULT_LEARN_MODE, \
+    DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME
 from common.network import get_ip_address  # noqa
 from common.python import get_configuration, execute_command
 from mqtt_client import configure_logger
@@ -38,13 +39,11 @@ def show_application(application):
 
 @app.route('/delete/<application>/<item>')
 def remove_item_from_application(application, item):
-    config = get_configuration('common')
-
     device_list = get_device_list(application)
     if item == "all":
-        delete_item(config, [device['id'] for device in device_list])
+        delete_item(application, [device['id'] for device in device_list])
     else:
-        delete_item(config, [item])
+        delete_item(application, [item])
 
     time.sleep(1)
 
@@ -65,7 +64,7 @@ def switch_io_function_of_item(application, item):
 
 @app.route('/switch_learn_mode')
 def switch_learn_mode():
-    config = get_configuration(CUBIE_CORE)[0]
+    config = get_configuration(CUBIE_CORE)
     new_learn_mode = not bool(config['learn_mode'])
     logging.info(f"switching learn_mode to {new_learn_mode}")
     mqtt_client = connect_mqtt_client(config)
@@ -103,11 +102,12 @@ def get_device_list(application):
         return config
 
 
-def delete_item(config, items):
+def delete_item(application, items):
+    config = get_configuration(CUBIE_CORE)
     if not len(items) == 0:
         mqtt_client = connect_mqtt_client(config)
         for item in items:
-            message = {"mode": "delete", "device": {"id": item}}
+            message = {"mode": "delete", "type": application, "device": {"id": item}}
             mqtt_client.publish("cubiemedia/command", json.dumps(message))
         mqtt_client.disconnect()
 
@@ -165,5 +165,10 @@ def system_reboot():
 @app.route('/')
 def index():
     application_list = get_running_applications()
+    core_configuration =  get_configuration(CUBIE_CORE)
+    learn_mode = core_configuration['learn_mode']
+    server = core_configuration['host']
+    user = core_configuration['username']
+
     return render_template('index.html', application_list=application_list, service_list=service_list,
-                           ip=get_ip_address(), learn_mode=get_configuration(CUBIE_CORE)[0]['learn_mode'], server=get_configuration(CUBIE_CORE)[0]['host'], user=get_configuration(CUBIE_CORE)[0]['username'])
+                           ip=get_ip_address(), learn_mode=learn_mode, server=server, user=user)

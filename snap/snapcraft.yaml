@@ -49,6 +49,10 @@ apps:
   cubiemedia-mqtt-client:
     command: usr/bin/cubiemedia-mqtt-client
     plugs: [ network, network-bind, serial-port, gpio-memory-control ]
+  cubiemedia-sonar:
+    command: usr/bin/cubiemedia-mqtt-client sonar
+    daemon: simple
+    install-mode: disable
   cubiemedia-victron:
     command: usr/bin/cubiemedia-mqtt-client victron
     daemon: simple
@@ -72,7 +76,6 @@ apps:
     plugs: [ network, network-bind ]
     command: usr/bin/cubiemedia-mqtt-client core
     daemon: simple
-    install-mode: disable
   cubiemedia-webtool:
     plugs: [ network, network-bind ]
     command: usr/bin/flask run

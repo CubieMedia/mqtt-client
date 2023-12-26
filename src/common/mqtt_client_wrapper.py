@@ -4,7 +4,7 @@
 import json
 import logging
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_CORE, CUBIE_RELOAD
 from common.network import get_ip_address  # noqa
 from common.python import install_package
 
@@ -38,7 +38,7 @@ class CubieMediaMQTTClient:
         self.mqtt_client.disconnect()
 
     def publish(self, topic, payload):
-        self.mqtt_client.publish(topic, payload, 0, True)
+        self.mqtt_client.publish(topic, payload, 0, False)
 
     def subscribe(self, topic, qos):
         self.mqtt_client.subscribe(topic, qos)
@@ -46,14 +46,11 @@ class CubieMediaMQTTClient:
     def on_message(self, client, userdata, msg):
         # print(msg.payload)
         if msg.payload.decode('UTF-8') == CUBIE_ANNOUNCE:
-            try:
-                logging.info("... search request: announcing devices")
-                self.system.announce()
-            except Exception as error:
-                logging.error(error)
+            self.system.announce()
         elif msg.payload.decode('UTF-8') == CUBIE_RESET:
-            logging.info("... reset request: clear device list")
             self.system.reset()
+        elif msg.payload.decode('UTF-8') == CUBIE_RELOAD:
+            self.system.load()
         else:
             # print("... received data: format to json[%s]" % msg.payload)
             try:
@@ -67,7 +64,7 @@ class CubieMediaMQTTClient:
                                     new_device = message_data["device"]
                                     self.system.save(new_device)
                                 else:
-                                    logging.warning("WARNING: no data given [device]")
+                                    logging.warning("WARNING: no device data given with update")
                             elif message_mode == "delete":
                                 if "device" in message_data:
                                     new_device = message_data["device"]
@@ -82,7 +79,7 @@ class CubieMediaMQTTClient:
                         else:
                             logging.warning("WARNING: no mode given, doing nothing")
                     else:
-                        logging.warning("WARNING: wrong or no type given, doing nothing")
+                        logging.debug("WARNING: wrong or no type given, doing nothing")
                 else:
                     if msg.topic.endswith("/command"):
                         topic_array = msg.topic.split("/")

@@ -26,8 +26,8 @@ class SonarSystem(BaseSystem):
         super().__init__()
         self.execution_mode = CUBIE_SONAR
 
-    def init(self, client_id):
-        super().init(client_id)
+    def init(self, ip_address):
+        super().init(ip_address)
         self.ip_address = get_ip_address()
         self.update_interval = self.known_device_list[
             'update_interval'] if 'update_interval' in self.known_device_list else 1
@@ -89,17 +89,14 @@ class SonarSystem(BaseSystem):
         raise NotImplemented(f"sending data[{data}] is not implemented")
 
     def announce(self):
-        device = {'id': self.ip_address, 'type': "SONAR"}
+        device = {'id': self.ip_address, 'type': "SONAR", 'client_id': self.client_id}
         logging.info("... ... announce sonar device [%s]" % device)
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
-        topic = CUBIEMEDIA + self.ip_address.replace(".", "_") + "/command"
+        topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/command"
         logging.info("... ... subscribing to [%s] for sonar commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
         self.set_availability(True)
-
-    def set_availability(self, state: bool):
-        self.mqtt_client.publish(CUBIEMEDIA + self.ip_address.replace(".", "_") + '/online', str(state).lower())
 
     def save(self, new_device=None):
         if new_device is None:

@@ -35,7 +35,7 @@ class EnoceanSystem(BaseSystem):
         except SerialException:
             if "arm" in platform.machine():
                 logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to bt-serial?{COLOR_DEFAULT}")
+                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{COLOR_DEFAULT}")
             else:
                 logging.warning(
                     f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
@@ -59,7 +59,7 @@ class EnoceanSystem(BaseSystem):
                         if 'state' not in known_device or len(known_device['state']) == 0 or \
                                 (topic in known_device['state'] and device['state'][topic] != known_device['state'][
                                     topic]):
-                            channel_topic = CUBIEMEDIA + str(device['id']).lower() + '/' + topic
+                            channel_topic = f"{CUBIEMEDIA}/{str(device['id']).lower()}/{topic}"
                             value = device['state'][topic]
                             if value == 1:
                                 self.create_timer_for(channel_topic)
@@ -134,7 +134,7 @@ class EnoceanSystem(BaseSystem):
     def set_availability(self, state: bool):
         for device in self.known_device_list:
             if device['client_id'] == self.mqtt_client.mqtt_client._client_id.decode():
-                self.mqtt_client.publish(CUBIEMEDIA + str(device['id']).lower() + '/online', str(state).lower())
+                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online", str(state).lower())
 
     def send(self, data):
         raise NotImplemented(f"sending data[{data}] is not implemented")
@@ -200,8 +200,8 @@ class EnoceanSystem(BaseSystem):
 
         return state
 
-    def init(self, client_id):
-        super().init(client_id)
+    def init(self, ip_address):
+        super().init(ip_address)
         if self.communicator:
             logging.info("... starting serial communicator")
             self.communicator.start()
@@ -223,7 +223,7 @@ class EnoceanSystem(BaseSystem):
                 self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
                 for topic in device['state']:
                     if device['state'][topic] == 1:
-                        channel_topic = CUBIEMEDIA + str(device['id']).lower() + '/' + topic
+                        channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                         self.create_timer_for(channel_topic, True)
         self.last_update = 0
 

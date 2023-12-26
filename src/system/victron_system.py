@@ -57,7 +57,8 @@ class VictronSystem(BaseSystem):
             else:
                 logging.warning("no logic for topic [%s]" % topic)
 
-            self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + "/" + topic, payload)
+            self.mqtt_client.publish(
+                f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/{topic}", payload)
         return True
 
     def send(self, data):
@@ -84,10 +85,9 @@ class VictronSystem(BaseSystem):
         self.updated_data = {"devices": []}
         return data
 
-    def init(self, client_id):
-        self.client_id = client_id
-        super().init(client_id)
-        self.connect_victron_system(client_id)
+    def init(self, ip_address):
+        super().init(ip_address)
+        self.connect_victron_system(self.client_id)
 
     def shutdown(self):
         logging.info('... set devices unavailable...')
@@ -96,10 +96,6 @@ class VictronSystem(BaseSystem):
         logging.info("... stopping scan thread...")
         self.keepalive_thread_event.set()
         self.keepalive_thread.join()
-
-    def set_availability(self, state: bool):
-        self.mqtt_client.publish(CUBIEMEDIA + self.victron_system['id'].replace(".", "_") + '/online',
-                                 str(state).lower())
 
     def announce(self):
         logging.info("... ... announce victron_system [%s]" % self.victron_system["id"])

@@ -30,8 +30,8 @@ def get_execution_mode() -> str:
             return CUBIE_CORE
 
     raise RuntimeError(
-        f"Please give Mode [%s,%s,%s,%s,%s] for script" % (
-            CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR, CUBIE_VICTRON))
+        f"Please give Mode [%s,%s,%s,%s,%s,%s] for script" % (
+            CUBIE_CORE, CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR, CUBIE_VICTRON))
 
 
 def is_verbose() -> bool:
@@ -87,8 +87,7 @@ def main():
 
         ip_address = get_ip_address()
         system = get_system(mode)
-        client_id = ip_address + "-" + mode + "-client"
-        system.init(client_id)
+        system.init(ip_address)
         # noinspection PyTypeChecker
         signal.signal(signal.SIGINT, partial(exit_gracefully, system))
         # noinspection PyTypeChecker
