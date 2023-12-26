@@ -9,7 +9,7 @@ import time
 
 import requests
 
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_BOARD, RELAY_USERNAME, RELAY_PASSWORD, STATE_UNKNOWN, \
+from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_USERNAME, RELAY_PASSWORD, STATE_UNKNOWN, \
     TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY
 from system.base_system import BaseSystem
 
@@ -68,7 +68,7 @@ class RelaySystem(BaseSystem):
                     if module == temp_device['id']:
                         known_device = temp_device
 
-                relayboard = {'id': str(module), 'type': RELAY_BOARD}
+                relayboard = {'id': str(module), 'type': CUBIE_RELAY, 'client_id': self.client_id}
                 status_list = self._read_status(module)
                 relay_state_list = {}
                 relay_state_changed_list = {}
@@ -124,7 +124,7 @@ class RelaySystem(BaseSystem):
     def save(self, new_device=None):
         should_save = False
         if new_device is not None:
-            if new_device['type'] == RELAY_BOARD and self.learn_mode:
+            if new_device['type'] == CUBIE_RELAY and self.learn_mode:
                 add = True
                 for known_device in self.known_device_list:
                     if new_device['id'] == known_device['id']:

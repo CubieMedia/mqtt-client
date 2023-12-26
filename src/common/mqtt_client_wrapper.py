@@ -59,29 +59,30 @@ class CubieMediaMQTTClient:
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
                     message_data = json.loads(msg.payload.decode())
-                    if "mode" in message_data:
-                        message_mode = message_data["mode"]
-                        if message_mode == "update":
-                            if "device" in message_data:
-                                new_device = message_data["device"]
-                                self.system.save(new_device)
-                            elif "learn_mode" in message_data:
-                                self.system.set_learn_mode(message_data['learn_mode'])
+                    if "type" in message_data and message_data["type"] == self.system.execution_mode:
+                        if "mode" in message_data:
+                            message_mode = message_data["mode"]
+                            if message_mode == "update":
+                                if "device" in message_data:
+                                    new_device = message_data["device"]
+                                    self.system.save(new_device)
+                                else:
+                                    logging.warning("WARNING: no data given [device]")
+                            elif message_mode == "delete":
+                                if "device" in message_data:
+                                    new_device = message_data["device"]
+                                    self.system.delete(new_device)
+                                else:
+                                    logging.warning("WARNING: no data given [device]")
+                            elif message_mode == 'values':
+                                logging.info("... send data with [%s]: %s" % (msg.topic, str(msg.payload)))
+                                self.system.send(message_data)
                             else:
-                                logging.warning("WARNING: no data given [device]")
-                        elif message_mode == "delete":
-                            if "device" in message_data:
-                                new_device = message_data["device"]
-                                self.system.delete(new_device)
-                            else:
-                                logging.warning("WARNING: no data given [device]")
-                        elif message_mode == 'values':
-                            logging.info("... send data with [%s]: %s" % (msg.topic, str(msg.payload)))
-                            self.system.send(message_data)
+                                logging.warning("WARNING: unknown mode [%s]" % message_mode)
                         else:
-                            logging.warning("WARNING: unknown mode [%s]" % message_mode)
+                            logging.warning("WARNING: no mode given, doing nothing")
                     else:
-                        logging.warning("WARNING: no mode given, doing nothing")
+                        logging.warning("WARNING: wrong or no type given, doing nothing")
                 else:
                     if msg.topic.endswith("/command"):
                         topic_array = msg.topic.split("/")
@@ -108,4 +109,5 @@ class CubieMediaMQTTClient:
         if rc == 0:
             logging.info("... ...disconnected from Service [%s] with result [%s]" % (client._host, rc))
         else:
-            logging.warning("... ... lost connection to Service [%s] with result [%s]" % (client._host, rc))
+            logging.warning(
+                "... ... lost connection to Service [%s] with result [%s]\n%s" % (client._host, rc, userdata))

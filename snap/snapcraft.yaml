@@ -1,7 +1,7 @@
 title: CubieMedia MQTT-Client
 name: cubiemedia-mqtt-client
 base: core22
-version: '0.8.2'
+version: '0.9.1'
 summary: Gateway for different Protocols or Devices
 description: CubieMedia MQTT-Client for EnOcean, GPIOs, ETH008 Relayboards and Victron Energy System
 grade: stable
@@ -31,6 +31,9 @@ parts:
     plugin: python
     python-packages:
       - enocean
+      - flask
+      - paho-mqtt
+      - netifaces
     stage-packages:
       - python3-paho-mqtt
       - python3-lxml
@@ -62,12 +65,16 @@ apps:
     command: usr/bin/cubiemedia-mqtt-client gpio
     daemon: simple
     install-mode: disable
+  cubiemedia-core:
+    command: usr/bin/cubiemedia-mqtt-client core
+    daemon: simple
+    install-mode: disable
   cubiemedia-webtool:
-    command: usr/bin/flask run
+    command: /usr/bin/flask run
     daemon: simple
     environment:
-      FLASK_APP: src/webtool/app.py
-      FLASK_ENV: development
+      FLASK_APP: $SNAP/src/webtool/app.py
+      FLASK_ENV: production
       FLASK_RUN_PORT: 8888
       FLASK_RUN_HOST: 0.0.0.0
 

@@ -8,7 +8,8 @@ import time
 import warnings
 from functools import partial
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR, CUBIE_VICTRON  # noqa
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR, CUBIE_VICTRON, \
+    CUBIE_CORE  # noqa
 from common.network import get_ip_address  # noqa
 from common.python import exit_gracefully
 
@@ -25,9 +26,12 @@ def get_execution_mode() -> str:
             return CUBIE_VICTRON
         elif arg == CUBIE_SONAR:
             return CUBIE_SONAR
+        elif arg == CUBIE_CORE:
+            return CUBIE_CORE
 
     raise RuntimeError(
-        f"Please give Mode [%s,%s,%s,%s,%s] for script" % (CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR, CUBIE_VICTRON))
+        f"Please give Mode [%s,%s,%s,%s,%s] for script" % (
+            CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR, CUBIE_VICTRON))
 
 
 def is_verbose() -> bool:
@@ -39,11 +43,16 @@ def is_verbose() -> bool:
 
 
 def configure_logger():
-    logging.basicConfig(level=logging.DEBUG if is_verbose() else logging.INFO,
+    debug = is_verbose()
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
                         format='%(asctime)s - %(levelname)-8s - %(message)s')
 
     # added for enocean module bug with wrong parser configuration
     warnings.simplefilter("ignore")
+    # added for flask
+    if not debug:
+        werkzeug = logging.getLogger('werkzeug')
+        werkzeug.setLevel(logging.ERROR)
 
 
 def get_system(execution_mode: str):
@@ -62,6 +71,9 @@ def get_system(execution_mode: str):
     elif execution_mode == CUBIE_VICTRON:
         from system.victron_system import VictronSystem
         return VictronSystem()
+    elif execution_mode == CUBIE_CORE:
+        from system.core_system import CoreSystem
+        return CoreSystem()
     else:
         raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 
@@ -100,7 +112,8 @@ def main():
         else:
             logging.error(exception)
         if "Try running as root!" in exception.__str__():
-            logging.error(f"{COLOR_RED}Also remember to connect plugs [gpio-memory-control | serial-port]{COLOR_DEFAULT}")
+            logging.error(
+                f"{COLOR_RED}Also remember to connect plugs [gpio-memory-control | serial-port]{COLOR_DEFAULT}")
 
 
 if __name__ == '__main__':

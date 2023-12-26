@@ -1,6 +1,26 @@
 <!doctype html>
-<title>CubieMedia - Administration</title>
+<head>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/common.css')}}">
+</head>
 
-<h1>System Services:</h1>
-
-<a href={{ url_reboot }}>Reboot</a>
+<title>Cubie - Administration</title>
+<table>
+    <tr>
+        <td>
+            <a href="{{ url_for('index') }}">
+                <img src="{{url_for('static', filename='logo.png')}}" width="150">
+            </a>
+        </td>
+        <td>
+            <h1 style="text-align: center;">System Services</h1>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            Reboot
+        </td>
+        <td>
+            <a href="{{ url_for('system_reboot') }}" title="Reboot"><img src="{{url_for('static', filename='reboot.png')}}" width="150"></a>
+        </td>
+    </tr>
+</table>

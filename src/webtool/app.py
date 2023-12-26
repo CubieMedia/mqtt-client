@@ -8,27 +8,37 @@ import paho.mqtt.client as mqtt
 from flask import Flask, url_for, render_template
 from werkzeug.utils import redirect
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
 from common.network import get_ip_address  # noqa
-from common.python import get_configuration
+from common.python import get_configuration, execute_command
+from mqtt_client import configure_logger
 
 app = Flask(__name__)
-service_list = {CUBIE_GPIO: "CubieMedia-GPIO", CUBIE_ENOCEAN: "CubieMedia-EnOcean", CUBIE_RELAY: "CubieMedia-Relay"}
+configure_logger()
+service_list = [
+    {"id": CUBIE_CORE, "name": "Cubie Core", "icon": "demo.png",
+     "description": "Core Service for general configuration and communication"},
+    {"id": CUBIE_GPIO, "name": "Cubie-GPIO", "icon": "gpio.png",
+     "description": "Control GPIO Pins on your device (eg. Raspberry Pi)"},
+    {"id": CUBIE_ENOCEAN, "name": "Cubie-EnOcean", "icon": "enocean.png",
+     "description": "With an EnOcean Adapter on your GPIO Pins you can communicate with EnOcean Devices"},
+    {"id": CUBIE_RELAY, "name": "Cubie-Relay", "icon": "relay.png",
+     "description": "Find and control ETH008 Relay Boards"},
+    {"id": CUBIE_SONAR, "name": "Cubie-Sonar", "icon": "sonar.png",
+     "description": "Read values from Sonar Device connected to your GPIO Pins"},
+    {"id": CUBIE_VICTRON, "name": "Cubie-Victron", "icon": "victron.png",
+     "description": "Connect your Victron Energy System with this Gateway"}
+]
 
 
 @app.route('/show/<application>')
 def show_application(application):
-    common = get_configuration("common")
-    learn_mode = True
-    if "learn-mode" in common:
-        learn_mode = common['learn-mode']
-    return render_template('application.html', application=application, device_list=get_device_list(application),
-                           learn_mode=learn_mode)
+    return render_template('application.html', application=application, device_list=get_device_list(application))
 
 
 @app.route('/delete/<application>/<item>')
 def remove_item_from_application(application, item):
-    config = get_configuration(application)
+    config = get_configuration('common')
 
     device_list = get_device_list(application)
     if item == "all":
@@ -53,31 +63,40 @@ def switch_io_function_of_item(application, item):
     return redirect(url_for('show_application', application=application))
 
 
-@app.route('/function/<application>/learn_mode')
-def switch_learn_mode(application):
-    config = get_configuration(application)
+@app.route('/switch_learn_mode')
+def switch_learn_mode():
+    config = get_configuration(CUBIE_CORE)[0]
+    new_learn_mode = not bool(config['learn_mode'])
+    logging.info(f"switching learn_mode to {new_learn_mode}")
     mqtt_client = connect_mqtt_client(config)
-    message = {"mode": "update", "learn_mode": not bool(config['learn_mode'])}
+    if 'learn_mode' in config:
+        message = {"mode": "update", "type": "core", "device": {"learn_mode": new_learn_mode}}
+    else:
+        message = {"mode": "update", "type": "core", "device": {"learn_mode": True}}
     mqtt_client.publish("cubiemedia/command", json.dumps(message))
-
     time.sleep(1)
 
-    return redirect(url_for('show_application', application=application))
+    mqtt_client.disconnect()
+    return redirect(url_for('index'))
 
 
 def get_running_applications():
-    applications = {}
+    applications = []
     for service in service_list:
-        state = os.system('systemctl is-active --quiet ' + service)
-        if state == 0:
-            applications[service] = service_list[service]
+        response = execute_command(["ps", "-ef"]).strip()
+        response = response.decode()
+        if "mqtt_client.py " + service['id'] in response or "cubiemedia-mqtt-client " + \
+                service['id'] in response:
+            service['running'] = True
+            applications.append(service)
+        else:
+            service['running'] = False
 
     return applications
 
 
 def get_device_list(application):
     config = get_configuration(application)
-    logging.info(config)
     if "deviceList" in config:
         return config["deviceList"]
     else:
@@ -90,6 +109,7 @@ def delete_item(config, items):
         for item in items:
             message = {"mode": "delete", "device": {"id": item}}
             mqtt_client.publish("cubiemedia/command", json.dumps(message))
+        mqtt_client.disconnect()
 
 
 def connect_mqtt_client(config):
@@ -106,7 +126,34 @@ def connect_mqtt_client(config):
 
 @app.route('/cubie-admin')
 def show_administration():
-    return render_template('administration.html', url_reboot=url_for('system_reboot'))
+    return render_template('administration.html')
+
+
+@app.route('/<application>/start')
+def application_start(application):
+    logging.info(f"Start Application {application}")
+    state = os.system('systemctl enable snap.cubiemedia-mqtt-client.cubiemedia-' + application + " --now")
+    if state != 0:
+        logging.warning(f"could not enable application {application}")
+    return redirect(url_for('index'))
+
+
+@app.route('/<application>/stop')
+def application_stop(application):
+    logging.info(f"Stop Application {application}")
+    state = os.system('systemctl disable snap.cubiemedia-mqtt-client.cubiemedia-' + application + " --now")
+    if state != 0:
+        logging.warning(f"could not enable application {application}")
+    return redirect(url_for('index'))
+
+
+@app.route('/<application>/restart')
+def application_restart(application):
+    logging.info(f"Restart Application {application}")
+    state = os.system('systemctl restart snap.cubiemedia-mqtt-client.cubiemedia-' + application)
+    if state != 0:
+        logging.warning(f"could not enable application {application}")
+    return redirect(url_for('index'))
 
 
 @app.route('/cubie-admin/reboot')
@@ -118,4 +165,5 @@ def system_reboot():
 @app.route('/')
 def index():
     application_list = get_running_applications()
-    return render_template('index.html', application_list=application_list, service_list=service_list)
+    return render_template('index.html', application_list=application_list, service_list=service_list,
+                           ip=get_ip_address(), learn_mode=get_configuration(CUBIE_CORE)[0]['learn_mode'], server=get_configuration(CUBIE_CORE)[0]['host'], user=get_configuration(CUBIE_CORE)[0]['username'])

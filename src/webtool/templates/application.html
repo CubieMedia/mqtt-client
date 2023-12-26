@@ -1,36 +1,64 @@
 <!doctype html>
-<title>CubieMedia - Configuration</title>
-<h1>{{ application.replace('cubiemedia-', '').upper() }} Devices ({% if application ==
-    "cubiemedia-enocean" %}Learn Mode enabled: <a href="/function/{{ application }}/learn_mode">{{ learn_mode
-        }}</a>{% endif %}):
-</h1>
-{% if not application %}
-<h3>ERROR: No Application or wrong Application selected!</h3>
-{% elif device_list|length == 0 %}
-<h3>No Devices in List!</h3>
-{% else %}
-<h3>{{ device_list|length }} Devices</h3>
-<div style="margin-left: 30px; list-style-type: decimal-leading-zero">
-    {% for item in device_list %}
-    <li><b>{{ item.id.upper() }}</b> (
-        {% if application == "cubiemedia-io" %}
-        <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
-        {% else %}
-        <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
-        {% endif %}
-        )
-    </li>
-    <ul>
-        <li>{{ item.type }}</li>
-        <li>{{ item.client_id }}</li>
-        <li>{{ item.dbm }}</li>
-    </ul>
-    {% endfor %}
-</div>
+<head>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/common.css')}}">
+    <meta http-equiv="refresh" content="5; URL={{ application }}">
+</head>
 
-<br/>
+<title>Cubie - Configuration</title>
+<table>
+    <tr>
+        <td>
+            <a href="{{ url_for('index') }}">
+                <img src="{{url_for('static', filename='logo.png')}}" width="150">
+            </a>
+        </td>
+        <td>
+            {% if application %}
+            <h1 style="text-align: center;">{{ application.replace('cubiemedia-', '').upper() }} Devices</h1>
+            <h3 style="text-align: center;">({{ device_list|length }} Devices)</h3>
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>
+        </td>
+        <td>
+            {% if not application %}
+            <h3>ERROR: No Application or wrong Application selected!</h3>
+            {% elif device_list|length == 0 %}
+            <h3>No Devices in List!</h3>
+            {% else %}
+            <div style="margin-left: 10px; list-style-type: decimal-leading-zero">
+                {% for item in device_list %}
+                <li><b>{{ item.type + " - " + (item.id|string).upper() }}</b> (
+                    {% if application == "gpio" %}
+                    <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
+                    {% else %}
+                    <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
+                    {% endif %}
+                    )
+                </li>
+                <ul>
+                    {% if application == "gpio" %}
+                    <li>{{ item.function }}</li>
+                    <li>{{ (item.value|string).upper() }}</li>
+                    {% else %}
+                    <li>{{ item.type }}</li>
+                    <li>{{ item.client_id }}</li>
+                        {% if application == "enocean" %}
+                        <li>{{ item.dbm }}</li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                {% endfor %}
+            </div>
 
-{% if application != "cubiemedia-io" %}
-<a href="/delete/{{ application }}/all" style="color: red;">Delete all devices!</a>
-{% endif %}
-{% endif %}
+            <br/>
+
+            {% if application != "cubiemedia-io" %}
+            <a href="/delete/{{ application }}/all" style="color: red;">Delete all devices!</a>
+            {% endif %}
+            {% endif %}
+        </td>
+    </tr>
+</table>

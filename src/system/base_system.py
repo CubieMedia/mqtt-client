@@ -2,7 +2,7 @@ import abc
 import logging
 import time
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE
+from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIE_CORE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.python import get_configuration, set_configuration
 
@@ -45,13 +45,13 @@ class BaseSystem(abc.ABC):
     def load(self):
         logging.info("... loading config")
 
-        common_config = get_configuration("common")
+        core_config = get_configuration(CUBIE_CORE)[0]
         device_list = get_configuration(self.execution_mode)
 
-        self.mqtt_server = common_config['host'] if common_config else DEFAULT_MQTT_SERVER
-        self.mqtt_user = common_config['username'] if common_config else DEFAULT_MQTT_USERNAME
-        self.mqtt_password = common_config['password'] if common_config else DEFAULT_MQTT_PASSWORD
-        self.learn_mode = common_config['learn-mode'] if common_config else DEFAULT_LEARN_MODE
+        self.mqtt_server = core_config['host'] if core_config else DEFAULT_MQTT_SERVER
+        self.mqtt_user = core_config['username'] if core_config else DEFAULT_MQTT_USERNAME
+        self.mqtt_password = core_config['password'] if core_config else DEFAULT_MQTT_PASSWORD
+        self.learn_mode = core_config['learn_mode'] if core_config else DEFAULT_LEARN_MODE
         self.known_device_list = device_list if device_list else []
 
     def save(self, new_device=None):
@@ -73,10 +73,12 @@ class BaseSystem(abc.ABC):
             logging.warning(f"... could not find device [{device}] to delete")
 
     def reset(self):
+        logging.info("... resetting device list")
         self.known_device_list = []
         self.save()
 
     def set_learn_mode(self, enabled: bool):
+        logging.info(f"... setting learn mode [{enabled}]")
         self.learn_mode = enabled
         self.save()
 

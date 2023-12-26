@@ -1,15 +1,35 @@
 <!doctype html>
-<title>CubieMedia - System - Reboot</title>
+<head>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/common.css')}}">
+</head>
 
-<script>    
-     window.setTimeout(function(){
+<title>Cubie - System - Reboot</title>
 
-       // Move to a new location or you can do something else
-       window.location.href = "/";
+<script>
+    window.setTimeout(function(){
+        // Move to a new location or you can do something else
+        window.location.href = "/";
 
-       }, 25000);
-
-
+    }, 25000);
 </script>
 
-OK - please wait for reboot - this can take up to one minute!
+<table>
+    <tr>
+        <td>
+            <a href="{{ url_for('index') }}">
+                <img src="{{url_for('static', filename='logo.png')}}" width="150">
+            </a>
+        </td>
+        <td>
+            <h1 style="text-align: center;">Reboot</h1>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <img src="{{url_for('static', filename='reboot.png')}}" width="150">
+        </td>
+        <td>
+            OK - please wait for reboot - this can take up to one minute!
+        </td>
+    </tr>
+</table>

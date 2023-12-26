@@ -96,7 +96,7 @@ class GPIOSystem(BaseSystem):
             GPIO.output(int(data['id']), GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
 
     def announce(self):
-        device = {'id': self.ip_address, 'type': "GPIO"}
+        device = {'id': self.ip_address, 'type': CUBIE_GPIO}
         for gpio in self.known_device_list:
             device['config'] = gpio
             logging.info("... ... announce gpio device [%s]" % device)

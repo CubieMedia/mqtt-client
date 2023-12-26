@@ -1,4 +1,5 @@
 # wording #
+CUBIE_CORE = "core"
 CUBIE_GPIO = "gpio"
 CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
@@ -23,7 +24,6 @@ DEFAULT_TOPIC_COMMAND = CUBIEMEDIA + "command"
 DEFAULT_TOPIC_ANNOUNCE = CUBIEMEDIA + CUBIE_ANNOUNCE
 
 # Relayboard #
-RELAY_BOARD = "RELAYBOARD"
 RELAY_USERNAME = 'admin'
 RELAY_PASSWORD = 'password'
 
