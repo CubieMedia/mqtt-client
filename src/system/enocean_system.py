@@ -85,7 +85,8 @@ class EnoceanSystem(BaseSystem):
                         self.save()
                 else:
                     print("... ... send message for [%s]" % device['id'])
-                    self.mqtt_client.publish('cubiemedia/' + str(device['id']).lower(), json.dumps(device['state']))
+                    self.mqtt_client.publish(
+                        f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}", json.dumps(device['state']))
                 return True
 
         device['client_id'] = client_id
@@ -134,7 +135,8 @@ class EnoceanSystem(BaseSystem):
     def set_availability(self, state: bool):
         for device in self.known_device_list:
             if device['client_id'] == self.mqtt_client.mqtt_client._client_id.decode():
-                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online", str(state).lower())
+                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
+                                         str(state).lower())
 
     def send(self, data):
         raise NotImplemented(f"sending data[{data}] is not implemented")

@@ -5,7 +5,7 @@ import logging
 import subprocess
 from subprocess import CalledProcessError
 
-from common import CUBIE_CORE
+from common import COLOR_YELLOW
 
 
 def exit_gracefully(system, *args):
@@ -33,8 +33,8 @@ def get_configuration(config_name: str) -> {}:
             value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name]).strip()
         except CalledProcessError:
             logging.warning(
-                "seems to be a non snap environment, could not load config [%s]\n"
-                "Try to install Snap locally to create config or login to Ubuntu with [snap login]" % config_name)
+                f"seems to be a non snap environment, could not load config [{config_name}]\n"
+                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]")
     json_object = json.loads(value)
     if config_name in json_object:
         return json_object[config_name]
@@ -49,8 +49,8 @@ def set_configuration(config_name: str, config: []):
             execute_command(["snap", "set", "cubiemedia-mqtt-client", f"{config_name}={json.dumps(config)}"])
         except CalledProcessError as e:
             logging.warning(
-                "seems to be a non snap environment, could not save config [%s]\n"
-                "Maybe try to login to Ubuntu with [snap login]" % config_name)
+                f"seems to be a non snap environment, could not save config [{config_name}]\n"
+                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]")
     return None
 
 

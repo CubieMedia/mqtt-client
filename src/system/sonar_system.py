@@ -49,7 +49,7 @@ class SonarSystem(BaseSystem):
 
     def action(self, device):
         logging.info("... ... action for [%s]" % device)
-        self.mqtt_client.publish('cubiemedia/' + device['id'].replace(".", "_") + "/distance",
+        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
                                  json.dumps(device['value']))
 
     def update(self):

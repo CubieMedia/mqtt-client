@@ -103,7 +103,8 @@ class VictronSystem(BaseSystem):
         logging.info(
             "... ... subscribing to [%s] for victron write commands [" % CUBIEMEDIA + self.victron_system["id"].replace(
                 ".", "_") + "/+/command]")
-        self.mqtt_client.subscribe(CUBIEMEDIA + self.victron_system["id"].replace(".", "_") + "/+/command", 2)
+        self.mqtt_client.subscribe(
+            f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command", 2)
 
     def save(self, new_device=None):
         super().save(new_device)
