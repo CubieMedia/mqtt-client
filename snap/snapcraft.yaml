@@ -50,15 +50,17 @@ apps:
     command: usr/bin/cubiemedia-mqtt-client
     plugs: [ network, network-bind, serial-port, gpio-memory-control ]
   cubiemedia-sonar:
+    plugs: [ network, network-bind, serial-port ]
     command: usr/bin/cubiemedia-mqtt-client sonar
     daemon: simple
     install-mode: disable
   cubiemedia-victron:
+    plugs: [ network, network-bind ]
     command: usr/bin/cubiemedia-mqtt-client victron
     daemon: simple
     install-mode: disable
   cubiemedia-enocean:
-    plugs: [ network, network-bind ]
+    plugs: [ network, network-bind, serial-port ]
     command: usr/bin/cubiemedia-mqtt-client enocean
     daemon: simple
     install-mode: disable
@@ -68,7 +70,7 @@ apps:
     daemon: simple
     install-mode: disable
   cubiemedia-gpio:
-    plugs: [ network, network-bind ]
+    plugs: [ network, network-bind, gpio-memory-control ]
     command: usr/bin/cubiemedia-mqtt-client gpio
     daemon: simple
     install-mode: disable
