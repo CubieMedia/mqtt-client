@@ -79,7 +79,7 @@ apps:
     command: usr/bin/cubiemedia-mqtt-client core
     daemon: simple
   cubiemedia-webtool:
-    plugs: [ network, network-bind ]
+    plugs: [ network, network-bind, system-observe ]
     command: usr/bin/flask run
     daemon: simple
     environment:
