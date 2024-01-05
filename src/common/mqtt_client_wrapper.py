@@ -84,7 +84,7 @@ class CubieMediaMQTTClient:
                     if msg.topic.endswith("/command"):
                         topic_array = msg.topic.split("/")
                         if len(topic_array) > 3:
-                            message_data = {'ip': topic_array[1].replace("_", "."), 'id': topic_array[2],
+                            message_data = {'ip': topic_array[2].replace("_", "."), 'id': topic_array[3],
                                             'state': msg.payload}
                             self.system.send(message_data)
                     else:

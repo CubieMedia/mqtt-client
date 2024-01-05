@@ -5,7 +5,7 @@ import logging
 import subprocess
 from subprocess import CalledProcessError
 
-from common import COLOR_YELLOW
+from common import COLOR_YELLOW, COLOR_DEFAULT
 
 
 def exit_gracefully(system, *args):
@@ -34,7 +34,7 @@ def get_configuration(config_name: str) -> {}:
         except CalledProcessError:
             logging.warning(
                 f"seems to be a non snap environment, could not load config [{config_name}]\n"
-                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]")
+                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
     json_object = json.loads(value)
     if config_name in json_object:
         return json_object[config_name]
@@ -50,7 +50,7 @@ def set_configuration(config_name: str, config: []):
         except CalledProcessError as e:
             logging.warning(
                 f"seems to be a non snap environment, could not save config [{config_name}]\n"
-                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]")
+                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
     return None
 
 

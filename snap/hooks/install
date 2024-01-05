@@ -14,6 +14,8 @@ snapctl set sonar='[{"type": "sonar", "device": "/dev/ttyS0", "update_interval":
 snapctl set relay='[]'
 snapctl set victron='[]'
 snapctl set enocean='[]'
+
+echo "Testing MOTD" > /etc/writable/motd
 snapctl set demo='[{"id": "aa:bb:cc:dd:ee:ff", "type": "Demo-Device", "client_id": "Demo_Client", "dbm": "44"},
                         {"id": "Bärbel", "type": "Demo-Device", "client_id": "Demo_Client", "dbm": "33"},
                         {"id": "11:22:33:44:55:66", "type": "Demo-Device", "client_id": "Demo_Client", "dbm": "22"}]'

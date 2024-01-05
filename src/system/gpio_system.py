@@ -36,7 +36,7 @@ class GPIOSystem(BaseSystem):
         super().init(ip_address)
         if not GPIO:
             logging.warning(
-                f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode? WARNING{COLOR_DEFAULT}")
+                f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode?{COLOR_DEFAULT}")
         else:
             GPIO.setmode(GPIO.BCM)
             for device in self.known_device_list:

@@ -21,9 +21,10 @@ class BaseSystem(abc.ABC):
     execution_mode = None
 
     def init(self, ip_address: str):
-        self.load()
         self.ip_address = ip_address
         self.client_id = client_id = ip_address + "-" + self.execution_mode + "-client"
+
+        self.load()
         self.mqtt_client = CubieMediaMQTTClient(client_id)
         self.mqtt_client.connect(self)
 

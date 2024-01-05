@@ -5,11 +5,16 @@ import json
 import logging
 import threading
 import time
+from json import JSONDecodeError
 
 from paho.mqtt import client as mqtt
 
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS, TIMEOUT_UPDATE_SEND
+from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS
 from system.base_system import BaseSystem
+
+IMPORT_CORRECTION_FACTOR = 10
+
+EXPORT_CORRECTION_FACTOR = 10
 
 
 class VictronSystem(BaseSystem):
@@ -41,11 +46,11 @@ class VictronSystem(BaseSystem):
             if 'battery' in topic:
                 pass
             elif topic is self.service_list[4]:
-                payload = round(float(payload) / 10, 2)
+                payload = round(float(payload) / EXPORT_CORRECTION_FACTOR, 2)
                 logging.debug("exported payload [%s]" % payload)
                 pass
             elif topic is self.service_list[5]:
-                payload = round(float(payload) / 10, 2)
+                payload = round(float(payload) / IMPORT_CORRECTION_FACTOR, 2)
                 logging.debug("imported payload [%s]" % payload)
                 pass
             elif topic is self.service_list[6]:
@@ -87,24 +92,34 @@ class VictronSystem(BaseSystem):
 
     def init(self, ip_address):
         super().init(ip_address)
-        self.connect_victron_system(self.client_id)
+        self.victron_mqtt_client = mqtt.Client(client_id=self.client_id, clean_session=True, userdata=None,
+                                               transport="tcp")
+        # self.mqtt_client.username_pw_set(username=user, password=password)
+        self.victron_mqtt_client.on_connect = self.on_victron_connect
+        self.victron_mqtt_client.on_disconnect = self.on_victron_disconnect
+        self.victron_mqtt_client.on_message = self.on_victron_message
+
+        logging.info("... ... starting keepalive thread")
+        self.keepalive_thread = threading.Thread(target=self._run)
+        self.keepalive_thread.daemon = True
+        self.keepalive_thread.start()
 
     def shutdown(self):
         logging.info('... set devices unavailable...')
         self.set_availability(False)
 
         logging.info("... stopping scan thread...")
-        self.keepalive_thread_event.set()
-        self.keepalive_thread.join()
+        if not self.keepalive_thread_event.is_set():
+            self.keepalive_thread_event.set()
+            self.keepalive_thread.join()
 
     def announce(self):
         logging.info("... ... announce victron_system [%s]" % self.victron_system["id"])
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(self.victron_system))
-        logging.info(
-            "... ... subscribing to [%s] for victron write commands [" % CUBIEMEDIA + self.victron_system["id"].replace(
-                ".", "_") + "/+/command]")
-        self.mqtt_client.subscribe(
-            f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command", 2)
+        device_command_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command"
+        logging.info(f"... ... subscribing to [{device_command_topic}] for victron write commands")
+        self.mqtt_client.subscribe(device_command_topic, 2)
+        self.set_availability(True)
 
     def save(self, new_device=None):
         super().save(new_device)
@@ -122,10 +137,12 @@ class VictronSystem(BaseSystem):
         count = 0
         while not self.keepalive_thread_event.is_set():
             if count == 0:
-                self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
-                                                 json.dumps(self.topic_read_list))
-                count = TIMEOUT_UPDATE_SEND
-                self.set_availability(True)
+                if not self.victron_mqtt_client.is_connected():
+                    self.connect_victron_system(self.client_id)
+                else:
+                    self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
+                                                     json.dumps(self.topic_read_list))
+                count = 3
             else:
                 count -= 1
             time.sleep(1)
@@ -134,48 +151,49 @@ class VictronSystem(BaseSystem):
 
     def connect_victron_system(self, client_id):
         logging.info("... connecting to Victron System [%s] as client [%s]" % (self.victron_system["id"], client_id))
-        self.victron_mqtt_client = mqtt.Client(client_id=client_id, clean_session=True, userdata=None, transport="tcp")
-        # self.mqtt_client.username_pw_set(username=user, password=password)
-        self.victron_mqtt_client.on_connect = self.on_connect
-        self.victron_mqtt_client.on_disconnect = self.on_disconnect
-        self.victron_mqtt_client.on_message = self.on_message
 
-        self.victron_mqtt_client.connect(self.victron_system["id"], 1883, 60)
-        self.victron_mqtt_client.loop_start()
+        try:
+            self.victron_mqtt_client.connect(self.victron_system["id"], 1883, 60)
+            self.victron_mqtt_client.loop_start()
+        except ConnectionError:
+            pass
 
-    def on_message(self, client, userdata, msg):
+    def on_victron_message(self, client, userdata, msg):
         for topic in self.topic_read_list:
             if topic in msg.topic:
-                logging.debug("... ... message on topic [%s] with value [%s]" % (topic, msg.payload))
-                service = self.get_service_from_topic(topic)
-                value = json.loads(msg.payload.decode('UTF-8'))['value']
-                self.updated_data["devices"].append({service: value})
+                try:
+                    logging.debug("... ... message on topic [%s] with value [%s]" % (topic, msg.payload))
+                    service = self.get_service_from_topic(topic)
+                    value = json.loads(msg.payload.decode('UTF-8'))['value']
+                    self.updated_data["devices"].append({service: value})
+                except JSONDecodeError:
+                    logging.warning(
+                        "message on topic [%s] with value [%s] seems not to be json format" % (topic, msg.payload))
 
-    def on_connect(self, client, userdata, flags, rc):
-        logging.info("... connected to Victron System [%s]" % client._host)
+    def on_victron_connect(self, client, userdata, flags, rc):
+        logging.info("... connected to Victron System [%s] with result [%s]" % (client._host, rc))
         if rc == 0:
             for topic in self.topic_read_list:
                 topic = ("N/%s/" % self.known_device_list[0]["serial"]) + topic
                 logging.info("... ... subscribe to topic [%s]" % topic)
                 client.subscribe(topic, QOS)
 
-            logging.info("... ... starting keepalive thread")
-            self.keepalive_thread = threading.Thread(target=self._run)
-            self.keepalive_thread.daemon = True
-            self.keepalive_thread.start()
+            self.set_availability(True)
         else:
             logging.info("... bad connection please check login data")
 
-    def on_disconnect(self, client, userdata, rc):
-        if not self.keepalive_thread_event.is_set():
-            logging.info("... stopping keepalive thread...")
-            self.keepalive_thread_event.set()
-            self.keepalive_thread.join()
-
+    def on_victron_disconnect(self, client, userdata, rc):
         if rc == 0:
             logging.info("... ...disconnected from Victron System [%s] with result [%s]" % (client._host, rc))
         else:
             logging.warning("... ... lost connection to Victron System [%s] with result [%s]" % (client._host, rc))
+
+        self.set_availability(False)
+
+    def set_availability(self, state: bool):
+        self.mqtt_client.publish(
+            f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/online",
+            str(state).lower())
 
     def get_service_from_topic(self, topic):
         return self.service_list[self.topic_read_list.index(topic)]
