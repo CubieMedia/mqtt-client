@@ -12,9 +12,9 @@ from paho.mqtt import client as mqtt
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS
 from system.base_system import BaseSystem
 
-IMPORT_CORRECTION_FACTOR = 10
+EXPORT_CORRECTION_FACTOR = 5
 
-EXPORT_CORRECTION_FACTOR = 10
+IMPORT_CORRECTION_FACTOR = 1.2
 
 
 class VictronSystem(BaseSystem):
