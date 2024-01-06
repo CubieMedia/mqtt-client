@@ -126,9 +126,6 @@ class VictronSystem(BaseSystem):
 
     def load(self):
         super().load()
-        if len(self.known_device_list) == 0:
-            self.known_device_list = [{"id": "192.168.25.24", "serial": "c0619ab33552", "type": CUBIE_VICTRON,
-                                       "client_id": self.client_id}]
         self.victron_system = self.known_device_list[0]
 
     def _run(self):

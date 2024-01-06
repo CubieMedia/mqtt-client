@@ -93,7 +93,7 @@ class GPIOSystem(BaseSystem):
     def send(self, data):
         logging.info("... ... send data[%s] from HA" % data)
         if GPIO:
-            GPIO.output(int(data['id']), GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
+            GPIO.output(int(data['id']), GPIO.LOW if int(data['state'].decode()) == 1 else GPIO.HIGH)
 
     def announce(self):
         device = {'id': self.ip_address, 'type': CUBIE_GPIO}
@@ -106,6 +106,13 @@ class GPIOSystem(BaseSystem):
         logging.info("... ... subscribing to [%s] for gpio output commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
         self.set_availability(True)
+
+    def set_availability(self, state: bool):
+        super().set_availability()
+        for gpio in self.known_device_list:
+            self.mqtt_client.publish(
+                f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
+                str(gpio['value']).lower())
 
     def save(self, new_device=None):
         if new_device is None:
