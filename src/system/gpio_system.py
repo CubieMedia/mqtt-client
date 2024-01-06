@@ -11,7 +11,7 @@ from common.python import install_package
 from system.base_system import BaseSystem
 
 snap_arch = os.environ.get('SNAP_ARCH')
-if snap_arch and "arm" in snap_arch:
+if (snap_arch and "arm" in snap_arch) or "arm" in os.uname()[4]:
     try:
         import RPi.GPIO as GPIO
     except (ModuleNotFoundError, RuntimeError) as e:
@@ -108,7 +108,7 @@ class GPIOSystem(BaseSystem):
         self.set_availability(True)
 
     def set_availability(self, state: bool):
-        super().set_availability()
+        super().set_availability(state)
         for gpio in self.known_device_list:
             self.mqtt_client.publish(
                 f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",

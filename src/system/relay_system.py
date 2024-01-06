@@ -98,7 +98,12 @@ class RelaySystem(BaseSystem):
 
     def set_availability(self, state: bool):
         for device in self.known_device_list:
-            self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/online", str(state).lower())
+            self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/online",
+                                     str(state).lower())
+
+            for relay in device['state']:
+                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
+                                         device['state'][relay])
 
     def init(self, ip_address):
         super().init(ip_address)
@@ -121,7 +126,8 @@ class RelaySystem(BaseSystem):
             logging.info("... ... announce device [%s]" % device['id'])
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
             logging.info("... ... subscribing to [%s] for commands" % device['id'])
-            self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command", 2)
+            self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
+                                       2)
             if not device['id'] in self.subscription_list:
                 self.subscription_list.append(device['id'])
 

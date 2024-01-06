@@ -3,7 +3,6 @@
 import json
 import logging
 import subprocess
-from subprocess import CalledProcessError
 
 from common import COLOR_YELLOW, COLOR_DEFAULT
 
@@ -42,10 +41,10 @@ def get_configuration(config_name: str) -> {}:
         value = execute_command(["snapctl", "get", "-d", config_name]).strip()
         if len(value) < 3:
             value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name]).strip()
-    except Exception:
+    except:
         try:
             value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name]).strip()
-        except Exception:
+        except:
             logging.warning(
                 f"seems to be a non snap environment, could not load config [{config_name}]\n"
                 f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
@@ -60,10 +59,10 @@ def get_configuration(config_name: str) -> {}:
 def set_configuration(config_name: str, config: []):
     try:
         execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
-    except CalledProcessError:
+    except:
         try:
             execute_command(["snap", "set", "cubiemedia-mqtt-client", f"{config_name}={json.dumps(config)}"])
-        except Exception as e:
+        except:
             logging.warning(
                 f"seems to be a non snap environment, could not save config [{config_name}]\n"
                 f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
