@@ -59,7 +59,7 @@ class EnoceanSystem(BaseSystem):
                         if 'state' not in known_device or len(known_device['state']) == 0 or \
                                 (topic in known_device['state'] and device['state'][topic] != known_device['state'][
                                     topic]):
-                            channel_topic = f"{CUBIEMEDIA}/{str(device['id']).lower()}/{topic}"
+                            channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                             value = device['state'][topic]
                             if value == 1:
                                 self.create_timer_for(channel_topic)
