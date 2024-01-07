@@ -8,5 +8,4 @@ snapctl set relay='[]'
 snapctl set victron='[{"id": "192.168.25.24", "serial": "c0619ab33552", "type": "victron"}]'
 snapctl set enocean='[]'
 
-echo "Testing MOTD" > /etc/writable/motd
 snapctl set demo='[{"id": "aa:bb:cc:dd:ee:ff", "type": "Demo-Device", "client_id": "Demo_Client", "dbm": "44"}, {"id": "Bärbel", "type": "Demo-Device", "client_id": "Demo_Client", "dbm": "33"}, {"id": "11:22:33:44:55:66", "type": "Demo-Device", "client_id": "Demo_Client", "dbm": "22"}]'

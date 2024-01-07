@@ -1,7 +1,6 @@
 <!doctype html>
 <head>
     <link rel="stylesheet" href="{{url_for('static', filename='css/common.css')}}">
-    <meta http-equiv="refresh" content="5; URL={{ application }}">
 </head>
 
 <title>Cubie - Configuration</title>
@@ -14,51 +13,81 @@
         </td>
         <td>
             {% if application %}
-            <h1 style="text-align: center;">{{ application.replace('cubiemedia-', '').upper() }} Devices</h1>
-            <h3 style="text-align: center;">({{ device_list|length }} Devices)</h3>
+            <h1 style="text-align: center;">{{ application.replace('cubiemedia-', '').upper() }}</h1>
+            {% if device_list is mapping and 'id' in device_list %}
+            <h3 style="text-align: center;">{{ device_list.id }}</h3>
+            {% endif %}
+            <h3 style="text-align: center;">({{ device_list|length }} Entries)</h3>
             {% endif %}
         </td>
+        <td>
+            Optionen
+        </td>
     </tr>
+    {% if device_list is mapping %}
+    {% for item in device_list %}
     <tr>
-        <td>
-        </td>
-        <td>
-            {% if not application %}
-            <h3>ERROR: No Application or wrong Application selected!</h3>
-            {% elif device_list|length == 0 %}
-            <h3>No Devices in List!</h3>
-            {% else %}
-            <div style="margin-left: 10px; list-style-type: decimal-leading-zero">
-                {% for item in device_list %}
-                <li><b>{{ (item.id|string).upper() }}</b> (
-                    {% if application == "gpio" %}
-                    <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
-                    {% else %}
-                    <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
-                    {% endif %}
-                    )
-                </li>
-                <ul>
-                    {% if application == "gpio" %}
-                    <li>{{ item.function }}</li>
-                    <li>{{ (item.value|string).upper() }}</li>
-                    {% else %}
-                    <li>{{ item.type }}</li>
-                    <li>{{ item.client_id }}</li>
-                        {% if application == "enocean" %}
-                        <li>{{ item.dbm }}</li>
-                        {% endif %}
-                    {% endif %}
-                </ul>
-                {% endfor %}
-            </div>
-
-            <br/>
-
-            {% if application != "cubiemedia-io" %}
-            <a href="/delete/{{ application }}/all" style="color: red;">Delete all devices!</a>
-            {% endif %}
-            {% endif %}
-        </td>
+        {% if 'id' in device_list %}
+        <form action="/update/{{ application }}/{{ device_list.id }}/{{ item }}" method="POST">
+            <td>
+                {{ item }}
+            </td>
+            <td>
+                <input name="{{ item }}" value="{{ device_list[item] }}">
+            </td>
+            <td>
+                <input type="submit">
+            </td>
+        </form>
+        {% else %}
+        <form action="/update/{{ application }}/{{ item }}" method="POST">
+            <td>
+                {{ item }}
+            </td>
+            <td>
+                <input name="{{ item }}" value="{{ device_list[item] }}">
+            </td>
+            <td>
+                <input type="submit">
+            </td>
+        </form>
+        {% endif %}
     </tr>
+    {% endfor %}
+    {% else %}
+    {% if not application %}
+    <h3>ERROR: No Application or wrong Application selected!</h3>
+    {% elif device_list|length == 0 %}
+    <h3>No Devices in List!</h3>
+    {% else %}
+    {% for item in device_list %}
+    <tr>
+        <form action="/update/{{ application }}/device_list" method="POST">
+            <td>
+                <b>{{ (item.id|string).upper() }}</b>
+            </td>
+            <td>
+                {% for parameter in item %}
+                <li>{{ parameter }} = {{ item[parameter] }}</li>
+                {% endfor %}
+            </td>
+            <td>
+                {% if application == "gpio" %}
+                <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
+                {% else %}
+                <input type="hidden" name="device_list" value="{{ item }}">
+                <input type="submit" value="Edit">
+                <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
+                {% endif %}
+
+            </td>
+        </form>
+    </tr>
+    {% endfor %}
+    {% endif %}
+    {% endif %}
 </table>
+{% if application != "cubiemedia-io" %}
+<br/>
+<a href="/delete/{{ application }}/all" style="color: red;">Delete all entries!</a>
+{% endif %}

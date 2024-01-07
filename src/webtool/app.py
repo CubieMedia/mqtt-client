@@ -5,13 +5,12 @@ import threading
 import time
 
 import paho.mqtt.client as mqtt
-from flask import Flask, url_for, render_template
+from flask import Flask, url_for, render_template, request
 from werkzeug.utils import redirect
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE, DEFAULT_LEARN_MODE, \
-    DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
 from common.network import get_ip_address  # noqa
-from common.python import get_configuration, execute_command
+from common.python import get_configuration, execute_command, set_configuration
 from mqtt_client import configure_logger
 
 app = Flask(__name__)
@@ -35,6 +34,35 @@ service_list = [
 @app.route('/show/<application>')
 def show_application(application):
     return render_template('application.html', application=application, device_list=get_device_list(application))
+
+
+@app.route('/update/<application>/<device_id>', methods=['POST'])
+def show_device_or_update_application_parameter(application, device_id):
+    # if 'device_list' is given as id the parameters of device are listed
+    if device_id == 'device_list':
+        device_list = json.loads(request.form['device_list'].replace("'", "\""))
+        return render_template('application.html', application=application, device_list=device_list)
+    else:
+        configuration = get_configuration(application)
+        configuration[device_id] = request.form[device_id]
+        set_configuration(application, configuration)
+
+        return render_template('application.html', application=application, device_list=get_device_list(application))
+
+
+@app.route('/update/<application>/<device_id>/<parameter_id>', methods=['POST'])
+def update_device_parameter(application, device_id, parameter_id):
+    configuration = get_configuration(application)
+    device = None
+    for item in configuration:
+        if item['id'] == device_id:
+            item[parameter_id] = request.form[parameter_id]
+            device = item
+
+    set_configuration(application, configuration)
+
+    return render_template('application.html', application=application,
+                           device_list=device if device else get_device_list(application))
 
 
 @app.route('/delete/<application>/<item>')
@@ -129,6 +157,12 @@ def show_administration():
     return render_template('administration.html')
 
 
+#
+#
+# this is unused, snap environment does not allow this access
+#
+#
+
 @app.route('/<application>/start')
 def application_start(application):
     logging.info(f"Start Application {application}")
@@ -156,6 +190,12 @@ def application_restart(application):
     return redirect(url_for('index'))
 
 
+#
+#
+# end unused
+#
+#
+
 @app.route('/cubie-admin/reboot')
 def system_reboot():
     threading.Timer(3, os.system('reboot'))
@@ -165,7 +205,7 @@ def system_reboot():
 @app.route('/')
 def index():
     application_list = get_running_applications()
-    core_configuration =  get_configuration(CUBIE_CORE)
+    core_configuration = get_configuration(CUBIE_CORE)
     learn_mode = core_configuration['learn_mode']
     server = core_configuration['host']
     user = core_configuration['username']
