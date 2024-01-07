@@ -1,0 +1,50 @@
+<!doctype html>
+<head>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/common.css')}}">
+</head>
+
+<title>Show Device</title>
+<table>
+    <tr>
+        <td>
+            {% if application != 'core' %}
+            <a href="{{ url_for('show_application', application=application) }}">
+                <img src="{{url_for('static', filename='logo.png')}}" width="150">
+            </a>
+            {% else %}
+            <a href="{{ url_for('index') }}">
+                <img src="{{url_for('static', filename='logo.png')}}" width="150">
+            </a>
+            {% endif %}
+        </td>
+        <td>
+            {% if application %}
+            <h1 style="text-align: center;">{{ application.replace('cubiemedia-', '').upper() }}</h1>
+            <h3 style="text-align: center;">{{ device.id }}</h3>
+            <h3 style="text-align: center;">({{ device|length }} Entries)</h3>
+            {% endif %}
+        </td>
+        <td>
+            Optionen
+        </td>
+    </tr>
+    {% for item in device %}
+    <tr>
+        <form action="/update/{{ application }}/{{ device.id }}/{{ item }}" method="POST">
+            <td>
+                {{ item }}
+            </td>
+            <td>
+                <input name="{{ item }}" value="{{ device[item] }}">
+            </td>
+            <td>
+                <input type="submit">
+            </td>
+        </form>
+    </tr>
+    {% endfor %}
+</table>
+{% if application != "cubiemedia-io" %}
+<br/>
+<a href="/delete/{{ application }}/{{ device['id'] }}" style="color: red;">Delete this device</a>
+{% endif %}

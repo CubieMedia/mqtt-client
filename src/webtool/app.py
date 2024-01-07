@@ -33,21 +33,30 @@ service_list = [
 
 @app.route('/show/<application>')
 def show_application(application):
-    return render_template('application.html', application=application, device_list=get_device_list(application))
-
-
-@app.route('/update/<application>/<device_id>', methods=['POST'])
-def show_device_or_update_application_parameter(application, device_id):
-    # if 'device_list' is given as id the parameters of device are listed
-    if device_id == 'device_list':
-        device_list = json.loads(request.form['device_list'].replace("'", "\""))
+    device_list = get_device_list(application)
+    if type(device_list) is not dict:
         return render_template('application.html', application=application, device_list=device_list)
-    else:
-        configuration = get_configuration(application)
-        configuration[device_id] = request.form[device_id]
-        set_configuration(application, configuration)
+    return render_template('device.html', application=application, device=device_list)
 
-        return render_template('application.html', application=application, device_list=get_device_list(application))
+
+@app.route('/show/<application>/<device_id>')
+def show_device(application, device_id):
+    configuration = get_configuration(application)
+    device = None
+    for item in configuration:
+        if item['id'] == device_id:
+            device = item
+    return render_template('device.html', application=application, device=device)
+
+
+@app.route('/update/<application>/<parameter_id>', methods=['POST'])
+def update_application_parameter(application, parameter_id):
+    configuration = get_configuration(application)
+    configuration[parameter_id] = request.form[parameter_id]
+
+    set_configuration(application, configuration)
+
+    return render_template('application.html', application=application, device_list=get_device_list(application))
 
 
 @app.route('/update/<application>/<device_id>/<parameter_id>', methods=['POST'])
@@ -61,8 +70,7 @@ def update_device_parameter(application, device_id, parameter_id):
 
     set_configuration(application, configuration)
 
-    return render_template('application.html', application=application,
-                           device_list=device if device else get_device_list(application))
+    return render_template('device.html', application=application, device=device)
 
 
 @app.route('/delete/<application>/<item>')

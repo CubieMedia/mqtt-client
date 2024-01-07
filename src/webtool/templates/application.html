@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="{{url_for('static', filename='css/common.css')}}">
 </head>
 
-<title>Cubie - Configuration</title>
+<title>Cubie - Application</title>
 <table>
     <tr>
         <td>
@@ -14,9 +14,6 @@
         <td>
             {% if application %}
             <h1 style="text-align: center;">{{ application.replace('cubiemedia-', '').upper() }}</h1>
-            {% if device_list is mapping and 'id' in device_list %}
-            <h3 style="text-align: center;">{{ device_list.id }}</h3>
-            {% endif %}
             <h3 style="text-align: center;">({{ device_list|length }} Entries)</h3>
             {% endif %}
         </td>
@@ -24,37 +21,6 @@
             Optionen
         </td>
     </tr>
-    {% if device_list is mapping %}
-    {% for item in device_list %}
-    <tr>
-        {% if 'id' in device_list %}
-        <form action="/update/{{ application }}/{{ device_list.id }}/{{ item }}" method="POST">
-            <td>
-                {{ item }}
-            </td>
-            <td>
-                <input name="{{ item }}" value="{{ device_list[item] }}">
-            </td>
-            <td>
-                <input type="submit">
-            </td>
-        </form>
-        {% else %}
-        <form action="/update/{{ application }}/{{ item }}" method="POST">
-            <td>
-                {{ item }}
-            </td>
-            <td>
-                <input name="{{ item }}" value="{{ device_list[item] }}">
-            </td>
-            <td>
-                <input type="submit">
-            </td>
-        </form>
-        {% endif %}
-    </tr>
-    {% endfor %}
-    {% else %}
     {% if not application %}
     <h3>ERROR: No Application or wrong Application selected!</h3>
     {% elif device_list|length == 0 %}
@@ -62,7 +28,7 @@
     {% else %}
     {% for item in device_list %}
     <tr>
-        <form action="/update/{{ application }}/device_list" method="POST">
+        <form action="/show/{{ application }}/{{ item.id }}">
             <td>
                 <b>{{ (item.id|string).upper() }}</b>
             </td>
@@ -84,7 +50,6 @@
         </form>
     </tr>
     {% endfor %}
-    {% endif %}
     {% endif %}
 </table>
 {% if application != "cubiemedia-io" %}
