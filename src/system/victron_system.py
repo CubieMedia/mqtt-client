@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-
+import copy
 import json
 import logging
 import threading
@@ -13,22 +13,21 @@ from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS
 from system.base_system import BaseSystem
 
 EXPORT_CORRECTION_FACTOR = 5
-
 IMPORT_CORRECTION_FACTOR = 1.2
+SERVICE_LIST = ["battery_power", "battery_soc", "battery_charged", "battery_discharged",
+                "grid_exported", "grid_imported", "grid_lost_alarm",
+                "allow_charge", "allow_discharge"]
+TOPIC_READ_LIST = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
+                   "vebus/276/Energy/OutToInverter",
+                   "vebus/276/Energy/InverterToAcOut",
+                   "grid/30/Ac/Energy/Reverse",
+                   "grid/30/Ac/Energy/Forward",
+                   "vebus/276/Alarms/GridLost",
+                   "settings/0/Settings/SystemSetup/MaxChargeCurrent",
+                   "settings/0/Settings/CGwacs/MaxDischargePower"]
 
 
 class VictronSystem(BaseSystem):
-    topic_read_list = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
-                       "vebus/276/Energy/OutToInverter",
-                       "vebus/276/Energy/InverterToAcOut",
-                       "grid/30/Ac/Energy/Reverse",
-                       "grid/30/Ac/Energy/Forward",
-                       "vebus/276/Alarms/GridLost",
-                       "settings/0/Settings/SystemSetup/MaxChargeCurrent",
-                       "settings/0/Settings/CGwacs/MaxDischargePower"]
-    service_list = ["battery_power", "battery_soc", "battery_charged", "battery_discharged",
-                    "grid_exported", "grid_imported", "grid_lost_alarm",
-                    "allow_charge", "allow_discharge"]
     victron_system = {}
     victron_mqtt_client = None
     updated_data = {"devices": []}
@@ -45,19 +44,19 @@ class VictronSystem(BaseSystem):
             payload = device[topic]
             if 'battery' in topic:
                 pass
-            elif topic is self.service_list[4]:
+            elif topic is SERVICE_LIST[4]:
                 payload = round(float(payload) / EXPORT_CORRECTION_FACTOR, 2)
                 logging.debug("exported payload [%s]" % payload)
                 pass
-            elif topic is self.service_list[5]:
+            elif topic is SERVICE_LIST[5]:
                 payload = round(float(payload) / IMPORT_CORRECTION_FACTOR, 2)
                 logging.debug("imported payload [%s]" % payload)
                 pass
-            elif topic is self.service_list[6]:
+            elif topic is SERVICE_LIST[6]:
                 pass
-            elif topic == self.service_list[7]:
+            elif topic == SERVICE_LIST[7]:
                 payload = 0 if device[topic] < 1 else 1
-            elif topic == self.service_list[8]:
+            elif topic == SERVICE_LIST[8]:
                 payload = 0 if device[topic] == 0 else 1
             else:
                 logging.warning("no logic for topic [%s]" % topic)
@@ -71,12 +70,12 @@ class VictronSystem(BaseSystem):
         # {'ip': '192.168.25.24', 'id': 'charge', 'state': b'1'}
         if "id" in data and "state" in data:
             service_value = True if data["state"].decode('UTF-8') == "1" else False
-            if data["id"] == self.service_list[7]:
+            if data["id"] == SERVICE_LIST[7]:
                 logging.info("... ... charging is [%s]" % service_value)
                 value = '{"value": %s}' % (80 if service_value else 0)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/SystemSetup/MaxChargeCurrent",
                                                  value)
-            elif data["id"] == self.service_list[8]:
+            elif data["id"] == SERVICE_LIST[8]:
                 logging.info("... ... feeding is [%s]" % service_value)
                 value = '{"value": %s}' % (-1 if service_value else 0)
                 self.victron_mqtt_client.publish("W/c0619ab33552/settings/0/Settings/CGwacs/MaxDischargePower", value)
@@ -92,6 +91,7 @@ class VictronSystem(BaseSystem):
 
     def init(self, ip_address):
         super().init(ip_address)
+        self.victron_system['client_id'] = self.client_id
         self.victron_mqtt_client = mqtt.Client(client_id=self.client_id, clean_session=True, userdata=None,
                                                transport="tcp")
         # self.mqtt_client.username_pw_set(username=user, password=password)
@@ -115,7 +115,9 @@ class VictronSystem(BaseSystem):
 
     def announce(self):
         logging.info("... ... announce victron_system [%s]" % self.victron_system["id"])
-        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(self.victron_system))
+        temp_victron_system = copy.copy(self.victron_system)
+        temp_victron_system['state'] = SERVICE_LIST
+        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_victron_system))
         device_command_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command"
         logging.info(f"... ... subscribing to [{device_command_topic}] for victron write commands")
         self.mqtt_client.subscribe(device_command_topic, 2)
@@ -138,7 +140,7 @@ class VictronSystem(BaseSystem):
                     self.connect_victron_system(self.client_id)
                 else:
                     self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
-                                                     json.dumps(self.topic_read_list))
+                                                     json.dumps(TOPIC_READ_LIST))
                 count = 3
             else:
                 count -= 1
@@ -156,7 +158,7 @@ class VictronSystem(BaseSystem):
             pass
 
     def on_victron_message(self, client, userdata, msg):
-        for topic in self.topic_read_list:
+        for topic in TOPIC_READ_LIST:
             if topic in msg.topic:
                 try:
                     logging.debug("... ... message on topic [%s] with value [%s]" % (topic, msg.payload))
@@ -170,7 +172,7 @@ class VictronSystem(BaseSystem):
     def on_victron_connect(self, client, userdata, flags, rc):
         logging.info("... connected to Victron System [%s] with result [%s]" % (client._host, rc))
         if rc == 0:
-            for topic in self.topic_read_list:
+            for topic in TOPIC_READ_LIST:
                 topic = ("N/%s/" % self.known_device_list[0]["serial"]) + topic
                 logging.info("... ... subscribe to topic [%s]" % topic)
                 client.subscribe(topic, QOS)
@@ -193,4 +195,4 @@ class VictronSystem(BaseSystem):
             str(state).lower())
 
     def get_service_from_topic(self, topic):
-        return self.service_list[self.topic_read_list.index(topic)]
+        return SERVICE_LIST[TOPIC_READ_LIST.index(topic)]

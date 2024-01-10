@@ -77,9 +77,9 @@ class CubieMediaMQTTClient:
                             else:
                                 logging.warning("WARNING: unknown mode [%s]" % message_mode)
                         else:
-                            logging.warning("WARNING: no mode given, doing nothing")
+                            logging.warning(f"WARNING: no mode given, doing nothing on msg [{message_data}]")
                     else:
-                        logging.debug("WARNING: wrong or no type given, doing nothing")
+                        logging.debug(f"WARNING: wrong or no type given, doing nothing on msg [{message_data}]")
                 else:
                     if msg.topic.endswith("/command"):
                         topic_array = msg.topic.split("/")

@@ -18,9 +18,11 @@ class SonarSystem(BaseSystem):
     communicator = None
     last_update = time.time()
     distance = None
-    update_interval = 1
+    update_interval = 10
     offset = 0
-    trigger_offset = 5
+    offset_trigger = 5
+    maximal_distance = 8000
+    offset_distance = 500
 
     def __init__(self):
         super().__init__()
@@ -30,11 +32,15 @@ class SonarSystem(BaseSystem):
         super().init(ip_address)
         self.ip_address = get_ip_address()
         self.update_interval = self.known_device_list[
-            'update_interval'] if 'update_interval' in self.known_device_list else 1
+            'update_interval'] if 'update_interval' in self.known_device_list else 10
         self.offset = self.known_device_list[
             'offset'] if 'offset' in self.known_device_list else 0
-        self.trigger_offset = self.known_device_list[
+        self.offset_trigger = self.known_device_list[
             'trigger_offset'] if 'trigger_offset' in self.known_device_list else DEFAULT_OFFSET
+        self.maximal_distance = self.known_device_list[
+            'maximal_distance'] if 'maximal_distance' in self.known_device_list else 8000
+        self.offset_distance = self.known_device_list[
+            'offset_distance'] if 'offset_distance' in self.known_device_list else 500
         try:
             self.communicator = Serial(
                 self.known_device_list['device'] if 'device' in self.known_device_list else SONAR_PORT, 9600)
@@ -51,6 +57,10 @@ class SonarSystem(BaseSystem):
         logging.info("... ... action for [%s]" % device)
         self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
                                  json.dumps(device['value']))
+        percent = round(
+            (self.maximal_distance - (device['value'])) / (self.maximal_distance - self.offset_distance) * 100)
+        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
+                                 percent)
 
     def update(self):
         data = {}
@@ -65,10 +75,10 @@ class SonarSystem(BaseSystem):
                 if "Gap=" in response:
                     distance = int(response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
 
-                    if not self.distance or abs(self.distance - distance) > self.trigger_offset:
+                    if not self.distance or abs(self.distance - distance) > self.offset_trigger:
                         if 200 <= distance - self.offset <= 8000:
                             self.distance = distance
-                            device = {'id': self.ip_address, 'type': "SONAR", 'value': self.distance}
+                            device = {'id': self.ip_address, 'type': CUBIE_SONAR, 'value': self.distance}
                             device_list.append(device)
                         else:
                             logging.warning(
@@ -89,9 +99,14 @@ class SonarSystem(BaseSystem):
         raise NotImplemented(f"sending data[{data}] is not implemented")
 
     def announce(self):
-        device = {'id': self.ip_address, 'type': "SONAR", 'client_id': self.client_id}
+        device = {'id': self.ip_address, 'type': CUBIE_SONAR, 'client_id': self.client_id, 'value': 0}
         logging.info("... ... announce sonar device [%s]" % device)
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+
+        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
+                                 json.dumps(device['value']))
+        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
+                                 0)
 
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/command"
         logging.info("... ... subscribing to [%s] for sonar commands" % topic)

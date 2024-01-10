@@ -6,7 +6,7 @@ import logging
 import os
 import time
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT
 from common.python import install_package
 from system.base_system import BaseSystem
 
@@ -40,10 +40,11 @@ class GPIOSystem(BaseSystem):
         else:
             GPIO.setmode(GPIO.BCM)
             for device in self.known_device_list:
-                if device['function'] == "IN":
+                device_type = str(device['type']).lower()
+                if device_type == GPIO_PIN_TYPE_IN:
                     logging.info("... set Pin %d as INPUT" % device['id'])
                     GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-                elif device['function'] == "OUT":
+                elif device_type == GPIO_PIN_TYPE_OUT:
                     logging.info("... set Pin %d as OUTPUT" % device['id'])
                     GPIO.setup(device['id'], GPIO.OUT)
                     GPIO.output(device['id'], GPIO.HIGH)
@@ -69,9 +70,10 @@ class GPIOSystem(BaseSystem):
         device_list = []
         if GPIO:
             for device in self.known_device_list:
-                if device['function'] == "IN":
+                device_type = str(device['type']).lower()
+                if device_type == GPIO_PIN_TYPE_IN:
                     value = GPIO.input(device['id'])
-                elif device['function'] == "OUT":
+                elif device_type == GPIO_PIN_TYPE_OUT:
                     value = 1 if GPIO.input(device['id']) == 0 else 0
                 else:
                     logging.warning("WARN: could not find valid function for device[%s] on update" % device)
@@ -80,7 +82,7 @@ class GPIOSystem(BaseSystem):
                 if value != device['value']:
                     # print("%s value %s" % (device['id'], value))
                     device['value'] = value
-                    device['ip'] = self.ip_address
+                    device['client_id'] = self.client_id
                     device_list.append(device)
 
         data['devices'] = device_list
@@ -96,11 +98,8 @@ class GPIOSystem(BaseSystem):
             GPIO.output(int(data['id']), GPIO.LOW if int(data['state'].decode()) == 1 else GPIO.HIGH)
 
     def announce(self):
-        device = {'id': self.ip_address, 'type': CUBIE_GPIO}
-        for gpio in self.known_device_list:
-            device['config'] = gpio
-            logging.info("... ... announce gpio device [%s]" % device)
-            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+        device = {'id': self.ip_address, 'type': CUBIE_GPIO, 'client_id': self.client_id, 'state': self.known_device_list}
+        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"
         logging.info("... ... subscribing to [%s] for gpio output commands" % topic)
@@ -109,10 +108,11 @@ class GPIOSystem(BaseSystem):
 
     def set_availability(self, state: bool):
         super().set_availability(state)
-        for gpio in self.known_device_list:
-            self.mqtt_client.publish(
-                f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
-                str(gpio['value']).lower())
+        if state:
+            for gpio in self.known_device_list:
+                self.mqtt_client.publish(
+                    f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
+                    str(gpio['value']).lower())
 
     def save(self, new_device=None):
         if new_device is None:
