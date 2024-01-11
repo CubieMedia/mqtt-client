@@ -5,6 +5,8 @@ CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
 CUBIE_SONAR = "sonar"
 CUBIE_VICTRON = "victron"
+CUBIE_MODE_LIST = [CUBIE_CORE, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_ENOCEAN, CUBIE_GPIO]
+
 CUBIE_RESET = "reset"
 CUBIE_RELOAD = "reload"
 CUBIE_ANNOUNCE = "announce"
@@ -14,6 +16,9 @@ STATE_UNKNOWN = 'unknown'
 # devices #
 ENOCEAN_PORT = "/dev/ttyAMA0"
 SONAR_PORT = "/dev/ttyS0"
+
+# files
+DEFAULT_CONFIGURATION_FILE = "./snap/hooks/install"
 
 # MQTT #
 QOS = 2

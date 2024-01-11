@@ -1,0 +1,14 @@
+[Unit]
+Description=CubieMedia Victron MQTT-Client
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/mqtt-client
+ExecStart=/home/pi/mqtt-client/src/mqtt_client.py victron
+KillMode=process
+KillSignal=SIGTERM
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

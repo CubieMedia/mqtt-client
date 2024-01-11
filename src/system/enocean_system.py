@@ -42,7 +42,7 @@ class EnoceanSystem(BaseSystem):
 
     def action(self, device):
         should_save = False
-        client_id = self.mqtt_client.mqtt_client._client_id.decode()
+        client_id = self.client_id
 
         for known_device in self.known_device_list:
             if str(device['id']).upper() == str(known_device['id']).upper():
@@ -134,9 +134,16 @@ class EnoceanSystem(BaseSystem):
 
     def set_availability(self, state: bool):
         for device in self.known_device_list:
-            if device['client_id'] == self.mqtt_client.mqtt_client._client_id.decode():
+            if device['client_id'] == self.client_id:
                 self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
                                          str(state).lower())
+                if state:
+                    for topic in device['state']:
+                        self.mqtt_client.publish(
+                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}",
+                            str(device['state'][topic]).lower())
+                        self.mqtt_client.publish(
+                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpress", str(0))
 
     def send(self, data):
         raise NotImplemented(f"sending data[{data}] is not implemented")
@@ -208,6 +215,7 @@ class EnoceanSystem(BaseSystem):
             logging.info("... starting serial communicator")
             self.communicator.start()
             time.sleep(0.100)
+        self.set_availability(True)
 
     def shutdown(self):
         logging.info('... set devices unavailable...')
@@ -220,7 +228,7 @@ class EnoceanSystem(BaseSystem):
 
     def announce(self):
         for device in self.known_device_list:
-            if device['client_id'] == self.mqtt_client.mqtt_client._client_id.decode():
+            if device['client_id'] == self.client_id:
                 logging.info("... ... announce device [%s]" % device['id'])
                 self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
                 for topic in device['state']:

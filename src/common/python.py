@@ -4,7 +4,9 @@ import json
 import logging
 import subprocess
 
-from common import COLOR_YELLOW, COLOR_DEFAULT
+from common import COLOR_YELLOW, COLOR_DEFAULT, DEFAULT_CONFIGURATION_FILE
+
+USER_MESSAGE_SHOULD_BE_SHOWN = True
 
 
 def exit_gracefully(system, *args):
@@ -21,21 +23,37 @@ def execute_command(command: [], show_error=True) -> str:
     return subprocess.check_output(command, stderr=subprocess.DEVNULL)
 
 
-def read_file_lines(filename: str) -> list:
+def read_lines_from_file(filename: str) -> list:
     with open(filename) as f:
         return [line for line in f]
 
 
+def save_lines_to_file(filename: str, config: list):
+    with open(filename, 'w') as f:
+        f.writelines(config)
+
+
 def get_default_configuration_for(config_name: str) -> str:
-    logging.info(f'... get default configuration for [{config_name}]')
+    logging.info(f'... get default configuration from "snap/hooks/install" for [{config_name}]')
     config = '[]'
-    for line in read_file_lines('./snap/hooks/install'):
+    for line in read_lines_from_file(DEFAULT_CONFIGURATION_FILE):
         if config_name in line:
             config = line[str(line).index('=') + 2:-2]
     return config
 
 
+def set_default_configuration(config_name: str, config: []):
+    config_read = read_lines_from_file(DEFAULT_CONFIGURATION_FILE)
+    config_write = []
+    for line in config_read:
+        if config_name in line:
+            line = line[0:str(line).index('=') + 2] + json.dumps(config) + "'\n"
+        config_write.append(line)
+    save_lines_to_file(DEFAULT_CONFIGURATION_FILE, config_write)
+
+
 def get_configuration(config_name: str) -> {}:
+    global USER_MESSAGE_SHOULD_BE_SHOWN
     value = None
     try:
         value = execute_command(["snapctl", "get", "-d", config_name]).strip()
@@ -45,9 +63,11 @@ def get_configuration(config_name: str) -> {}:
         try:
             value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name]).strip()
         except:
-            logging.warning(
-                f"seems to be a non snap environment, could not load config [{config_name}]\n"
-                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
+            if USER_MESSAGE_SHOULD_BE_SHOWN:
+                logging.warning(
+                    f"seems to be a non snap environment, could not load config [{config_name}]\n"
+                    f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
+                USER_MESSAGE_SHOULD_BE_SHOWN = False
     if not value or len(value) < 3:
         value = get_default_configuration_for(config_name)
     json_object = json.loads(value)
@@ -57,15 +77,19 @@ def get_configuration(config_name: str) -> {}:
 
 
 def set_configuration(config_name: str, config: []):
+    global USER_MESSAGE_SHOULD_BE_SHOWN
     try:
         execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
     except:
         try:
             execute_command(["snap", "set", "cubiemedia-mqtt-client", f"{config_name}={json.dumps(config)}"])
         except:
-            logging.warning(
-                f"seems to be a non snap environment, could not save config [{config_name}]\n"
-                f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
+            if USER_MESSAGE_SHOULD_BE_SHOWN:
+                logging.warning(
+                    f"seems to be a non snap environment, could not save config [{config_name}]\n"
+                    f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
+                USER_MESSAGE_SHOULD_BE_SHOWN = False
+            set_default_configuration(config_name, config)
     return None
 
 

@@ -21,11 +21,6 @@
             Optionen
         </td>
     </tr>
-    {% if not application %}
-    <h3>ERROR: No Application or wrong Application selected!</h3>
-    {% elif device_list|length == 0 %}
-    <h3>No Devices in List!</h3>
-    {% else %}
     {% for item in device_list %}
     <tr>
         <form action="/show/{{ application }}/{{ item.id }}">
@@ -50,7 +45,6 @@
         </form>
     </tr>
     {% endfor %}
-    {% endif %}
 </table>
 {% if application != "cubiemedia-io" %}
 <br/>
