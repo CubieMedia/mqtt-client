@@ -2,10 +2,9 @@ import abc
 import logging
 import time
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIE_CORE, \
-    CUBIEMEDIA
+from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIEMEDIA
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
-from common.python import get_configuration, set_configuration
+from common.python import get_configuration, set_configuration, get_core_configuration
 
 
 class BaseSystem(abc.ABC):
@@ -51,7 +50,7 @@ class BaseSystem(abc.ABC):
     def load(self):
         logging.info("... loading config")
 
-        core_config = get_configuration(CUBIE_CORE)
+        core_config = get_core_configuration(self.ip_address)
         device_list = get_configuration(self.execution_mode)
 
         self.mqtt_server = core_config['host'] if core_config else DEFAULT_MQTT_SERVER

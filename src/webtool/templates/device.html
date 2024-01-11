@@ -7,15 +7,9 @@
 <table>
     <tr>
         <td>
-            {% if application != 'core' %}
             <a href="{{ url_for('show_application', application=application) }}">
                 <img src="{{url_for('static', filename='logo.png')}}" width="150">
             </a>
-            {% else %}
-            <a href="{{ url_for('index') }}">
-                <img src="{{url_for('static', filename='logo.png')}}" width="150">
-            </a>
-            {% endif %}
         </td>
         <td>
             {% if application %}
@@ -35,16 +29,24 @@
                 {{ item }}
             </td>
             <td>
+                {% if item == 'id' %}
+                <h3>{{ device[item] }}</h3>
+                {% elif item == 'password' %}
+                <input name="{{ item }}" type="password" value="{{ device[item] }}">
+                {% else %}
                 <input name="{{ item }}" value="{{ device[item] }}">
+                {% endif %}
             </td>
             <td>
+                {% if item != 'id' %}
                 <input type="submit">
+                {% endif %}
             </td>
         </form>
     </tr>
     {% endfor %}
 </table>
-{% if application != "cubiemedia-io" %}
+{% if application != "gpio" %}
 <br/>
 <a href="/delete/{{ application }}/{{ device['id'] }}" style="color: red;">Delete this device</a>
 {% endif %}

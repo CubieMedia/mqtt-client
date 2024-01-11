@@ -25,15 +25,10 @@
         </td>
         <td>
             <div>
-                {% if learn_mode %}
-                <a href="{{ url_for('switch_learn_mode') }}"
-                   title="New Devices will be automatically added (Click to switch)"><img
-                        src="{{url_for('static', filename='lock_open.png')}}" width="150"></a>
-                {% else %}
-                <a href="{{ url_for('switch_learn_mode') }}"
-                   title="New Devices will NOT be added (Click to switch)"><img
-                        src="{{url_for('static', filename='lock_closed.png')}}" width="150"></a>
-                {% endif %}
+                <form action="/update/core/learn_mode" method="POST">
+                    <input hidden="hidden" name="learn_mode" value="{{ not learn_mode }}">
+                    <input type="image" src="{{url_for('static', filename='lock_open.png')}}" title="New Devices will be automatically added (Click to switch)" width="150" >
+                </form>
             </div>
         </td>
     </tr>

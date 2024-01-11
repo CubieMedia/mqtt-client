@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
+import copy
 import json
 import logging
 import subprocess
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, DEFAULT_CONFIGURATION_FILE
+from common import COLOR_YELLOW, COLOR_DEFAULT, DEFAULT_CONFIGURATION_FILE, CUBIE_CORE
 
 USER_MESSAGE_SHOULD_BE_SHOWN = True
 
@@ -19,7 +20,7 @@ def exit_gracefully(system, *args):
         system.mqtt_client.disconnect()
 
 
-def execute_command(command: [], show_error=True) -> str:
+def execute_command(command: []) -> str:
     return subprocess.check_output(command, stderr=subprocess.DEVNULL)
 
 
@@ -52,7 +53,7 @@ def set_default_configuration(config_name: str, config: []):
     save_lines_to_file(DEFAULT_CONFIGURATION_FILE, config_write)
 
 
-def get_configuration(config_name: str) -> {}:
+def get_configuration(config_name: str) -> []:
     global USER_MESSAGE_SHOULD_BE_SHOWN
     value = None
     try:
@@ -74,6 +75,25 @@ def get_configuration(config_name: str) -> {}:
     if config_name in json_object:
         return json_object[config_name]
     return json_object
+
+
+def get_core_configuration(ip: str) -> {}:
+    core_configuration_list = get_configuration(CUBIE_CORE)
+    for core_config in core_configuration_list:
+        if 'id' in core_config:
+            if core_config['id'] == ip:
+                return core_config
+        else:
+            core_config['id'] = ip
+            set_configuration(CUBIE_CORE, core_configuration_list)
+            return core_config
+
+    # no configuration found
+    core_config = copy.copy(core_configuration_list[0]) if len(core_configuration_list) > 0 else {}
+    core_config['id'] = ip
+    core_configuration_list.append(core_config)
+    set_configuration(CUBIE_CORE, core_configuration_list)
+    return core_config
 
 
 def set_configuration(config_name: str, config: []):

@@ -23,30 +23,36 @@
     </tr>
     {% for item in device_list %}
     <tr>
-        <form action="/show/{{ application }}/{{ item.id }}">
-            <td>
-                <b>{{ (item.id|string).upper() }}</b>
-            </td>
-            <td>
+        <td>
+            <h2>{{ (item.id|string).upper() }}</h2>
+        </td>
+        <td>
+            <table>
                 {% for parameter in item %}
-                <li>{{ parameter }} = {{ item[parameter] }}</li>
+                <tr>
+                    <td>
+                        {{ parameter }}
+                    </td>
+                    <td>
+                        {{ item[parameter] }}
+                    </td>
+                </tr>
                 {% endfor %}
-            </td>
-            <td>
-                {% if application == "gpio" %}
-                <a href="/function/{{ application }}/{{ item.id }}">{{ item.function }}</a>
-                {% else %}
-                <input type="hidden" name="device_list" value="{{ item }}">
-                <input type="submit" value="Edit">
-                <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
-                {% endif %}
+            </table>
+        </td>
+        <td>
+            {% if application == "gpio" %}
+            <a href="/show/{{ application }}/{{ item.id }}">Edit</a>
+            {% else %}
+            <a href="/show/{{ application }}/{{ item.id }}">Edit</a>
+            <a href="/delete/{{ application }}/{{ item.id }}">Delete</a>
+            {% endif %}
 
-            </td>
-        </form>
+        </td>
     </tr>
     {% endfor %}
 </table>
-{% if application != "cubiemedia-io" %}
+{% if application != "gpio" %}
 <br/>
 <a href="/delete/{{ application }}/all" style="color: red;">Delete all entries!</a>
 {% endif %}

@@ -9,8 +9,8 @@ from flask import Flask, url_for, render_template, request
 from werkzeug.utils import redirect
 
 from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
-from common.network import get_ip_address  # noqa
-from common.python import get_configuration, execute_command, set_configuration
+from common.network import get_ip_address
+from common.python import get_configuration, execute_command, get_core_configuration
 from mqtt_client import configure_logger
 
 app = Flask(__name__)
@@ -51,27 +51,35 @@ def show_device(application, device_id):
 
 @app.route('/update/<application>/<parameter_id>', methods=['POST'])
 def update_application_parameter(application, parameter_id):
-    configuration = get_configuration(application)
-    configuration[parameter_id] = request.form[parameter_id]
+    value = request.form[parameter_id]
 
-    set_configuration(application, configuration)
+    # send value changes over MQTT
+    mqtt_client = connect_mqtt_client()
+    message = {"mode": "update", "type": application, "device": {parameter_id: value}}
+    mqtt_client.publish("cubiemedia/command", json.dumps(message))
+    mqtt_client.disconnect()
 
     return render_template('application.html', application=application, device_list=get_device_list(application))
 
 
 @app.route('/update/<application>/<device_id>/<parameter_id>', methods=['POST'])
 def update_device_parameter(application, device_id, parameter_id):
+    value = request.form[parameter_id]
     configuration = get_configuration(application)
     device = None
     for item in configuration:
         if item['id'] == device_id:
-            item[parameter_id] = request.form[parameter_id]
             device = item
 
-    set_configuration(application, configuration)
+    if device:
+        mqtt_client = connect_mqtt_client()
+        message = {"mode": "update", "type": application, "device": {"id": device_id, parameter_id: value}}
+        mqtt_client.publish("cubiemedia/command", json.dumps(message))
+        mqtt_client.disconnect()
 
-    return render_template('device.html', application=application, device=device)
-
+        return render_template('device.html', application=application, device=device)
+    else:
+        logging.error(f"could not find device [{device_id}] for update")
 
 @app.route('/delete/<application>/<item>')
 def remove_item_from_application(application, item):
@@ -86,40 +94,10 @@ def remove_item_from_application(application, item):
     return redirect(url_for('show_application', application=application))
 
 
-@app.route('/function/<application>/<item>')
-def switch_io_function_of_item(application, item):
-    device_list = get_device_list(application)
-    for i in range(len(device_list)):
-        if item == str(device_list[i]["id"]):
-            function = device_list[i]["function"]
-            device_list[i]["function"] = "OUT" if function == "IN" else "IN"
-            break
-
-    return redirect(url_for('show_application', application=application))
-
-
-@app.route('/switch_learn_mode')
-def switch_learn_mode():
-    config = get_configuration(CUBIE_CORE)
-    new_learn_mode = not bool(config['learn_mode'])
-    logging.info(f"switching learn_mode to {new_learn_mode}")
-    mqtt_client = connect_mqtt_client(config)
-    if 'learn_mode' in config:
-        message = {"mode": "update", "type": "core", "device": {"learn_mode": new_learn_mode}}
-    else:
-        message = {"mode": "update", "type": "core", "device": {"learn_mode": True}}
-    mqtt_client.publish("cubiemedia/command", json.dumps(message))
-    time.sleep(1)
-
-    mqtt_client.disconnect()
-    return redirect(url_for('index'))
-
-
 def get_running_applications():
     applications = []
     for service in service_list:
-        response = execute_command(["ps", "-ef"]).strip()
-        response = response.decode()
+        response = str(execute_command(["ps", "-ef"]).strip())
         if "mqtt_client.py " + service['id'] in response or "cubiemedia-mqtt-client " + \
                 service['id'] in response:
             service['running'] = True
@@ -139,16 +117,16 @@ def get_device_list(application):
 
 
 def delete_item(application, items):
-    config = get_configuration(CUBIE_CORE)
     if not len(items) == 0:
-        mqtt_client = connect_mqtt_client(config)
+        mqtt_client = connect_mqtt_client()
         for item in items:
             message = {"mode": "delete", "type": application, "device": {"id": item}}
             mqtt_client.publish("cubiemedia/command", json.dumps(message))
         mqtt_client.disconnect()
 
 
-def connect_mqtt_client(config):
+def connect_mqtt_client():
+    config = get_core_configuration(get_ip_address())
     mqtt_server = config['host']
     mqtt_user = config['username']
     mqtt_password = config['password']
@@ -206,14 +184,14 @@ def application_restart(application):
 
 @app.route('/cubie-admin/reboot')
 def system_reboot():
-    threading.Timer(3, os.system('reboot'))
+    threading.Timer(3, os.system('reboot'))  # noqa
     return render_template('reboot.html')
 
 
 @app.route('/')
 def index():
     application_list = get_running_applications()
-    core_configuration = get_configuration(CUBIE_CORE)
+    core_configuration = get_core_configuration(get_ip_address())
     learn_mode = core_configuration['learn_mode']
     server = core_configuration['host']
     user = core_configuration['username']
