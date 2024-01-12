@@ -5,7 +5,7 @@ import threading
 import time
 
 import paho.mqtt.client as mqtt
-from flask import Flask, url_for, render_template, request
+from flask import Flask, url_for, render_template, request, send_from_directory
 from werkzeug.utils import redirect
 
 from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
@@ -80,6 +80,7 @@ def update_device_parameter(application, device_id, parameter_id):
         return render_template('device.html', application=application, device=device)
     else:
         logging.error(f"could not find device [{device_id}] for update")
+
 
 @app.route('/delete/<application>/<item>')
 def remove_item_from_application(application, item):
@@ -186,6 +187,12 @@ def application_restart(application):
 def system_reboot():
     threading.Timer(3, os.system('reboot'))  # noqa
     return render_template('reboot.html')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.png',
+                               mimetype='image/vnd.microsoft.icon')
 
 
 @app.route('/')

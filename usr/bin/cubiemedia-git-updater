@@ -11,9 +11,10 @@ do
   if [ $UPDATE = 1 ]
   then
     echo "... update found ... "
-    echo "... clean repository ..."
-    git clean -f ./*/__pycache__
-    git clean -f ./*/*/__pycache__
+    # not cleaning because sudo is not nice
+    #echo "... clean repository ..."
+    #sudo git clean -f ./*/__pycache__
+    #sudo git clean -f ./*/*/__pycache__
     echo "... stash changes ..."
     git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
     echo "... pull changes ..."
