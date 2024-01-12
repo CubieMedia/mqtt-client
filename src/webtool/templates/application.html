@@ -34,8 +34,8 @@
                         {{ parameter }}
                     </td>
                     <td>
-                        {% if item == 'password' %}
-                        <input name="{{ item }}" type="password" value="{{ device[item] }}"
+                        {% if parameter == 'password' %}
+                        <input name="{{ parameter }}" type="password" value="{{ item[parameter] }}"
                                style="border:none; border-color: transparent;">
                         {% else %}
                         {{ item[parameter] }}
