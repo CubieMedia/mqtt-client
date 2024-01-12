@@ -10,18 +10,19 @@ do
 
   if [ $UPDATE = 1 ]
   then
-    echo "Update [$UPDATE] found ... "
-    echo "Clean repository ..."
+    echo "... update found ... "
+    echo "... clean repository ..."
     git clean -f ./*/__pycache__
     git clean -f ./*/*/__pycache__
-    echo "Stash changes ..."
+    echo "... stash changes ..."
     git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
-    echo "Pull changes ..."
+    echo "... pull changes ..."
     git pull
-    echo "Unstash changes ..."
+    echo "... unstash changes ..."
     git stash pop
+    echo "... finished update successfully"
   else
-    echo "Up-to-date"
+    echo "... no updates found!"
   fi
 
   sleep 300
