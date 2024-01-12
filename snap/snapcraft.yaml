@@ -7,7 +7,7 @@ description: CubieMedia MQTT-Client for EnOcean, GPIOs, ETH008 Relayboards and V
 grade: stable
 confinement: strict
 
-icon: img/logo_transparent_small.png
+icon: src/webtool/static/logo.png
 contact: info@cubiemedia.de
 website: https://www.cubiemedia.de
 source-code: https://github.com/CubieMedia/mqtt-client
