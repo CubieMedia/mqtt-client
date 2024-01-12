@@ -5,10 +5,10 @@
 while :
 do
   echo "Checking for updates..."
-  UPDATE=$(git remote update -p)
-  echo "$UPDATE"
+  UPDATE=0
+  git remote update && git status -uno | grep -q 'Your branch is behind' && UPDATE=1
 
-  if [ "$UPDATE" ]
+  if [ $UPDATE = 1 ]
   then
     echo "Update [$UPDATE] found ... "
     echo "Clean repository ..."
@@ -20,6 +20,8 @@ do
     git pull
     echo "Unstash changes ..."
     git stash pop
+  else
+    echo "Up-to-date"
   fi
 
   sleep 300
