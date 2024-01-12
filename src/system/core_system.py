@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-import logging
 import json
+import logging
 
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_RELOAD, DEFAULT_TOPIC_COMMAND
-from common import CUBIE_CORE
+from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE
 from common.python import get_configuration, get_core_configuration
 from system.base_system import BaseSystem
 
@@ -52,19 +51,24 @@ class CoreSystem(BaseSystem):
 
         self.set_availability(True)
 
-    def save(self, new_device=None):
+    def save(self, new_device: {} = None):
+        should_save = False if new_device else True
         if new_device:
             if 'id' in new_device:
                 logging.info(f"... save device [{new_device}] of core system")
                 for core_config in self.known_device_list:
                     if new_device['id'] == core_config['id']:
-                        self.known_device_list[self.known_device_list.index(core_config)] = new_device
+                        if sorted(new_device.items()) != sorted(core_config.items()):
+                            self.known_device_list[self.known_device_list.index(core_config)] = new_device
+                            should_save = True
                         new_device = None
+                        break
 
                 if new_device:
                     self.known_device_list.append(new_device)
+                    should_save = True
 
-        if new_device is None:
+        if should_save:
             super().save()
 
     def delete(self, device):

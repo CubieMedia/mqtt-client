@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# this script is only for none snap environment
+
+while :
+do
+  echo "Checking for updates..."
+  UPDATE=$(git remote update -p)
+  echo "$UPDATE"
+
+  if [ "$UPDATE" ]
+  then
+    echo "Update [$UPDATE] found ... "
+    echo "Clean repository ..."
+    git clean -f ./*/__pycache__
+    git clean -f ./*/*/__pycache__
+    echo "Stash changes ..."
+    git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
+    echo "Pull changes ..."
+    git pull
+    echo "Unstash changes ..."
+    git stash pop
+  fi
+
+  sleep 300
+done

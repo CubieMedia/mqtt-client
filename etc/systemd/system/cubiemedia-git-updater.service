@@ -1,0 +1,14 @@
+[Unit]
+Description=CubieMedia MQTT-Client Updater from Git
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/mqtt-client
+ExecStart=/home/pi/mqtt-client/usr/bin/cubiemedia-git-updater
+KillMode=process
+KillSignal=SIGTERM
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
