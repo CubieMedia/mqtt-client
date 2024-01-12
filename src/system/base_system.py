@@ -82,10 +82,5 @@ class BaseSystem(abc.ABC):
         self.known_device_list = []
         self.save()
 
-    def set_learn_mode(self, enabled: bool):
-        logging.info(f"... setting learn mode [{enabled}]")
-        self.learn_mode = enabled
-        self.save()
-
     def get_mqtt_data(self):
         return self.mqtt_server, self.mqtt_user, self.mqtt_password

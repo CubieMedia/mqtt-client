@@ -46,11 +46,14 @@ def get_default_configuration_for(config_name: str) -> str:
 def set_default_configuration(config_name: str, config: []):
     config_read = read_lines_from_file(DEFAULT_CONFIGURATION_FILE)
     config_write = []
-    for line in config_read:
-        if config_name in line:
-            line = line[0:str(line).index('=') + 2] + json.dumps(config) + "'\n"
-        config_write.append(line)
-    save_lines_to_file(DEFAULT_CONFIGURATION_FILE, config_write)
+    if len(config_read) > 0:
+        for line in config_read:
+            if config_name in line:
+                line = line[0:str(line).index('=') + 2] + json.dumps(config) + "'\n"
+            config_write.append(line)
+        save_lines_to_file(DEFAULT_CONFIGURATION_FILE, config_write)
+    else:
+        logging.error("default config file seems empty")
 
 
 def get_configuration(config_name: str) -> []:
