@@ -16,6 +16,7 @@ from common.python import exit_gracefully
 
 def get_execution_mode() -> str:
     for arg in sys.argv:
+        arg = arg.lower()
         if arg == CUBIE_GPIO:
             return CUBIE_GPIO
         elif arg == CUBIE_ENOCEAN:
