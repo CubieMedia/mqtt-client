@@ -188,10 +188,16 @@ def application_restart(application):
 #
 #
 
+@app.route('/cubie-admin/wait')
+def system_wait():
+    return render_template('reboot.html')
+
+
 @app.route('/cubie-admin/reboot')
 def system_reboot():
-    threading.Timer(3, os.system('reboot'))  # noqa
-    return render_template('reboot.html')
+    process = threading.Thread(target=os.system, args=("sleep 3; reboot",))
+    process.start()
+    return redirect(url_for('system_wait'))
 
 
 @app.route('/favicon.ico')
