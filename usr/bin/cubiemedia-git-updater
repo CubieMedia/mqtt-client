@@ -18,7 +18,7 @@ do
     echo "... stash changes ..."
     git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
     echo "... pull changes ..."
-    git pull
+    git pull --rebase
     echo "... unstash changes ..."
     git stash pop
     echo "... finished update successfully"

@@ -26,16 +26,20 @@
         <td>
             <div>
                 <form action="/update/core/learn_mode" method="POST">
-                    <input hidden="hidden" name="learn_mode" value="{{ not learn_mode }}">
+                    <input hidden="hidden" name="learn_mode" value="{{ 'True' if learn_mode == 'False' else 'False' }}">
+                    {% if learn_mode == 'True' %}
                     <input type="image" src="{{url_for('static', filename='lock_open.png')}}" title="New Devices will be automatically added (Click to switch)" width="150" >
+                    {% else %}
+                    <input type="image" src="{{url_for('static', filename='lock_closed.png')}}" title="New Devices are blocked (Click to switch)" width="150" >
+                    {% endif %}
                 </form>
             </div>
         </td>
     </tr>
     {% for item in service_list %}
     <tr>
-        <td style="text-align: center;" height="100">
-            <img src="{{url_for('static', filename=item.icon)}}" width="75">
+        <td style="text-align: center;">
+            <img src="{{url_for('static', filename=item.icon)}}" height="75">
         </td>
         <td>
             <h3>{{ item.name }}</h3>

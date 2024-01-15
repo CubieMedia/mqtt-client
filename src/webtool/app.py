@@ -21,7 +21,7 @@ service_list = [
     {"id": CUBIE_GPIO, "name": "Cubie-GPIO", "icon": "gpio.png",
      "description": "Control GPIO Pins on your device (eg. Raspberry Pi)"},
     {"id": CUBIE_ENOCEAN, "name": "Cubie-EnOcean", "icon": "enocean.png",
-     "description": "With an EnOcean Adapter on your GPIO Pins you can communicate with EnOcean Devices"},
+     "description": "With an EnOcean Hat on your Raspberry you can communicate with EnOcean Devices"},
     {"id": CUBIE_RELAY, "name": "Cubie-Relay", "icon": "relay.png",
      "description": "Find and control ETH008 Relay Boards"},
     {"id": CUBIE_SONAR, "name": "Cubie-Sonar", "icon": "sonar.png",
@@ -70,8 +70,13 @@ def update_device_parameter(application, device_id, parameter_id):
     for item in configuration:
         if item['id'] == device_id:
             device = item
+            break
 
     if device:
+        # set local config (webtool)
+        device[parameter_id] = value
+
+        # send config change to all other clients
         mqtt_client = connect_mqtt_client()
         message = {"mode": "update", "type": application, "device": {"id": device_id, parameter_id: value}}
         mqtt_client.publish("cubiemedia/command", json.dumps(message))

@@ -49,17 +49,21 @@ It supports following modules:
 
 ## Ubuntu Core
 
-This Repository is made for the [Snap Store](https://snapcraft.io/) from Canonical since i am only using Ubuntu Core in
-Development (not in Production)
+This Repository is made for the [Snap Store](https://snapcraft.io/) from Canonical. Since i am only using Ubuntu Core in
+Development (not in Production) it is not tested very well and can have issues.
 
-The Snap Environment needs more 24/7 Testing, but main system will work
+Please report them or send me a message.
+
 > 1. Install Ubuntu Core on your device
 > 2. Install the Snap on your device
 >> snap install cubiemedia-mqtt-client [--devmode, --channel=latest/edge]
 > 3. Connect plugs if needed
 >> 1. snap connect cubiemedia-mqtt-client:serial-port pi:bt-serial
->> 2. snap connect
->
+>> 2. snap connect cubiemedia-mqtt-client:gpio-memory-control pi:gpio-memory-control
+>> 3. snap connect cubiemedia-mqtt-client:system-observe (TODO seems to be not needed anymore, remove plug?)
+> 4. Enable Services or start the software manually
+>> 1. sudo systemctl enable snap.cubiemedia-mqtt-client.[core,webtool,enocean,gpio,sonar,relay,victron] --now
+>> 2. cubiemedia-mqtt-client [core,enocean,gpio,sonar,relay,victron] [debug|verbose]
 
 ## PyCharm
 
@@ -69,10 +73,16 @@ The Snap Environment needs more 24/7 Testing, but main system will work
 > 3. Create run configurations
 >> 1. Right click on src/mqtt_client.py
 >> 2. Select 'Modify Run Configuration...'
->> 3. Setup Configuration (TODO WebTool-Configuration)
+>> 3. Setup Service Run Configuration
 >>> * **Name:** service name you want to start [Core,EnOcean,GPIO,Sonar,Relay,Victron]
 >>> * **Parameters:** the service name but you can add debug here for more log messages
 >>> * **Working Directory:** root folder of the project (default will be the src folder, remove '/src'!)
+>> 4. Setup WebTool Configuration
+>>> * **Name:** WebTool
+>>> * **script:** ./venv/bin/flask
+>>> * **Parameters:** run
+>>> * **Working Directory:** root folder of the project (same as Service Configuration)
+>>> * **Environment Variables:** FLASK_ENV=development;FLASK_RUN_PORT=8888;FLASK_RUN_HOST=0.0.0.0;FLASK_APP=./src/webtool/app.py
 > 4. Change default config file ('./snap/hooks/install')
 >> The core configuration contains connection data to your MQTT-Server and you need to change the
 > > parameters [host,username,password]
@@ -113,42 +123,38 @@ Assistant and which not.
 >> 1. open your configuration.yaml
 >> 2. add 'python_script:' to configuration
 > 4. Create this two needed Automations
->> The Trigger 'time_pattern'
-
-```
-alias: CubieMedia Announce
- trigger:```
-  - event: start
-    platform: homeassistant
-  - platform: time_pattern
-    hours: /6
-action:
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 1
-      milliseconds: 0
-  - data:
-      payload: announce
-      topic: cubiemedia/command
-    service: mqtt.publish
-initial_state: true
-mode: single
-```
-
-```
-alias: CubieMedia Discovery
-trigger:
-  - platform: mqtt
-    topic: cubiemedia/announce
-action:
-  - data_template:
-      payload: "{{ trigger.payload_json }}"
-    service: python_script.cubiemedia_discovery
-mode: queued
-max: 999
-initial_state: true
-```
+>```
+>alias: CubieMedia Announce
+>trigger:```
+>  - event: start
+>    platform: homeassistant
+>action:
+>  - delay:
+>      hours: 0
+>      minutes: 0
+>      seconds: 1
+>      milliseconds: 0
+>  - data:
+>      payload: announce
+>      topic: cubiemedia/command
+>    service: mqtt.publish
+>initial_state: true
+>mode: single
+>```
+>
+>```
+>alias: CubieMedia Discovery
+>trigger:
+>  - platform: mqtt
+>    topic: cubiemedia/announce
+>action:
+>  - data_template:
+>      payload: "{{ trigger.payload_json }}"
+>    service: python_script.cubiemedia_discovery
+>mode: queued
+>max: 999
+>initial_state: true
+>```
 
 ***
 
