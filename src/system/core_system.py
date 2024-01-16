@@ -60,7 +60,10 @@ class CoreSystem(BaseSystem):
                 if new_device['id'] == core_config['id']:
                     if sorted(new_device.items()) != sorted(core_config.items()):
                         logging.info(f"... save config [{new_device}] for core system")
-                        self.known_device_list[self.known_device_list.index(core_config)] = core_config | new_device
+                        index = self.known_device_list.index(core_config)
+                        for key in new_device:
+                            core_config[key] = new_device[key]
+                        self.known_device_list[index] = core_config
                         should_save = True
                     new_device = None
                     break
