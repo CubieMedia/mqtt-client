@@ -10,7 +10,7 @@ from werkzeug.utils import redirect
 
 from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
 from common.network import get_ip_address
-from common.python import get_configuration, execute_command, get_core_configuration
+from common.python import get_configuration, execute_command, get_core_configuration, get_variable_type_from_string
 from mqtt_client import configure_logger
 
 app = Flask(__name__)
@@ -51,7 +51,7 @@ def show_device(application, device_id):
 
 @app.route('/update/<application>/<parameter_id>', methods=['POST'])
 def update_application_parameter(application, parameter_id):
-    value = request.form[parameter_id]
+    value = get_variable_type_from_string(request.form[parameter_id])
 
     # send value changes over MQTT
     mqtt_client = connect_mqtt_client()

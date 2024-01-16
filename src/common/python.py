@@ -34,6 +34,18 @@ def save_lines_to_file(filename: str, config: list):
         f.writelines(config)
 
 
+def get_variable_type_from_string(value: str):
+    if value:
+        if value.lower() == 'true' or value.lower() == 'false':
+            return value.lower() == 'true'
+        else:
+            try:
+                value = int(value)
+            except:
+                pass
+    return value
+
+
 def get_default_configuration_for(config_name: str) -> str:
     logging.info(f'... get default configuration from "snap/hooks/install" for [{config_name}]')
     config = '[]'

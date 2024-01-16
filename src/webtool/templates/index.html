@@ -31,7 +31,7 @@
                     {% else %}
                     <input type="image" src="{{url_for('static', filename='lock_closed.png')}}" title="New Devices are blocked (Click to switch)" width="150" >
                     {% endif %}
-                    <input hidden="hidden" name="learn_mode" value="{{ True if learn_mode == False else False }}">
+                    <input hidden="hidden" name="learn_mode" value={{ True if learn_mode == False else False }}>
                 </form>
             </div>
         </td>
