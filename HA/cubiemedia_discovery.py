@@ -62,11 +62,9 @@ client_id = device_payload.get(CONF_CLIENT_ID)
 success = False
 
 if not device_id:
-    raise ValueError(f"{device_id} is wrong device_id argument")
+    raise ValueError(f"{device_payload} is wrong device_id argument")
 if not device_type:
-    raise ValueError(f"{device_type} is wrong device_type argument")
-if not client_id:
-    raise ValueError(f"{client_id} is wrong client_id argument")
+    raise ValueError(f"{device_payload} is wrong device_type argument")
 
 logger.debug("device: %s", device_payload)
 
@@ -173,6 +171,8 @@ elif ATTR_MODEL_GPIO == device_type:
                 payload.replace('UNIQUE_ID', unique_id)
                 payload.replace('DEVICE_ID', device_id)
                 payload.replace('DEVICE_NAME', device_name)
+            else:
+                continue
             service_data = {
                 MQTT_TOPIC: config_topic,
                 MQTT_PAYLOAD: payload,

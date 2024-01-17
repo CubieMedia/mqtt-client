@@ -79,7 +79,7 @@ class CubieMediaMQTTClient:
                         else:
                             logging.warning(f"WARNING: no mode given, doing nothing on msg [{message_data}]")
                     else:
-                        logging.debug(f"WARNING: wrong or no type given, doing nothing on msg [{message_data}]")
+                        logging.debug(f"wrong or no type given, doing nothing on msg [{message_data}]")
                 else:
                     if msg.topic.endswith("/command"):
                         topic_array = msg.topic.split("/")
