@@ -1,7 +1,6 @@
 """
 This script adds MQTT discovery support for CubieMedia devices.
 """
-
 CONF_ID = "id"
 CONF_TYPE = "type"
 CONF_STATE = "state"
@@ -34,19 +33,56 @@ ATTR_CHARGED = "charged"
 ATTR_ENERGY = "energy"
 ATTR_MEASUREMENT = "measurement"
 
-DEFAULT_DISC_PREFIX = "homeassistant"
-
 MQTT_QOS = "qos"
 MQTT_RETAIN = "retain"
 MQTT_PAYLOAD = "payload"
 MQTT_TOPIC = "topic"
+MQTT_NAME = "name"
+MQTT_COMMAND_TOPIC = "cmd_t"
+MQTT_STATE_TOPIC = "stat_t"
+MQTT_AVAILABILITY_TOPIC = "avty_t"
+MQTT_UNIQUE_ID = "uniq_id"
+MQTT_DEVICE = "dev"
+MQTT_DEVICE_IDS = "ids"
+MQTT_DEVICE_DESCRIPTION = "mdl"
+MQTT_UNIT_OF_MEASUREMENT = "unit_of_measurement"
+MQTT_DEVICE_CLASS = "device_class"
+MQTT_STATE_CLASS = "state_class"
 
-PAYLOAD_ACTOR = ('{"name":"SERVICE_NAME","cmd_t":"STATE_TOPIC/command","stat_t":"STATE_TOPIC","avty_t":"AVAILABILITY_TOPIC","pl_on":"1","pl_off":"0","pl_avail":"true","pl_not_avail":"false","uniq_id":"UNIQUE_ID","qos":"0","dev": {"ids": ["DEVICE_ID"],"name":"DEVICE_NAME","mdl":"DEVICE_DESCRIPTION","sw":"SW","mf":"' + ATTR_MANUFACTURER + '"}}')
-PAYLOAD_SENSOR = ('{"name":"SERVICE_NAME","stat_t":"STATE_TOPIC","avty_t":"AVAILABILITY_TOPIC","pl_on":"1","pl_off":"0","pl_avail":"true","pl_not_avail":"false","uniq_id":"UNIQUE_ID","qos":"0","dev": {"ids": ["DEVICE_ID"],"name":"DEVICE_NAME","mdl":"DEVICE_DESCRIPTION","sw":"SW","mf":"' + ATTR_MANUFACTURER + '"}}')
-PAYLOAD_SPECIAL_ACTOR = ('{"name":"SERVICE_NAME","cmd_t":"STATE_TOPIC/command","stat_t":"STATE_TOPIC","avty_t":"AVAILABILITY_TOPIC","unit_of_measurement":"UNIT_OF_MEASUREMENT","state_class":"STATE_CLASS","device_class":"DEVICE_CLASS","pl_on":"1","pl_off":"0","pl_avail":"true","pl_not_avail":"false","uniq_id":"UNIQUE_ID","qos":"0","dev": {"ids": ["DEVICE_ID"],"name":"DEVICE_NAME","mdl":"DEVICE_DESCRIPTION","sw":"SW","mf":"' + ATTR_MANUFACTURER + '"}}')
+GPIO_TYPE_IN = "in"
+GPIO_TYPE_OUT = "out"
 
-expire_after = 43200
-off_delay = 3
+DEFAULT_DISC_PREFIX = "homeassistant"
+
+PAYLOAD_ACTOR = {"name": "SERVICE_NAME", "cmd_t": "STATE_TOPIC/command", "stat_t": "STATE_TOPIC",
+                 "avty_t": "AVAILABILITY_TOPIC", "pl_on": "1", "pl_off": "0", "pl_avail": "true",
+                 "pl_not_avail": "false", "uniq_id": "UNIQUE_ID", "qos": "0",
+                 "dev": {"ids": ["DEVICE_ID"], "name": "DEVICE_NAME", "mdl": "DEVICE_DESCRIPTION", "sw": "SW",
+                         "mf": ATTR_MANUFACTURER}}
+PAYLOAD_SENSOR = {"name": "SERVICE_NAME", "stat_t": "STATE_TOPIC", "avty_t": "AVAILABILITY_TOPIC", "pl_on": "1",
+                  "pl_off": "0", "pl_avail": "true", "pl_not_avail": "false", "uniq_id": "UNIQUE_ID", "qos": "0",
+                  "dev": {"ids": ["DEVICE_ID"], "name": "DEVICE_NAME", "mdl": "DEVICE_DESCRIPTION", "sw": "SW",
+                          "mf": ATTR_MANUFACTURER}}
+PAYLOAD_SPECIAL_ACTOR = {"name": "SERVICE_NAME", "cmd_t": "STATE_TOPIC/command", "stat_t": "STATE_TOPIC",
+                         "avty_t": "AVAILABILITY_TOPIC", "unit_of_measurement": "UNIT_OF_MEASUREMENT",
+                         "state_class": "STATE_CLASS", "device_class": "DEVICE_CLASS", "pl_on": "1", "pl_off": "0",
+                         "pl_avail": "true", "pl_not_avail": "false", "uniq_id": "UNIQUE_ID", "qos": "0",
+                         "dev": {"ids": ["DEVICE_ID"], "name": "DEVICE_NAME", "mdl": "DEVICE_DESCRIPTION", "sw": "SW",
+                                 "mf": ATTR_MANUFACTURER}}
+
+
+def mqtt_publish(topic, payload):
+    """Publish data to MQTT broker."""
+    payload_str = str(payload).replace("'", '"')
+    service_data = {
+        "topic": topic,
+        "payload": payload_str,
+        "retain": retain,
+        "qos": qos,
+    }
+    logger.debug(service_data)  # noqa: F821
+    hass.services.call("mqtt", "publish", service_data, False)  # noqa: F821
+
 
 retain = False
 qos = 0
@@ -76,40 +112,33 @@ logger.info("add new %s [%s] to homeassistant" % (device_type, device_id))
 if ATTR_MODEL_SWITCH == device_type:
     plugin_type = "enocean"
     for sensorId in range(0, 4):
-        device_name = "EnOcean Switch {}".format(device_id)
-        sensor_name = "Sensor {}".format(ATTR_MODEL_SWITCH_ARRAY[sensorId].title())
-        unique_id = "enocean-{}-{}-input".format(device_id, ATTR_MODEL_SWITCH_ARRAY[sensorId])
-        config_topic = "{}/binary_sensor/{}-{}/config".format(
-            disc_prefix, device_id, ATTR_MODEL_SWITCH_ARRAY[sensorId]
-        )
-        config_topic_longpush = "{}/binary_sensor/{}-{}-longpush/config".format(
-            disc_prefix, device_id, ATTR_MODEL_SWITCH_ARRAY[sensorId]
-        )
-        state_topic = "{}/{}/{}/{}".format(CUBIE_TOPIC, plugin_type, device_id, ATTR_MODEL_SWITCH_ARRAY[sensorId])
-        availability_topic = "{}/{}/{}/online".format(CUBIE_TOPIC, plugin_type, device_id)
+        device_name = f"EnOcean Switch {device_id}"
+        sensor_name = f"Sensor {ATTR_MODEL_SWITCH_ARRAY[sensorId].title()}"
+        unique_id = f"enocean-{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-input"
+        config_topic = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}/config"
+        config_topic_longpush = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-longpush/config"
+        state_topic = f"{CUBIE_TOPIC}/{plugin_type}/{device_id}/{ATTR_MODEL_SWITCH_ARRAY[sensorId]}"
+        availability_topic = f"{CUBIE_TOPIC}/{plugin_type}/{device_id}/online"
         payload = PAYLOAD_SENSOR
-        payload.replace('SERVICE_NAME', sensor_name)
-        payload.replace('STATE_TOPIC', state_topic)
-        payload.replace('AVAILABILITY_TOPIC', availability_topic)
-        payload.replace('UNIQUE_ID', unique_id)
-        payload.replace('DEVICE_ID', device_id)
-        payload.replace('DEVICE_NAME', device_name)
+        payload[MQTT_NAME] = sensor_name
+        payload[MQTT_STATE_TOPIC] = state_topic
+        payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+        payload[MQTT_UNIQUE_ID] = unique_id
+        payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+        payload[MQTT_DEVICE][MQTT_NAME] = device_name
 
-        service_data = {
-            MQTT_TOPIC: config_topic,
-            MQTT_PAYLOAD: payload,
-            MQTT_RETAIN: retain,
-            MQTT_QOS: qos,
-        }
-        hass.services.call("mqtt", "publish", service_data, False)
+        mqtt_publish(config_topic, payload)
 
         # also create longpush sensor for all normal sensors
-        payload.replace('SERVICE_NAME', sensor_name + '-longpush",')
-        payload.replace('STATE_TOPIC', state_topic + '/longpush",')
-        payload.replace('UNIQUE_ID', unique_id + '_longpush",')
+        payload = PAYLOAD_SENSOR
+        payload[MQTT_NAME] = sensor_name + "-longpush"
+        payload[MQTT_STATE_TOPIC] = state_topic + "/longpush"
+        payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+        payload[MQTT_UNIQUE_ID] = unique_id + "_longpush"
+        payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+        payload[MQTT_DEVICE][MQTT_NAME] = device_name
 
-        service_data['payload'] = payload
-        hass.services.call("mqtt", "publish", service_data, False)
+        mqtt_publish(config_topic_longpush, payload)
     success = True
 # Relay Boards
 elif ATTR_MODEL_RELAY in device_type:
@@ -123,20 +152,15 @@ elif ATTR_MODEL_RELAY in device_type:
             availability_topic = f"{CUBIE_TOPIC}/{device_type}/{string_id}/online"
 
             payload = PAYLOAD_ACTOR
-            payload.replace('SERVICE_NAME', relay_name)
-            payload.replace('STATE_TOPIC', state_topic)
-            payload.replace('AVAILABILITY_TOPIC', availability_topic)
-            payload.replace('UNIQUE_ID', unique_id)
-            payload.replace('DEVICE_ID', device_id)
-            payload.replace('DEVICE_NAME', device_name)
+            payload[MQTT_NAME] = relay_name
+            payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
+            payload[MQTT_STATE_TOPIC] = state_topic
+            payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+            payload[MQTT_UNIQUE_ID] = unique_id
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = [device_id]
+            payload[MQTT_DEVICE][MQTT_NAME] = device_name
 
-            service_data = {
-                MQTT_TOPIC: config_topic,
-                MQTT_PAYLOAD: payload,
-                MQTT_RETAIN: retain,
-                MQTT_QOS: qos,
-            }
-            hass.services.call("mqtt", "publish", service_data, False)
+            mqtt_publish(config_topic, payload)
         success = True
     else:
         logger.error("relay device id is incorrect [%s]" % device_id)
@@ -144,48 +168,43 @@ elif ATTR_MODEL_GPIO == device_type:
     if len(device_id.split('.')) == 4:
         for gpio in device_state:
             # {"id": 15, "type": "in", "value": 0}
-            device_name = "GPIO Device {}".format(device_id)
+            device_name = f"GPIO Device {device_id}"
             state_topic = f"{CUBIE_TOPIC}/gpio/{string_id}/{gpio['id']}"
             availability_topic = f"{CUBIE_TOPIC}/gpio/{string_id}/online"
-            if gpio['type'] == "out":
-                gpio_name = "Output {}".format(gpio['id'])
+            if gpio['type'] == GPIO_TYPE_OUT:
+                gpio_name = f"Output {gpio['id']}"
                 unique_id = f"{string_id}-out-{gpio['id']}"
                 config_topic = f"{disc_prefix}/{ATTR_LIGHT}/{string_id}-{gpio['id']}/config"
 
                 payload = PAYLOAD_ACTOR
-                payload.replace('SERVICE_NAME', gpio_name)
-                payload.replace('STATE_TOPIC', state_topic)
-                payload.replace('AVAILABILITY_TOPIC', availability_topic)
-                payload.replace('UNIQUE_ID', unique_id)
-                payload.replace('DEVICE_ID', device_id)
-                payload.replace('DEVICE_NAME', device_name)
-            elif gpio['type'] == "in":
-                gpio_name = "Input {}".format(gpio['id'])
+                payload[MQTT_NAME] = gpio_name
+                payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
+                payload[MQTT_STATE_TOPIC] = state_topic
+                payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+                payload[MQTT_UNIQUE_ID] = unique_id
+                payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+                payload[MQTT_DEVICE][MQTT_NAME] = device_name
+            elif gpio['type'] == GPIO_TYPE_IN:
+                gpio_name = f"Input {gpio['id']}"
                 unique_id = f"{string_id}-in-{gpio['id']}"
                 config_topic = f"{disc_prefix}/binary_sensor/{string_id}-{gpio['id']}/config"
 
                 payload = PAYLOAD_SENSOR
-                payload.replace('SERVICE_NAME', gpio_name)
-                payload.replace('STATE_TOPIC', state_topic)
-                payload.replace('AVAILABILITY_TOPIC', availability_topic)
-                payload.replace('UNIQUE_ID', unique_id)
-                payload.replace('DEVICE_ID', device_id)
-                payload.replace('DEVICE_NAME', device_name)
+                payload[MQTT_NAME] = gpio_name
+                payload[MQTT_STATE_TOPIC] = state_topic
+                payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+                payload[MQTT_UNIQUE_ID] = unique_id
+                payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+                payload[MQTT_DEVICE][MQTT_NAME] = device_name
             else:
                 continue
-            service_data = {
-                MQTT_TOPIC: config_topic,
-                MQTT_PAYLOAD: payload,
-                MQTT_RETAIN: retain,
-                MQTT_QOS: qos,
-            }
-            hass.services.call("mqtt", "publish", service_data, False)
+            mqtt_publish(config_topic, payload)
         success = True
     else:
         logger.error("gpio device id is incorrect [%s]" % device_id)
 elif ATTR_MODEL_SONAR == device_type:
     if len(device_id.split('.')) == 4:
-        device_name = "Sonar Device {}".format(device_id)
+        device_name = f"Sonar Device {device_id}"
         availability_topic = f"{CUBIE_TOPIC}/{device_type}/{string_id}/online"
 
         for sensor_name in ["distance", "percent"]:
@@ -194,31 +213,25 @@ elif ATTR_MODEL_SONAR == device_type:
             config_topic = f"{disc_prefix}/{ATTR_SENSOR}/{string_id}-{sensor_name}/config"
 
             payload = PAYLOAD_SENSOR
-            payload.replace('SERVICE_NAME', sensor_name.title())
-            payload.replace('STATE_TOPIC', state_topic)
-            payload.replace('AVAILABILITY_TOPIC', availability_topic)
-            payload.replace('UNIQUE_ID', unique_id)
-            payload.replace('DEVICE_ID', device_id)
-            payload.replace('DEVICE_NAME', device_name)
-            service_data = {
-                MQTT_TOPIC: config_topic,
-                MQTT_PAYLOAD: payload,
-                MQTT_RETAIN: retain,
-                MQTT_QOS: qos,
-            }
-            hass.services.call("mqtt", "publish", service_data, False)
+            payload[MQTT_NAME] = sensor_name.title()
+            payload[MQTT_STATE_TOPIC] = state_topic
+            payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+            payload[MQTT_UNIQUE_ID] = unique_id
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+            payload[MQTT_DEVICE][MQTT_NAME] = device_name
+            mqtt_publish(config_topic, payload)
 
         success = True
     else:
         logger.error("sonar device id is incorrect [%s]" % device_id)
 elif ATTR_MODEL_VICTRON == device_type:
-    device_name = "Victron MQTT Gateway {}".format(device_id)
+    device_name = f"Victron MQTT Gateway {device_id}"
     service_list = device_state
     availability_topic = f"{CUBIE_TOPIC}/{device_type}/{string_id}/online"
 
     for service in service_list:
         state_topic = f"{CUBIE_TOPIC}/{device_type}/{string_id}/{service}"
-        service_name = "Victron {}-{}".format(device_id, service)
+        service_name = f"Victron {device_id}-{service}"
         unique_id = f"{string_id}-{device_type}-{service}"
         if ATTR_BATTERY in service or ATTR_EX_IMPORTED in service:
             if ATTR_POWER in service:
@@ -235,53 +248,38 @@ elif ATTR_MODEL_VICTRON == device_type:
                 device_class = ATTR_BATTERY
             config_topic = f"{disc_prefix}/{ATTR_SENSOR}/{string_id}-{service}/config"
             payload = PAYLOAD_SPECIAL_ACTOR
-            payload.replace('SERVICE_NAME', service_name)
-            payload.replace('STATE_TOPIC', state_topic)
-            payload.replace('AVAILABILITY_TOPIC', availability_topic)
-            payload.replace('UNIT_OF_MEASUREMENT', unit)
-            payload.replace('STATE_CLASS', state_class)
-            payload.replace('DEVICE_CLASS', device_class)
-            payload.replace('UNIQUE_ID', unique_id)
-            payload.replace('DEVICE_ID', device_id)
-            payload.replace('DEVICE_NAME', device_name)
+            payload[MQTT_NAME] = service_name
+            payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
+            payload[MQTT_STATE_TOPIC] = state_topic
+            payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+            payload[MQTT_UNIT_OF_MEASUREMENT] = unit
+            payload[MQTT_STATE_CLASS] = state_class
+            payload[MQTT_DEVICE_CLASS] = device_class
+            payload[MQTT_UNIQUE_ID] = unique_id
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+            payload[MQTT_DEVICE][MQTT_NAME] = device_name
         else:
             if "allow" in service:
                 config_topic = f"{disc_prefix}/{ATTR_LIGHT}/{string_id}-{service}/config"
             else:
                 config_topic = f"{disc_prefix}/{ATTR_SWITCH}/{string_id}-{service}/config"
             payload = PAYLOAD_ACTOR
-            payload.replace('SERVICE_NAME', service_name)
-            payload.replace('STATE_TOPIC', state_topic)
-            payload.replace('AVAILABILITY_TOPIC', availability_topic)
-            payload.replace('UNIQUE_ID', unique_id)
-            payload.replace('DEVICE_ID', device_id)
-            payload.replace('DEVICE_NAME', device_name)
+            payload[MQTT_NAME] = service_name
+            payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
+            payload[MQTT_STATE_TOPIC] = state_topic
+            payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+            payload[MQTT_UNIQUE_ID] = unique_id
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+            payload[MQTT_DEVICE][MQTT_NAME] = device_name
 
-        service_data = {
-            MQTT_TOPIC: config_topic,
-            MQTT_PAYLOAD: payload,
-            MQTT_RETAIN: retain,
-            MQTT_QOS: qos,
-        }
-        # logger.error(config_topic)
-        hass.services.call("mqtt", "publish", service_data, False)
+        mqtt_publish(config_topic, payload)
     success = True
 elif ATTR_MODEL_CORE == device_type:
     # do not create core devices in home assistant
     success = True
 else:
-    logger.error("unkown type [%s] with device [%s]" % (device_type, device_payload))
+    logger.error("unknown type [%s] with device [%s]" % (device_type, device_payload))
 
 if success:
-    payload = (
-            '{"mode":"update", "type": "' + str(plugin_type) +
-            '","device":' + str(device_payload).replace('\'', '"').replace('True', 'true') + '}'
-    )
-
-    service_data = {
-        MQTT_TOPIC: CUBIE_TOPIC_COMMAND,
-        MQTT_PAYLOAD: payload,
-        MQTT_RETAIN: retain,
-        MQTT_QOS: qos,
-    }
-    hass.services.call("mqtt", "publish", service_data, False)
+    payload = {"mode": "update", "type": plugin_type, "device": device_payload}
+    mqtt_publish(CUBIE_TOPIC_COMMAND, payload)
