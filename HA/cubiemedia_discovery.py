@@ -1,6 +1,8 @@
 """
 This script adds MQTT discovery support for CubieMedia devices.
 """
+MQTT_SOFTWARE_VERSION = "sw"
+MQTT_MANUFACTURER = "mf"
 CONF_ID = "id"
 CONF_TYPE = "type"
 CONF_STATE = "state"
@@ -48,37 +50,77 @@ MQTT_DEVICE_DESCRIPTION = "mdl"
 MQTT_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 MQTT_DEVICE_CLASS = "device_class"
 MQTT_STATE_CLASS = "state_class"
+MQTT_PAYLOAD_NOT_AVAILABLE = "pl_not_avail"
+MQTT_PAYLOAD_AVAILABLE = "pl_avail"
+MQTT_PAYLOAD_OFF = "pl_off"
+MQTT_PAYLOAD_ON = "pl_on"
 
 GPIO_TYPE_IN = "in"
 GPIO_TYPE_OUT = "out"
 
 DEFAULT_DISC_PREFIX = "homeassistant"
 
-PAYLOAD_ACTOR = {"name": "SERVICE_NAME", "cmd_t": "STATE_TOPIC/command", "stat_t": "STATE_TOPIC",
-                 "avty_t": "AVAILABILITY_TOPIC", "pl_on": "1", "pl_off": "0", "pl_avail": "true",
-                 "pl_not_avail": "false", "uniq_id": "UNIQUE_ID", "qos": "0",
-                 "dev": {"ids": ["DEVICE_ID"], "name": "DEVICE_NAME", "mdl": "DEVICE_DESCRIPTION", "sw": "SW",
-                         "mf": ATTR_MANUFACTURER}}
-PAYLOAD_SENSOR = {"name": "SERVICE_NAME", "stat_t": "STATE_TOPIC", "avty_t": "AVAILABILITY_TOPIC", "pl_on": "1",
-                  "pl_off": "0", "pl_avail": "true", "pl_not_avail": "false", "uniq_id": "UNIQUE_ID", "qos": "0",
-                  "dev": {"ids": ["DEVICE_ID"], "name": "DEVICE_NAME", "mdl": "DEVICE_DESCRIPTION", "sw": "SW",
-                          "mf": ATTR_MANUFACTURER}}
-PAYLOAD_SPECIAL_ACTOR = {"name": "SERVICE_NAME", "cmd_t": "STATE_TOPIC/command", "stat_t": "STATE_TOPIC",
-                         "avty_t": "AVAILABILITY_TOPIC", "unit_of_measurement": "UNIT_OF_MEASUREMENT",
-                         "state_class": "STATE_CLASS", "device_class": "DEVICE_CLASS", "pl_on": "1", "pl_off": "0",
-                         "pl_avail": "true", "pl_not_avail": "false", "uniq_id": "UNIQUE_ID", "qos": "0",
-                         "dev": {"ids": ["DEVICE_ID"], "name": "DEVICE_NAME", "mdl": "DEVICE_DESCRIPTION", "sw": "SW",
-                                 "mf": ATTR_MANUFACTURER}}
+PAYLOAD_ACTOR = {
+    MQTT_NAME: "SERVICE_NAME",
+    MQTT_COMMAND_TOPIC: "STATE_TOPIC/command",
+    MQTT_STATE_TOPIC: "STATE_TOPIC",
+    MQTT_AVAILIBILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_PAYLOAD_ON: "1", MQTT_PAYLOAD_OFF: "0", MQTT_PAYLOAD_AVAILABLE: "true", MQTT_PAYLOAD_NOT_AVAILABLE: "false",
+    MQTT_UNIQUE_ID: "UNIQUE_ID",
+    MQTT_QOS: "0",
+    MQTT_DEVICE: {
+        MQTT_DEVICE_IDS: ["DEVICE_ID"],
+        MQTT_NAME: "DEVICE_NAME",
+        MQTT_DEVICE_DESCRIPTION: "DEVICE_DESCRIPTION",
+        MQTT_SOFTWARE_VERSION: "SW",
+        MQTT_MANUFACTURER: ATTR_MANUFACTURER
+    }
+}
+
+PAYLOAD_SENSOR = {
+    MQTT_NAME: "SERVICE_NAME",
+    MQTT_STATE_TOPIC: "STATE_TOPIC",
+    MQTT_AVAILIBILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_PAYLOAD_ON: "1", MQTT_PAYLOAD_OFF: "0", MQTT_PAYLOAD_AVAILABLE: "true", MQTT_PAYLOAD_NOT_AVAILABLE: "false",
+    MQTT_UNIQUE_ID: "UNIQUE_ID",
+    MQTT_QOS: "0",
+    MQTT_DEVICE: {
+        MQTT_DEVICE_IDS: ["DEVICE_ID"],
+        MQTT_NAME: "DEVICE_NAME",
+        MQTT_DEVICE_DESCRIPTION: "DEVICE_DESCRIPTION",
+        MQTT_SOFTWARE_VERSION: "SW",
+        MQTT_MANUFACTURER: ATTR_MANUFACTURER
+    }
+}
+PAYLOAD_SPECIAL_ACTOR = {
+    MQTT_NAME: "SERVICE_NAME",
+    MQTT_COMMAND_TOPIC: "STATE_TOPIC/command",
+    MQTT_STATE_TOPIC: "STATE_TOPIC",
+    MQTT_AVAILIBILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_UNIT_OF_MEASUREMENT: "UNIT_OF_MEASUREMENT",
+    MQTT_STATE_CLASS: "STATE_CLASS",
+    MQTT_DEVICE_CLASS: "DEVICE_CLASS",
+    MQTT_PAYLOAD_ON: "1", MQTT_PAYLOAD_OFF: "0", MQTT_PAYLOAD_AVAILABLE: "true", MQTT_PAYLOAD_NOT_AVAILABLE: "false",
+    MQTT_UNIQUE_ID: "UNIQUE_ID",
+    MQTT_QOS: "0",
+    MQTT_DEVICE: {
+        MQTT_DEVICE_IDS: ["DEVICE_ID"],
+        MQTT_NAME: "DEVICE_NAME",
+        MQTT_DEVICE_DESCRIPTION: "DEVICE_DESCRIPTION",
+        MQTT_SOFTWARE_VERSION: "SW",
+        MQTT_MANUFACTURER: ATTR_MANUFACTURER
+    }
+}
 
 
-def mqtt_publish(topic, payload):
+def mqtt_publish(topic, payload_to_publish):
     """Publish data to MQTT broker."""
-    payload_str = str(payload).replace("'", '"')
+    payload_str = str(payload_to_publish).replace("'", '"').replace("True", 'true')
     service_data = {
         "topic": topic,
         "payload": payload_str,
         "retain": retain,
-        "qos": qos,
+        MQTT_QOS: qos,
     }
     logger.debug(service_data)  # noqa: F821
     hass.services.call("mqtt", "publish", service_data, False)  # noqa: F821

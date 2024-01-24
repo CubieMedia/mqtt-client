@@ -4,7 +4,7 @@
 import json
 import logging
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_CORE, CUBIE_RELOAD
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD
 from common.network import get_ip_address  # noqa
 from common.python import install_package
 
@@ -25,7 +25,7 @@ class CubieMediaMQTTClient:
     def connect(self, system):
         self.system = system
         server, user, password = system.get_mqtt_data()
-        logging.info("... connecting to MQTT-Service [%s] as client [%s]" % (server, self.client_id))
+        logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
         self.mqtt_client.username_pw_set(username=user, password=password)
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
@@ -37,8 +37,8 @@ class CubieMediaMQTTClient:
     def disconnect(self):
         self.mqtt_client.disconnect()
 
-    def publish(self, topic, payload):
-        self.mqtt_client.publish(topic, payload, 0, False)
+    def publish(self, topic, payload, retain: bool = False):
+        self.mqtt_client.publish(topic, payload, 0, retain)
 
     def subscribe(self, topic, qos):
         self.mqtt_client.subscribe(topic, qos)
@@ -70,12 +70,12 @@ class CubieMediaMQTTClient:
                                     new_device = message_data["device"]
                                     self.system.delete(new_device)
                                 else:
-                                    logging.warning("WARNING: no data given [device]")
+                                    logging.warning(f"WARNING: no device data given [{message_data}] for deletion")
                             elif message_mode == 'values':
-                                logging.info("... send data with [%s]: %s" % (msg.topic, str(msg.payload)))
+                                logging.info(f"... send data with [{msg.topic}]: {msg.payload}")
                                 self.system.send(message_data)
                             else:
-                                logging.warning("WARNING: unknown mode [%s]" % message_mode)
+                                logging.warning(f"WARNING: unknown mode [{message_mode}]")
                         else:
                             logging.warning(f"WARNING: no mode given, doing nothing on msg [{message_data}]")
                     else:
@@ -88,9 +88,9 @@ class CubieMediaMQTTClient:
                                             'state': msg.payload}
                             self.system.send(message_data)
                     else:
-                        logging.warning("... ... unknown topic [%s]" % msg.topic)
-            except json.JSONDecodeError:
-                logging.warning("... could not decode message[%s]" % msg.payload.decode())
+                        logging.warning(f"... ... unknown topic [{msg.topic}]")
+            except json.JSONDecodeError as json_error:
+                logging.warning(f"... could not decode message[{msg.payload.decode()}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
         logging.info("... connected to Service [%s]" % client._host)

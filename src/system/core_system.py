@@ -27,11 +27,10 @@ class CoreSystem(BaseSystem):
 
     def action(self, device):
         should_save = False
-        logging.info(device)
 
         if 'mode' in device and device['mode'] == 'update':
             if 'type' in device and device['type'] == self.execution_mode:
-                logging.error("TEST")
+                logging.error(f"TEST [{device}]")
 
         if should_save:
             self.save(device)

@@ -112,7 +112,7 @@ class GPIOSystem(BaseSystem):
             for gpio in self.known_device_list:
                 self.mqtt_client.publish(
                     f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
-                    str(gpio['value']).lower())
+                    str(gpio['value']).lower(), True)
 
     def save(self, new_device=None):
         if new_device is None:

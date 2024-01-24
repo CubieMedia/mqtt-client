@@ -40,7 +40,7 @@ class RelaySystem(BaseSystem):
                             device['id'], relay, device['state'][relay]))
                         self.mqtt_client.publish(
                             f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                            device['state'][relay])
+                            device['state'][relay], True)
                         known_device['state'][relay] = device['state'][relay]
                 return True
 
@@ -103,7 +103,7 @@ class RelaySystem(BaseSystem):
 
             for relay in device['state']:
                 self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                                         device['state'][relay])
+                                         device['state'][relay], True)
 
     def init(self, ip_address):
         super().init(ip_address)

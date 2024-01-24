@@ -56,11 +56,11 @@ class SonarSystem(BaseSystem):
     def action(self, device):
         logging.info("... ... action for [%s]" % device)
         self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
-                                 json.dumps(device['value']))
+                                 json.dumps(device['value']), True)
         percent = round(
             (self.maximal_distance - (device['value'])) / (self.maximal_distance - self.offset_distance) * 100)
         self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
-                                 percent)
+                                 percent, True)
 
     def update(self):
         data = {}
@@ -104,9 +104,9 @@ class SonarSystem(BaseSystem):
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
         self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
-                                 json.dumps(device['value']))
+                                 json.dumps(device['value']), True)
         self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
-                                 0)
+                                 0, True)
 
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/command"
         logging.info("... ... subscribing to [%s] for sonar commands" % topic)

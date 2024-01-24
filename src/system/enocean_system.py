@@ -71,12 +71,12 @@ class EnoceanSystem(BaseSystem):
                                     timer = self.timers[channel_topic]
                                     timer.cancel()
                                     del self.timers[channel_topic]
-                                    short_press_timer = Timer(0.5, self.mqtt_client.publish, [channel_topic, 0])
+                                    short_press_timer = Timer(0.5, self.mqtt_client.publish, [channel_topic, 0, True])
                                     short_press_timer.start()
                                 else:
                                     if channel_topic in self.timers:
                                         del self.timers[channel_topic]
-                                    self.mqtt_client.publish(channel_topic + "/longpush", 0)
+                                    self.mqtt_client.publish(channel_topic + "/longpush", 0, True)
                             should_save = True
                     known_device['state'] = device['state']
                     if device['dbm'] > known_device['dbm']:
@@ -86,7 +86,8 @@ class EnoceanSystem(BaseSystem):
                 else:
                     print("... ... send message for [%s]" % device['id'])
                     self.mqtt_client.publish(
-                        f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}", json.dumps(device['state']))
+                        f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}", json.dumps(device['state']),
+                        True)
                 return True
 
         device['client_id'] = client_id
@@ -101,12 +102,12 @@ class EnoceanSystem(BaseSystem):
             timer.start()
         elif force:
             logging.info("... ... sending longpush [%s]" % channel_topic)
-            self.mqtt_client.publish(channel_topic + "/longpush", 1)
+            self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
 
     def longpress_timer(self, channel_topic):
         self.timers[channel_topic] = True
         logging.info("... ... sending longpush [%s]" % channel_topic)
-        self.mqtt_client.publish(channel_topic + "/longpush", 1)
+        self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
 
         topic_array = channel_topic.split('/')
         device_id = topic_array[1]
@@ -119,14 +120,13 @@ class EnoceanSystem(BaseSystem):
 
         if device is not None and 'channel_config' in device:
             channel_config = device['channel_config']
-            logging.info(
-                "... ... ... found config[%s] for device[%s] and button[%s]" % (channel_config, device_id, button))
+            logging.info(f"... ... ... found config[{channel_config}] for device[{device_id}] and button[{button}]")
             if button[0] in channel_config:
                 device_topic = channel_config[button[0]]
                 if 'dimmer' in device_topic:
                     value = 5 if button[1] == '1' else 95
                     while channel_topic in self.timers:
-                        self.mqtt_client.publish(device_topic, '{"turn": "on","brightness": ' + str(value))
+                        self.mqtt_client.publish(device_topic, '{"turn": "on","brightness": ' + str(value), True)
                         value += 10 if button[1] == '1' else -10
                         time.sleep(0.5)
                 else:
@@ -141,12 +141,13 @@ class EnoceanSystem(BaseSystem):
                     for topic in device['state']:
                         self.mqtt_client.publish(
                             f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}",
-                            str(device['state'][topic]).lower())
+                            str(device['state'][topic]).lower(), True)
                         self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpress", str(0))
+                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpress", str(0),
+                            True)
 
     def send(self, data):
-        raise NotImplemented(f"sending data[{data}] is not implemented")
+        raise NotImplemented(f"sending data[{data}] for enocean is not implemented")
 
     def update(self):
         data = {}

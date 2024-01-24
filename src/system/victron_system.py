@@ -27,6 +27,10 @@ TOPIC_READ_LIST = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
                    "settings/0/Settings/CGwacs/MaxDischargePower"]
 
 
+def get_service_from_topic(topic):
+    return SERVICE_LIST[TOPIC_READ_LIST.index(topic)]
+
+
 class VictronSystem(BaseSystem):
     victron_system = {}
     victron_mqtt_client = None
@@ -62,7 +66,7 @@ class VictronSystem(BaseSystem):
                 logging.warning("no logic for topic [%s]" % topic)
 
             self.mqtt_client.publish(
-                f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/{topic}", payload)
+                f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/{topic}", payload, True)
         return True
 
     def send(self, data):
@@ -91,6 +95,11 @@ class VictronSystem(BaseSystem):
 
     def init(self, ip_address):
         super().init(ip_address)
+
+        device_command_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command"
+        logging.info(f"... ... subscribing to [{device_command_topic}] for victron write commands")
+        self.mqtt_client.subscribe(device_command_topic, 2)
+
         self.victron_system['client_id'] = self.client_id
         self.victron_mqtt_client = mqtt.Client(client_id=self.client_id, clean_session=True, userdata=None,
                                                transport="tcp")
@@ -118,9 +127,6 @@ class VictronSystem(BaseSystem):
         temp_victron_system = copy.copy(self.victron_system)
         temp_victron_system['state'] = SERVICE_LIST
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_victron_system))
-        device_command_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command"
-        logging.info(f"... ... subscribing to [{device_command_topic}] for victron write commands")
-        self.mqtt_client.subscribe(device_command_topic, 2)
         self.set_availability(True)
 
     def save(self, new_device=None):
@@ -141,7 +147,7 @@ class VictronSystem(BaseSystem):
                 else:
                     self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
                                                      json.dumps(TOPIC_READ_LIST))
-                count = 3
+                count = 30
             else:
                 count -= 1
             time.sleep(1)
@@ -161,21 +167,21 @@ class VictronSystem(BaseSystem):
         for topic in TOPIC_READ_LIST:
             if topic in msg.topic:
                 try:
-                    logging.debug("... ... message on topic [%s] with value [%s]" % (topic, msg.payload))
-                    service = self.get_service_from_topic(topic)
+                    logging.info(f"... ... message [{msg.payload.decode('UTF-8')}] on topic [{topic}]")
+                    service = get_service_from_topic(topic)
                     value = json.loads(msg.payload.decode('UTF-8'))['value']
                     self.updated_data["devices"].append({service: value})
                 except JSONDecodeError:
                     logging.warning(
-                        "message on topic [%s] with value [%s] seems not to be json format" % (topic, msg.payload))
+                        f"message on topic [{topic}] with value [{msg.payload}] seems not to be json format")
 
     def on_victron_connect(self, client, userdata, flags, rc):
-        logging.info("... connected to Victron System [%s] with result [%s]" % (client._host, rc))
+        logging.info(f"... connected to Victron System [{client._host}] with result [{rc}]")
         if rc == 0:
-            for topic in TOPIC_READ_LIST:
-                topic = ("N/%s/" % self.known_device_list[0]["serial"]) + topic
-                logging.info("... ... subscribe to topic [%s]" % topic)
-                client.subscribe(topic, QOS)
+            for victron_topic in TOPIC_READ_LIST:
+                victron_topic = ("N/%s/" % self.known_device_list[0]["serial"]) + victron_topic
+                logging.info(f"... ... subscribe to topic [{victron_topic}]")
+                client.subscribe(victron_topic, QOS)
 
             self.set_availability(True)
         else:
@@ -194,5 +200,5 @@ class VictronSystem(BaseSystem):
             f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/online",
             str(state).lower())
 
-    def get_service_from_topic(self, topic):
-        return SERVICE_LIST[TOPIC_READ_LIST.index(topic)]
+        self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
+                                         json.dumps(TOPIC_READ_LIST))
