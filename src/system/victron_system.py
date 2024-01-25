@@ -147,6 +147,7 @@ class VictronSystem(BaseSystem):
                 else:
                     self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
                                                      json.dumps(TOPIC_READ_LIST))
+                    self.set_availability(True)
                 count = 30
             else:
                 count -= 1
@@ -199,6 +200,3 @@ class VictronSystem(BaseSystem):
         self.mqtt_client.publish(
             f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/online",
             str(state).lower())
-
-        self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
-                                         json.dumps(TOPIC_READ_LIST))
