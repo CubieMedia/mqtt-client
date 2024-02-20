@@ -122,6 +122,11 @@ class VictronSystem(BaseSystem):
         self.victron_mqtt_client.on_disconnect = self.on_victron_disconnect
         self.victron_mqtt_client.on_message = self.on_victron_message
 
+        if EXPORT_CORRECTION_FACTOR in self.victron_system:
+            self.export_correction_factor = self.victron_system[EXPORT_CORRECTION_FACTOR]
+        if IMPORT_CORRECTION_FACTOR in self.victron_system:
+            self.import_correction_factor = self.victron_system[IMPORT_CORRECTION_FACTOR]
+
         logging.info("... ... starting keepalive thread")
         self.keepalive_thread = threading.Thread(target=self._run)
         self.keepalive_thread.daemon = True
