@@ -75,7 +75,7 @@ Please report them or send me a message.
 >> 2. Select 'Modify Run Configuration...'
 >> 3. Setup Service Run Configuration
 >>> * **Name:** service name you want to start [Core,EnOcean,GPIO,Sonar,Relay,Victron]
->>> * **Parameters:** the service name but you can add debug here for more log messages
+>>> * **Parameters:** the service name, you can add debug|verbose here for more log messages
 >>> * **Working Directory:** root folder of the project (default will be the src folder, remove '/src'!)
 >> 4. Setup WebTool Configuration
 >>> * **Name:** WebTool

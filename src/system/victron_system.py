@@ -9,11 +9,10 @@ from json import JSONDecodeError
 
 from paho.mqtt import client as mqtt
 
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS
+from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS, EXPORT_CORRECTION_FACTOR, \
+    IMPORT_CORRECTION_FACTOR
 from system.base_system import BaseSystem
 
-EXPORT_CORRECTION_FACTOR = 5
-IMPORT_CORRECTION_FACTOR = 1.2
 SERVICE_LIST = [
     "battery_power",
     "battery_soc",
@@ -45,6 +44,8 @@ def get_service_from_topic(topic):
 class VictronSystem(BaseSystem):
     victron_system = {}
     victron_mqtt_client = None
+    export_correction_factor = 1
+    import_correction_factor = 1
     updated_data = {"devices": []}
     keepalive_thread = threading.Thread()
     keepalive_thread_event = threading.Event()
@@ -60,11 +61,11 @@ class VictronSystem(BaseSystem):
             if 'battery' in topic:
                 pass
             elif topic is SERVICE_LIST[4]:
-                payload = round(float(payload) / EXPORT_CORRECTION_FACTOR, 2)
+                payload = round(float(payload) / self.export_correction_factor, 2)
                 logging.debug("exported payload [%s]" % payload)
                 pass
             elif topic is SERVICE_LIST[5]:
-                payload = round(float(payload) / IMPORT_CORRECTION_FACTOR, 2)
+                payload = round(float(payload) / self.import_correction_factor, 2)
                 logging.debug("imported payload [%s]" % payload)
                 pass
             elif topic is SERVICE_LIST[6]:

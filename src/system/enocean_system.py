@@ -13,6 +13,7 @@ from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
 from common import *
+from common.python import get_configuration
 from system.base_system import BaseSystem
 
 try:
@@ -23,6 +24,7 @@ except ImportError:
 
 
 class EnoceanSystem(BaseSystem):
+    serial_port = None
     communicator = None
     update_timeout = 30
     timers = {}
@@ -30,15 +32,6 @@ class EnoceanSystem(BaseSystem):
     def __init__(self):
         super().__init__()
         self.execution_mode = CUBIE_ENOCEAN
-        try:
-            self.communicator = SerialCommunicator(ENOCEAN_PORT)
-        except SerialException:
-            if "arm" in platform.machine():
-                logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{COLOR_DEFAULT}")
-            else:
-                logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
 
     def action(self, device):
         should_save = False
@@ -54,7 +47,7 @@ class EnoceanSystem(BaseSystem):
                         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
                         return False
                     return True
-                if str(device['type']).upper() == "RPS":
+                if str(device[CUBIE_TYPE]).upper() == "RPS":
                     for topic in device['state']:
                         if 'state' not in known_device or len(known_device['state']) == 0 or \
                                 (topic in known_device['state'] and device['state'][topic] != known_device['state'][
@@ -158,7 +151,7 @@ class EnoceanSystem(BaseSystem):
                 if packet.packet_type == PACKET.RADIO_ERP1:
                     sensor = {'id': packet.sender_hex.replace(':', '').lower()}
                     if packet.rorg == RORG.RPS:
-                        sensor['type'] = 'RPS'
+                        sensor[CUBIE_TYPE] = 'RPS'
                         sensor['dbm'] = packet.dBm
                         sensor['state'] = self._get_rps_state_from(packet)
                         data['devices'] = [sensor]
@@ -212,11 +205,14 @@ class EnoceanSystem(BaseSystem):
 
     def init(self, ip_address):
         super().init(ip_address)
+
+        self._open_communicator()
+
         if self.communicator:
             logging.info("... starting serial communicator")
             self.communicator.start()
             time.sleep(0.100)
-        self.set_availability(True)
+            self.set_availability(True)
 
     def shutdown(self):
         logging.info('... set devices unavailable...')
@@ -242,8 +238,8 @@ class EnoceanSystem(BaseSystem):
         should_save = False
         device = None
         if new_device:
-            if (str(new_device['type']).upper() == "RPS" or str(
-                    new_device['type']).upper() == "TEMP") and self.learn_mode:
+            if (str(new_device[CUBIE_TYPE]).upper() == "RPS" or str(
+                    new_device[CUBIE_TYPE]).upper() == "TEMP") and self.learn_mode:
                 add = True
                 for known_device in self.known_device_list:
                     if str(new_device['id']).upper() == str(known_device['id']).upper():
@@ -272,3 +268,16 @@ class EnoceanSystem(BaseSystem):
 
         if device is not None:
             self.action(device)
+
+    def _open_communicator(self):
+        try:
+            serial_json = get_configuration(CUBIE_SERIAL)[0]
+            if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
+                self.communicator = SerialCommunicator(ENOCEAN_PORT)
+        except SerialException:
+            if "arm" in platform.machine():
+                logging.warning(
+                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{COLOR_DEFAULT}")
+            else:
+                logging.warning(
+                    f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")

@@ -213,7 +213,7 @@ elif ATTR_MODEL_GPIO == device_type:
             device_name = f"GPIO Device {device_id}"
             state_topic = f"{CUBIE_TOPIC}/gpio/{string_id}/{gpio['id']}"
             availability_topic = f"{CUBIE_TOPIC}/gpio/{string_id}/online"
-            if gpio['type'] == GPIO_TYPE_OUT:
+            if gpio[CUBIE_TYPE] == GPIO_TYPE_OUT:
                 gpio_name = f"Output {gpio['id']}"
                 unique_id = f"{string_id}-out-{gpio['id']}"
                 config_topic = f"{disc_prefix}/{ATTR_LIGHT}/{string_id}-{gpio['id']}/config"
@@ -226,7 +226,7 @@ elif ATTR_MODEL_GPIO == device_type:
                 payload[MQTT_UNIQUE_ID] = unique_id
                 payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
                 payload[MQTT_DEVICE][MQTT_NAME] = device_name
-            elif gpio['type'] == GPIO_TYPE_IN:
+            elif gpio[CUBIE_TYPE] == GPIO_TYPE_IN:
                 gpio_name = f"Input {gpio['id']}"
                 unique_id = f"{string_id}-in-{gpio['id']}"
                 config_topic = f"{disc_prefix}/binary_sensor/{string_id}-{gpio['id']}/config"

@@ -6,7 +6,9 @@ import logging
 import os
 import time
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT, CUBIE_TYPE
+from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
+from common.network import get_ip_address
 from common.python import install_package
 from system.base_system import BaseSystem
 
@@ -19,9 +21,6 @@ if (snap_arch and "arm" in snap_arch) or "arm" in os.uname()[4]:
         import RPi.GPIO as GPIO
 else:
     GPIO = None
-
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
-from common.network import get_ip_address
 
 
 class GPIOSystem(BaseSystem):
@@ -40,7 +39,7 @@ class GPIOSystem(BaseSystem):
         else:
             GPIO.setmode(GPIO.BCM)
             for device in self.known_device_list:
-                device_type = str(device['type']).lower()
+                device_type = str(device[CUBIE_TYPE]).lower()
                 if device_type == GPIO_PIN_TYPE_IN:
                     logging.info("... set Pin %d as INPUT" % device['id'])
                     GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -70,7 +69,7 @@ class GPIOSystem(BaseSystem):
         device_list = []
         if GPIO:
             for device in self.known_device_list:
-                device_type = str(device['type']).lower()
+                device_type = str(device[CUBIE_TYPE]).lower()
                 if device_type == GPIO_PIN_TYPE_IN:
                     value = GPIO.input(device['id'])
                 elif device_type == GPIO_PIN_TYPE_OUT:
@@ -98,7 +97,8 @@ class GPIOSystem(BaseSystem):
             GPIO.output(int(data['id']), GPIO.LOW if int(data['state'].decode()) == 1 else GPIO.HIGH)
 
     def announce(self):
-        device = {'id': self.ip_address, 'type': CUBIE_GPIO, 'client_id': self.client_id, 'state': self.known_device_list}
+        device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_GPIO, 'client_id': self.client_id,
+                  'state': self.known_device_list}
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"

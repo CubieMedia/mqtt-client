@@ -29,7 +29,7 @@ class CoreSystem(BaseSystem):
         should_save = False
 
         if 'mode' in device and device['mode'] == 'update':
-            if 'type' in device and device['type'] == self.execution_mode:
+            if CUBIE_TYPE in device and device[CUBIE_TYPE] == self.execution_mode:
                 logging.error(f"TEST [{device}]")
 
         if should_save:

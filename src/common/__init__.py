@@ -5,10 +5,13 @@ CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
 CUBIE_SONAR = "sonar"
 CUBIE_VICTRON = "victron"
+CUBIE_SERIAL = "serial"
 CUBIE_MODE_LIST = [CUBIE_CORE, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_ENOCEAN, CUBIE_GPIO]
 
 CUBIE_RESET = "reset"
 CUBIE_RELOAD = "reload"
+CUBIE_TYPE = "type"
+CUBIE_DEVICE = "device"
 CUBIE_ANNOUNCE = "announce"
 CUBIEMEDIA = "cubiemedia"
 STATE_UNKNOWN = 'unknown'
@@ -28,6 +31,10 @@ DEFAULT_MQTT_PASSWORD = "autoInstall"
 DEFAULT_LEARN_MODE = True
 DEFAULT_TOPIC_COMMAND = CUBIEMEDIA + "/command"
 DEFAULT_TOPIC_ANNOUNCE = CUBIEMEDIA + "/" + CUBIE_ANNOUNCE
+
+# Victron
+EXPORT_CORRECTION_FACTOR = 'export_correction_factor'
+IMPORT_CORRECTION_FACTOR = 'import_correction_factor'
 
 # Relayboard #
 RELAY_USERNAME = 'admin'

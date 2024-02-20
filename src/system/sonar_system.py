@@ -7,9 +7,11 @@ import time
 
 from serial import Serial, SerialException
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, DEFAULT_OFFSET
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, DEFAULT_OFFSET, CUBIE_DEVICE, CUBIE_SERIAL, \
+    CUBIE_TYPE
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE
 from common.network import get_ip_address
+from common.python import get_configuration
 from system.base_system import BaseSystem
 
 
@@ -42,12 +44,18 @@ class SonarSystem(BaseSystem):
         self.offset_distance = self.known_device_list[
             'offset_distance'] if 'offset_distance' in self.known_device_list else 500
         try:
+            default_serial_port = SONAR_PORT
+            serial_json = get_configuration(CUBIE_SERIAL)[0]
+            if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
+                default_serial_port = serial_json[CUBIE_DEVICE]
+            serial_port = self.known_device_list[
+                CUBIE_DEVICE] if CUBIE_DEVICE in self.known_device_list else default_serial_port
             self.communicator = Serial(
-                self.known_device_list['device'] if 'device' in self.known_device_list else SONAR_PORT, 9600)
+                serial_port, 9600)
             self.communicator.flush()
         except SerialException:
             logging.warning(
-                f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
+                f"{COLOR_YELLOW}could not initialise serial communication [{serial_port}], running in development mode?{COLOR_DEFAULT}")
 
     def shutdown(self):
         logging.info('... set devices unavailable...')
@@ -78,7 +86,7 @@ class SonarSystem(BaseSystem):
                     if not self.distance or abs(self.distance - distance) > self.offset_trigger:
                         if 200 <= distance - self.offset <= 8000:
                             self.distance = distance
-                            device = {'id': self.ip_address, 'type': CUBIE_SONAR, 'value': self.distance}
+                            device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'value': self.distance}
                             device_list.append(device)
                         else:
                             logging.warning(
@@ -99,7 +107,7 @@ class SonarSystem(BaseSystem):
         raise NotImplemented(f"sending data[{data}] is not implemented")
 
     def announce(self):
-        device = {'id': self.ip_address, 'type': CUBIE_SONAR, 'client_id': self.client_id, 'value': 0}
+        device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'client_id': self.client_id, 'value': 0}
         logging.info("... ... announce sonar device [%s]" % device)
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 

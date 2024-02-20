@@ -71,7 +71,7 @@ class RelaySystem(BaseSystem):
                     if module == temp_device['id']:
                         known_device = temp_device
 
-                relayboard = {'id': str(module), 'type': CUBIE_RELAY, 'client_id': self.client_id}
+                relayboard = {'id': str(module), CUBIE_TYPE: CUBIE_RELAY, 'client_id': self.client_id}
                 status_list = self._read_status(module)
                 relay_state_list = {}
                 relay_state_changed_list = {}
@@ -136,7 +136,7 @@ class RelaySystem(BaseSystem):
     def save(self, new_device=None):
         should_save = False
         if new_device is not None:
-            if new_device['type'] == CUBIE_RELAY and self.learn_mode:
+            if new_device[CUBIE_TYPE] == CUBIE_RELAY and self.learn_mode:
                 add = True
                 for known_device in self.known_device_list:
                     if new_device['id'] == known_device['id']:
