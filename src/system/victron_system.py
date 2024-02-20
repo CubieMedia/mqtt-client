@@ -14,17 +14,28 @@ from system.base_system import BaseSystem
 
 EXPORT_CORRECTION_FACTOR = 5
 IMPORT_CORRECTION_FACTOR = 1.2
-SERVICE_LIST = ["battery_power", "battery_soc", "battery_charged", "battery_discharged",
-                "grid_exported", "grid_imported", "grid_lost_alarm",
-                "allow_charge", "allow_discharge"]
-TOPIC_READ_LIST = ["system/0/Dc/Battery/Power", "system/0/Dc/Battery/Soc",
-                   "vebus/276/Energy/OutToInverter",
-                   "vebus/276/Energy/InverterToAcOut",
-                   "grid/30/Ac/Energy/Reverse",
-                   "grid/30/Ac/Energy/Forward",
-                   "vebus/276/Alarms/GridLost",
-                   "settings/0/Settings/SystemSetup/MaxChargeCurrent",
-                   "settings/0/Settings/CGwacs/MaxDischargePower"]
+SERVICE_LIST = [
+    "battery_power",
+    "battery_soc",
+    "battery_charged",
+    "battery_discharged",
+    "grid_exported",
+    "grid_imported",
+    "grid_lost_alarm",
+    "allow_charge",
+    "allow_discharge"
+]
+TOPIC_READ_LIST = [
+    "system/0/Dc/Battery/Power",
+    "system/0/Dc/Battery/Soc",
+    "vebus/276/Energy/OutToInverter",
+    "vebus/276/Energy/InverterToAcOut",
+    "grid/30/Ac/Energy/Reverse",
+    "grid/30/Ac/Energy/Forward",
+    "vebus/276/Alarms/GridLost",
+    "settings/0/Settings/SystemSetup/MaxChargeCurrent",
+    "settings/0/Settings/CGwacs/MaxDischargePower"
+]
 
 
 def get_service_from_topic(topic):
@@ -66,7 +77,8 @@ class VictronSystem(BaseSystem):
                 logging.warning("no logic for topic [%s]" % topic)
 
             self.mqtt_client.publish(
-                f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/{topic}", payload, True)
+                f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/{topic}", payload,
+                True)
         return True
 
     def send(self, data):
@@ -90,6 +102,7 @@ class VictronSystem(BaseSystem):
 
     def update(self):
         data = self.updated_data
+        logging.info("Rotz")
         self.updated_data = {"devices": []}
         return data
 

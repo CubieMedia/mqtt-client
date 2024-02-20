@@ -9,8 +9,7 @@ import warnings
 from functools import partial
 
 from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR, CUBIE_VICTRON, \
-    CUBIE_CORE  # noqa
-from common.network import get_ip_address  # noqa
+    CUBIE_CORE
 from common.python import exit_gracefully
 
 
@@ -86,9 +85,9 @@ def main():
 
         logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
 
-        ip_address = get_ip_address()
         system = get_system(mode)
-        system.init(ip_address)
+        system.init()
+
         # noinspection PyTypeChecker
         signal.signal(signal.SIGINT, partial(exit_gracefully, system))
         # noinspection PyTypeChecker

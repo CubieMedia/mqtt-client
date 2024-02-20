@@ -6,3 +6,4 @@ enocean
 Flask
 Werkzeug
 setuptools
+pytest

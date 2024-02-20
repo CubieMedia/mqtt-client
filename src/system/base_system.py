@@ -4,6 +4,7 @@ import time
 
 from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIEMEDIA
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
+from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_core_configuration
 
 
@@ -17,18 +18,18 @@ class BaseSystem(abc.ABC):
     learn_mode: bool = DEFAULT_LEARN_MODE
     last_update = time.time()
     known_device_list: [] = []
-    execution_mode = None
+    execution_mode = "Base"
 
-    def init(self, ip_address: str):
-        self.ip_address = ip_address
-        self.client_id = client_id = ip_address + "-" + self.execution_mode + "-client"
+    def init(self):
+        self.ip_address = get_ip_address()
+        self.client_id = self.ip_address + "-" + self.execution_mode + "-client"
 
         self.load()
-        self.mqtt_client = CubieMediaMQTTClient(client_id)
+        self.mqtt_client = CubieMediaMQTTClient(self.client_id)
         self.mqtt_client.connect(self)
 
     def shutdown(self):
-        raise NotImplementedError
+        self.mqtt_client.disconnect()
 
     def action(self, device):
         raise NotImplementedError
@@ -60,8 +61,12 @@ class BaseSystem(abc.ABC):
         self.known_device_list = device_list if device_list else []
 
     def save(self, new_device=None):
-        if new_device is None:
-            set_configuration(self.execution_mode, self.known_device_list)
+        if new_device and 'id' in new_device:
+            self.known_device_list = [new_device if device['id'] == new_device['id'] else device for device in
+                                      self.known_device_list]
+            if new_device not in self.known_device_list:
+                self.known_device_list.append(new_device)
+        set_configuration(self.execution_mode, self.known_device_list)
 
     def delete(self, device):
         deleted = False

@@ -4,15 +4,9 @@
 import json
 import logging
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD
-from common.network import get_ip_address  # noqa
-from common.python import install_package
+from paho.mqtt import client as mqtt
 
-try:
-    from paho.mqtt import client as mqtt
-except (ModuleNotFoundError, RuntimeError) as e:
-    install_package("paho-mqtt")
-    from paho.mqtt import client as mqtt
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD
 
 
 class CubieMediaMQTTClient:
@@ -25,17 +19,19 @@ class CubieMediaMQTTClient:
     def connect(self, system):
         self.system = system
         server, user, password = system.get_mqtt_data()
-        logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
+
         self.mqtt_client.username_pw_set(username=user, password=password)
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
 
+        logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
         self.mqtt_client.connect(server, 1883, 60)
         self.mqtt_client.loop_start()
 
     def disconnect(self):
         self.mqtt_client.disconnect()
+        self.mqtt_client.loop_stop()
 
     def publish(self, topic, payload, retain: bool = False):
         self.mqtt_client.publish(topic, payload, 0, retain)
@@ -44,7 +40,6 @@ class CubieMediaMQTTClient:
         self.mqtt_client.subscribe(topic, qos)
 
     def on_message(self, client, userdata, msg):
-        # print(msg.payload)
         if msg.payload.decode('UTF-8') == CUBIE_ANNOUNCE:
             self.system.announce()
         elif msg.payload.decode('UTF-8') == CUBIE_RESET:
