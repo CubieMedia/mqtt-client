@@ -20,12 +20,13 @@ class BaseSystem(abc.ABC):
     known_device_list: [] = []
     execution_mode = "Base"
 
-    def init(self):
+    def __init__(self):
         self.ip_address = get_ip_address()
         self.client_id = self.ip_address + "-" + self.execution_mode + "-client"
-
-        self.load()
         self.mqtt_client = CubieMediaMQTTClient(self.client_id)
+
+    def init(self):
+        self.load()
         self.mqtt_client.connect(self)
 
     def shutdown(self):

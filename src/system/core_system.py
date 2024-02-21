@@ -4,7 +4,7 @@
 import json
 import logging
 
-from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE
+from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE, CUBIE_TYPE
 from common.python import get_configuration, get_core_configuration
 from system.base_system import BaseSystem
 
