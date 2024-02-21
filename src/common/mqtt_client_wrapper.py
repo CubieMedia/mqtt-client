@@ -47,7 +47,7 @@ class CubieMediaMQTTClient:
         elif msg.payload.decode('UTF-8') == CUBIE_RELOAD:
             self.system.load()
         else:
-            # print("... received data: format to json[%s]" % msg.payload)
+            logging.debug("... received data: format to json[%s]" % msg.payload)
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
                     message_data = json.loads(msg.payload.decode())
@@ -88,7 +88,7 @@ class CubieMediaMQTTClient:
                 logging.warning(f"... could not decode message[{msg.payload.decode()}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
-        logging.info("... connected to Service [%s]" % client._host)
+        logging.info(f"... connected to Server [{client._host}] as client [{self.client_id}]")
         if rc == 0:
             logging.info("... ... subscribe to channel [%s]" % DEFAULT_TOPIC_COMMAND)
             client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)

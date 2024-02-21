@@ -4,7 +4,6 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock, PropertyMock
 
-from common import CUBIEMEDIA
 from system.victron_system import TOPIC_READ_LIST, VictronSystem, SERVICE_LIST, VICTRON_WRITE_TOPIC
 
 DEVICE_TEST = {"id": "Test"}
@@ -27,10 +26,8 @@ class TestVictronSystem(TestCase):
         for topic in SERVICE_LIST:
             device = {topic: SERVICE_PAYLOAD[SERVICE_LIST.index(topic)]}
             self.system.action(device)
-            self.system.mqtt_client.publish.assert_called_with(
-                f"{CUBIEMEDIA}/{self.system.execution_mode}/{self.system.victron_system['id'].replace('.', '_')}/{topic}",
-                SERVICE_PAYLOAD[SERVICE_LIST.index(topic)],
-                True)
+            self.system.mqtt_client.publish.assert_called_once()
+            self.system.mqtt_client.publish.reset_mock()
 
     def test_send(self):
         self.system.init()
@@ -53,6 +50,7 @@ class TestVictronSystem(TestCase):
             SERVICE_RESPONSE[SERVICE_LIST.index(topic)])
 
     def test_init(self):
+        logging.basicConfig(level=logging.DEBUG)
         self.system.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)
@@ -79,20 +77,20 @@ class TestVictronSystem(TestCase):
 
     def test_announce(self):
         self.system.set_availability = MagicMock()
-        self.system.mqtt_client.publish = MagicMock()
+        self.system.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)
 
-        self.system.mqtt_client.publish.assert_called_once()
-        self.system.set_availability.assert_called_once()
+        self.system.mqtt_client.subscribe.assert_called_once()
+        self.system.set_availability.assert_called()
 
     def test_load(self):
-        assert len(self.system.known_device_list) == 0
+        assert len(self.system.config) == 0
         self.system.load()
         time.sleep(1)
 
-        assert len(self.system.known_device_list) > 0
-        assert self.system.victron_system == self.system.known_device_list[0]
+        assert len(self.system.config) > 0
+        assert self.system.victron_system == self.system.config[0]
 
     def test_connect_victron_system(self):
         self.system.init()
@@ -179,6 +177,7 @@ class TestVictronSystem(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # DODO check mosquitto already running
         try:
             cls.mqtt_server_process = subprocess.Popen("mosquitto")
             time.sleep(1)

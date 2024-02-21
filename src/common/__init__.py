@@ -21,7 +21,13 @@ ENOCEAN_PORT = "/dev/ttyAMA0"
 SONAR_PORT = "/dev/ttyS0"
 
 # files
-DEFAULT_CONFIGURATION_FILE = "./snap/hooks/install"
+DEFAULT_CONFIGURATION_FILE_CORE = "./src/config/core.json"
+DEFAULT_CONFIGURATION_FILE_ENOCEAN = "./src/config/enocean.json"
+DEFAULT_CONFIGURATION_FILE_GPIO = "./src/config/gpio.json"
+DEFAULT_CONFIGURATION_FILE_RELAY = "./src/config/relay.json"
+DEFAULT_CONFIGURATION_FILE_SERIAL = "./src/config/serial.json"
+DEFAULT_CONFIGURATION_FILE_SONAR = "./src/config/sonar.json"
+DEFAULT_CONFIGURATION_FILE_VICTRON = "./src/config/victron.json"
 
 # MQTT #
 QOS = 2

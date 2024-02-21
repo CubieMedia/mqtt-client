@@ -30,14 +30,14 @@ class EnoceanSystem(BaseSystem):
     timers = {}
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_ENOCEAN
+        super().__init__()
 
     def action(self, device):
         should_save = False
         client_id = self.client_id
 
-        for known_device in self.known_device_list:
+        for known_device in self.config:
             if str(device['id']).upper() == str(known_device['id']).upper():
                 if known_device['client_id'] != client_id:
                     # device is not managed by this gateway
@@ -57,7 +57,6 @@ class EnoceanSystem(BaseSystem):
                             if value == 1:
                                 self.create_timer_for(channel_topic)
                             else:
-                                print("... ... action for [%s]" % channel_topic)
                                 logging.info("... ... action for [%s]" % channel_topic)
                                 if channel_topic in self.timers and self.timers[channel_topic] is not True:
                                     self.mqtt_client.publish(channel_topic, 1)
@@ -77,7 +76,7 @@ class EnoceanSystem(BaseSystem):
                     if should_save:
                         self.save()
                 else:
-                    print("... ... send message for [%s]" % device['id'])
+                    logging.debug("... ... send message for [%s]" % device['id'])
                     self.mqtt_client.publish(
                         f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}", json.dumps(device['state']),
                         True)
@@ -106,7 +105,7 @@ class EnoceanSystem(BaseSystem):
         device_id = topic_array[1]
         button = topic_array[2]
         device = None
-        for known_device in self.known_device_list:
+        for known_device in self.config:
             if device_id == known_device['id']:
                 device = known_device
                 break
@@ -126,7 +125,7 @@ class EnoceanSystem(BaseSystem):
                     logging.warning("WARN: unknown device[%s]" % device_topic)
 
     def set_availability(self, state: bool):
-        for device in self.known_device_list:
+        for device in self.config:
             if device['client_id'] == self.client_id:
                 self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
                                          str(state).lower())
@@ -175,7 +174,7 @@ class EnoceanSystem(BaseSystem):
         button_action = data & 0xE0
         energy_bow = (data & 0x10) >> 4
 
-        # print("SA: %s, Action: %02X, EB: %s" % (sa, button_action, energy_bow))
+        logging.debug("SA: %s, Action: %02X, EB: %s" % (sa, button_action, energy_bow))
         if button_action == 0xE0:
             state['a1'] = energy_bow
         elif energy_bow == 1:
@@ -203,8 +202,8 @@ class EnoceanSystem(BaseSystem):
 
         return state
 
-    def init(self, ip_address):
-        super().init(ip_address)
+    def init(self):
+        super().init()
 
         self._open_communicator()
 
@@ -224,7 +223,7 @@ class EnoceanSystem(BaseSystem):
             time.sleep(1)
 
     def announce(self):
-        for device in self.known_device_list:
+        for device in self.config:
             if device['client_id'] == self.client_id:
                 logging.info("... ... announce device [%s]" % device['id'])
                 self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
@@ -241,7 +240,7 @@ class EnoceanSystem(BaseSystem):
             if (str(new_device[CUBIE_TYPE]).upper() == "RPS" or str(
                     new_device[CUBIE_TYPE]).upper() == "TEMP") and self.learn_mode:
                 add = True
-                for known_device in self.known_device_list:
+                for known_device in self.config:
                     if str(new_device['id']).upper() == str(known_device['id']).upper():
                         add = False
                         if new_device['dbm'] > known_device['dbm']:
@@ -249,7 +248,7 @@ class EnoceanSystem(BaseSystem):
                             del new_device['state']
                             print("... ... replace device[%s]" % new_device)
                             logging.info("... ... replace device[%s]" % new_device)
-                            self.known_device_list[self.known_device_list.index(known_device)] = new_device
+                            self.config[self.config.index(known_device)] = new_device
                             should_save = True
                         break
 
@@ -258,7 +257,7 @@ class EnoceanSystem(BaseSystem):
                     if 'state' in new_device:
                         del new_device['state']
                     logging.info("... ... adding new device[%s]" % new_device['id'])
-                    self.known_device_list.append(new_device)
+                    self.config.append(new_device)
                     should_save = True
         else:
             should_save = True

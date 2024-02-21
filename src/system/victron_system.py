@@ -125,7 +125,7 @@ class VictronSystem(BaseSystem):
         if IMPORT_CORRECTION_FACTOR in self.victron_system:
             self.import_correction_factor = self.victron_system[IMPORT_CORRECTION_FACTOR]
 
-        logging.info("... ... starting keepalive thread")
+        logging.info("... starting keepalive thread")
         self.keepalive_thread = threading.Thread(target=self._run)
         self.keepalive_thread.daemon = True
         self.keepalive_thread.start()
@@ -146,15 +146,18 @@ class VictronSystem(BaseSystem):
             self.victron_mqtt_client.disconnect()
 
     def announce(self):
-        logging.info("... ... announce victron_system [%s]" % self.victron_system["id"])
-        temp_victron_system = copy.copy(self.victron_system)
-        temp_victron_system['state'] = SERVICE_LIST
-        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_victron_system))
-        self.set_availability(True)
+        if self.victron_mqtt_client and self.victron_mqtt_client.is_connected():
+            logging.info("... ... announce victron_system [%s]" % self.victron_system["id"])
+            temp_victron_system = copy.copy(self.victron_system)
+            temp_victron_system['state'] = SERVICE_LIST
+            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_victron_system))
+            self.set_availability(True)
+        else:
+            self.set_availability(False)
 
     def load(self):
         super().load()
-        self.victron_system = self.known_device_list[0]
+        self.victron_system = self.config[0]
 
     def _run(self):
         self.keepalive_thread_event = threading.Event()
@@ -165,7 +168,7 @@ class VictronSystem(BaseSystem):
                 if not self.victron_mqtt_client.is_connected():
                     self.connect_victron_system()
                 else:
-                    self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
+                    self.victron_mqtt_client.publish(("R/%s/keepalive" % self.config[0]["serial"]),
                                                      json.dumps(TOPIC_READ_LIST))
                     self.set_availability(True)
                 count = 30
@@ -181,7 +184,7 @@ class VictronSystem(BaseSystem):
         try:
             self.victron_mqtt_client.connect(self.victron_system["id"], 1883, 60)
             self.victron_mqtt_client.loop_start()
-        except ConnectionError:
+        except (ConnectionError, TimeoutError):
             pass
 
     def on_victron_message(self, client, userdata, msg):
@@ -208,7 +211,7 @@ class VictronSystem(BaseSystem):
                     logging.info(f"... ... subscribe to topic [{victron_topic}]")
                     client.subscribe(victron_topic, QOS)
 
-                self.set_availability(True)
+                self.announce()
         else:
             logging.info("... bad connection please check login data")
 

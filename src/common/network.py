@@ -18,12 +18,10 @@ def get_ip_address() -> str:
             ip = get_ip_address_of_interface(INTERFACES_WLAN)
         if ip is None or '169.' in ip:
             ip = None
-            print("... no device found that could have an IP Address...")
             logging.warning("... no device found that could have an IP Address...")
             time.sleep(3)
         else:
-            #    print("... found IP [%s]" % ip)
-            #    logging.info("... found IP [%s]" % ip)
+            logging.debug("... ... found IP [%s]" % ip)
             break
     return ip
 

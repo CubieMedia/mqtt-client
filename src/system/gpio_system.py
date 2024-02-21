@@ -24,21 +24,19 @@ else:
 
 
 class GPIOSystem(BaseSystem):
-    ip_address = None
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_GPIO
-        self.ip_address = get_ip_address()
+        super().__init__()
 
-    def init(self, ip_address):
-        super().init(ip_address)
+    def init(self):
+        super().init()
         if not GPIO:
             logging.warning(
                 f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode?{COLOR_DEFAULT}")
         else:
             GPIO.setmode(GPIO.BCM)
-            for device in self.known_device_list:
+            for device in self.config:
                 device_type = str(device[CUBIE_TYPE]).lower()
                 if device_type == GPIO_PIN_TYPE_IN:
                     logging.info("... set Pin %d as INPUT" % device['id'])
@@ -55,7 +53,7 @@ class GPIOSystem(BaseSystem):
         self.set_availability(False)
 
         logging.info('... cleanup GPIO Pins...')
-        if GPIO and len(self.known_device_list) > 0:
+        if GPIO and len(self.config) > 0:
             GPIO.cleanup()
 
     def action(self, device):
@@ -68,7 +66,7 @@ class GPIOSystem(BaseSystem):
 
         device_list = []
         if GPIO:
-            for device in self.known_device_list:
+            for device in self.config:
                 device_type = str(device[CUBIE_TYPE]).lower()
                 if device_type == GPIO_PIN_TYPE_IN:
                     value = GPIO.input(device['id'])
@@ -79,7 +77,7 @@ class GPIOSystem(BaseSystem):
                     continue
 
                 if value != device['value']:
-                    # print("%s value %s" % (device['id'], value))
+                    logging.debug("%s value %s" % (device['id'], value))
                     device['value'] = value
                     device['client_id'] = self.client_id
                     device_list.append(device)
@@ -98,7 +96,7 @@ class GPIOSystem(BaseSystem):
 
     def announce(self):
         device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_GPIO, 'client_id': self.client_id,
-                  'state': self.known_device_list}
+                  'state': self.config}
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"
@@ -109,7 +107,7 @@ class GPIOSystem(BaseSystem):
     def set_availability(self, state: bool):
         super().set_availability(state)
         if state:
-            for gpio in self.known_device_list:
+            for gpio in self.config:
                 self.mqtt_client.publish(
                     f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
                     str(gpio['value']).lower(), True)

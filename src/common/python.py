@@ -6,9 +6,22 @@ import logging
 import subprocess
 from os.path import exists
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, DEFAULT_CONFIGURATION_FILE, CUBIE_CORE
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_CORE, DEFAULT_CONFIGURATION_FILE_CORE, \
+    DEFAULT_CONFIGURATION_FILE_SERIAL, DEFAULT_CONFIGURATION_FILE_SONAR, DEFAULT_CONFIGURATION_FILE_GPIO, \
+    DEFAULT_CONFIGURATION_FILE_RELAY, DEFAULT_CONFIGURATION_FILE_VICTRON, DEFAULT_CONFIGURATION_FILE_ENOCEAN, \
+    CUBIE_SERIAL, CUBIE_GPIO, CUBIE_SONAR, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_ENOCEAN
 
 USER_MESSAGE_SHOULD_BE_SHOWN = True
+
+CONFIG_DICT = {
+    CUBIE_CORE: DEFAULT_CONFIGURATION_FILE_CORE,
+    CUBIE_SERIAL: DEFAULT_CONFIGURATION_FILE_SERIAL,
+    CUBIE_GPIO: DEFAULT_CONFIGURATION_FILE_GPIO,
+    CUBIE_SONAR: DEFAULT_CONFIGURATION_FILE_SONAR,
+    CUBIE_RELAY: DEFAULT_CONFIGURATION_FILE_RELAY,
+    CUBIE_VICTRON: DEFAULT_CONFIGURATION_FILE_VICTRON,
+    CUBIE_ENOCEAN: DEFAULT_CONFIGURATION_FILE_ENOCEAN
+}
 
 
 def exit_gracefully(system, *args):
@@ -25,19 +38,6 @@ def execute_command(command: []) -> str:
     return subprocess.check_output(command, stderr=subprocess.DEVNULL)
 
 
-def read_lines_from_file(filename: str) -> list:
-    if not exists(filename):
-        if exists("../" + filename):
-            filename = "../" + filename
-    with open(filename) as f:
-        return [line for line in f]
-
-
-def save_lines_to_file(filename: str, config: list):
-    with open(filename, 'w') as f:
-        f.writelines(config)
-
-
 def get_variable_type_from_string(value: str):
     if value:
         if value.lower() == 'true' or value.lower() == 'false':
@@ -50,26 +50,33 @@ def get_variable_type_from_string(value: str):
     return value
 
 
+def get_config_file_for(config_name: str) -> str:
+    return CONFIG_DICT.get(config_name, f"Missing Config File for [{config_name}]")
+
+
 def get_default_configuration_for(config_name: str) -> str:
-    logging.info(f'... get default configuration from "snap/hooks/install" for [{config_name}]')
-    config = '[]'
-    for line in read_lines_from_file(DEFAULT_CONFIGURATION_FILE):
-        if config_name in line:
-            config = line[str(line).index('=') + 2:-2]
+    logging.debug(f'... get default configuration from config file for [{config_name}]')
+    config_file = get_config_file_for(config_name)
+
+    if not exists(config_file):
+        config_file = "../" + config_file
+        if not exists(config_file):
+            raise FileNotFoundError(f"could not find config file [{config_file}]")
+    with open(config_file) as file:
+        config = json.load(file)
     return config
 
 
 def set_default_configuration(config_name: str, config: []):
-    config_read = read_lines_from_file(DEFAULT_CONFIGURATION_FILE)
-    config_write = []
-    if len(config_read) > 0:
-        for line in config_read:
-            if config_name in line:
-                line = line[0:str(line).index('=') + 2] + json.dumps(config) + "'\n"
-            config_write.append(line)
-        save_lines_to_file(DEFAULT_CONFIGURATION_FILE, config_write)
-    else:
-        logging.error("default config file seems empty")
+    logging.debug(f'... set default configuration to config file for [{config_name}]')
+    config_file = get_config_file_for(config_name)
+
+    if not exists(config_file):
+        config_file = "../" + config_file
+        if not exists(config_file):
+            raise FileNotFoundError(f"could not find config file [{config_file}]")
+    with open(config_file, 'w') as file:
+        json.dump(config, file, indent=4, sort_keys=True)
 
 
 def get_configuration(config_name: str) -> []:
@@ -88,12 +95,11 @@ def get_configuration(config_name: str) -> []:
                     f"seems to be a non snap environment, could not load config [{config_name}]\n"
                     f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
                 USER_MESSAGE_SHOULD_BE_SHOWN = False
-    if not value or len(value) < 3:
-        value = get_default_configuration_for(config_name)
-    json_object = json.loads(value)
-    if config_name in json_object:
-        return json_object[config_name]
-    return json_object
+
+    if value and len(value) > 3:
+        return json.loads(value)
+    else:
+        return get_default_configuration_for(config_name)
 
 
 def get_core_configuration(ip: str) -> {}:

@@ -27,29 +27,29 @@ class SonarSystem(BaseSystem):
     offset_distance = 500
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_SONAR
+        super().__init__()
 
-    def init(self, ip_address):
-        super().init(ip_address)
+    def init(self):
+        super().init()
         self.ip_address = get_ip_address()
-        self.update_interval = self.known_device_list[
-            'update_interval'] if 'update_interval' in self.known_device_list else 10
-        self.offset = self.known_device_list[
-            'offset'] if 'offset' in self.known_device_list else 0
-        self.offset_trigger = self.known_device_list[
-            'trigger_offset'] if 'trigger_offset' in self.known_device_list else DEFAULT_OFFSET
-        self.maximal_distance = self.known_device_list[
-            'maximal_distance'] if 'maximal_distance' in self.known_device_list else 8000
-        self.offset_distance = self.known_device_list[
-            'offset_distance'] if 'offset_distance' in self.known_device_list else 500
+        self.update_interval = self.config[
+            'update_interval'] if 'update_interval' in self.config else 10
+        self.offset = self.config[
+            'offset'] if 'offset' in self.config else 0
+        self.offset_trigger = self.config[
+            'trigger_offset'] if 'trigger_offset' in self.config else DEFAULT_OFFSET
+        self.maximal_distance = self.config[
+            'maximal_distance'] if 'maximal_distance' in self.config else 8000
+        self.offset_distance = self.config[
+            'offset_distance'] if 'offset_distance' in self.config else 500
         try:
             default_serial_port = SONAR_PORT
             serial_json = get_configuration(CUBIE_SERIAL)[0]
             if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
                 default_serial_port = serial_json[CUBIE_DEVICE]
-            serial_port = self.known_device_list[
-                CUBIE_DEVICE] if CUBIE_DEVICE in self.known_device_list else default_serial_port
+            serial_port = self.config[
+                CUBIE_DEVICE] if CUBIE_DEVICE in self.config else default_serial_port
             self.communicator = Serial(
                 serial_port, 9600)
             self.communicator.flush()

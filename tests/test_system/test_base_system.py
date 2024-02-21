@@ -1,9 +1,10 @@
 import subprocess
 import time
+import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_LEARN_MODE, DEFAULT_MQTT_PASSWORD, DEFAULT_MQTT_USERNAME, CUBIEMEDIA
+from common import CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE
 from system.base_system import BaseSystem
 
 DEVICE_TEST = {"id": "Test"}
@@ -38,32 +39,32 @@ class TestBaseSystem(TestCase):
         system = BaseSystem()
         system.load()
 
-        assert system.mqtt_server == DEFAULT_MQTT_SERVER
-        assert system.mqtt_user == DEFAULT_MQTT_USERNAME
-        assert system.mqtt_password == DEFAULT_MQTT_PASSWORD
-        assert system.learn_mode == DEFAULT_LEARN_MODE
-        assert system.known_device_list == []
+        assert system.core_config['host'] == DEFAULT_MQTT_SERVER
+        assert system.core_config['username'] == DEFAULT_MQTT_USERNAME
+        assert system.core_config['password'] == DEFAULT_MQTT_PASSWORD
+        assert system.core_config['learn_mode'] == DEFAULT_LEARN_MODE
+        assert system.config == []
 
     def test_save(self):
         system = BaseSystem()
         system.load()
 
-        assert system.known_device_list == []
+        assert system.config == []
 
         system.save()
-        assert system.known_device_list == []
+        assert system.config == []
 
         system.save(DEVICE_TEST)
         altered_device = DEVICE_TEST.copy()
         altered_device['something'] = "ihavebeenset"
         system.save(altered_device)
-        assert system.known_device_list == [altered_device]
+        assert system.config == [altered_device]
 
         system.save(DEVICE_TEST2)
-        assert system.known_device_list == [altered_device, DEVICE_TEST2]
+        assert system.config == [altered_device, DEVICE_TEST2]
 
         system.save()
-        assert system.known_device_list == [altered_device, DEVICE_TEST2]
+        assert system.config == [altered_device, DEVICE_TEST2]
 
     def test_delete(self):
         system = BaseSystem()
@@ -71,23 +72,27 @@ class TestBaseSystem(TestCase):
 
         system.save(DEVICE_TEST)
         system.save(DEVICE_TEST2)
-        assert system.known_device_list == [DEVICE_TEST, DEVICE_TEST2]
+        assert system.config == [DEVICE_TEST, DEVICE_TEST2]
 
         system.delete(DEVICE_TEST)
-        assert system.known_device_list == [DEVICE_TEST2]
+        assert system.config == [DEVICE_TEST2]
 
         system.delete(DEVICE_TEST2)
-        assert system.known_device_list == []
+        assert system.config == []
 
     def test_reset(self):
         system = BaseSystem()
         system.load()
 
-        assert system.known_device_list == []
+        assert system.config == []
 
         system.save(DEVICE_TEST)
         system.save(DEVICE_TEST2)
-        assert system.known_device_list == [DEVICE_TEST, DEVICE_TEST2]
+        assert system.config == [DEVICE_TEST, DEVICE_TEST2]
 
         system.reset()
-        assert system.known_device_list == []
+        assert system.config == []
+
+
+if __name__ == '__main__':
+    unittest.main()

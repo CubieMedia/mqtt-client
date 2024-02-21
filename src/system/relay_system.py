@@ -21,8 +21,8 @@ class RelaySystem(BaseSystem):
     search_thread_event = threading.Event()
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_RELAY
+        super().__init__()
 
     def action(self, device):
         if not device['id'] in self.subscription_list:
@@ -31,10 +31,9 @@ class RelaySystem(BaseSystem):
                                        2)
             self.subscription_list.append(device['id'])
 
-        for known_device in self.known_device_list:
+        for known_device in self.config:
             if device['id'] == known_device['id']:
                 for relay in device['state']:
-                    # print(f"device[{device['state'][relay]}] - known_device[{known_device['state'][relay]}]")
                     if not device['state'][relay] == known_device['state'][relay]:
                         logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
                             device['id'], relay, device['state'][relay]))
@@ -44,14 +43,14 @@ class RelaySystem(BaseSystem):
                         known_device['state'][relay] = device['state'][relay]
                 return True
 
-        if self.learn_mode:
+        if self.core_config['learn_mode']:
             logging.info("... ... unknown device, announce [%s]" % device['id'])
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
         return False
 
     def send(self, data):
         toggle = False
-        for known_device in self.known_device_list:
+        for known_device in self.config:
             if data['ip'] == known_device['id']:
                 if 'toggle' in known_device and int(data['id']) in known_device['toggle']:
                     toggle = True
@@ -64,10 +63,9 @@ class RelaySystem(BaseSystem):
         if self.last_update < time.time() - TIMEOUT_UPDATE:
             relayboard_list = []
             send_data = False
-            # print("... update data for all modules")
             for module in self.module_list:
                 known_device = None
-                for temp_device in self.known_device_list:
+                for temp_device in self.config:
                     if module == temp_device['id']:
                         known_device = temp_device
 
@@ -97,7 +95,7 @@ class RelaySystem(BaseSystem):
         return data
 
     def set_availability(self, state: bool):
-        for device in self.known_device_list:
+        for device in self.config:
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/online",
                                      str(state).lower())
 
@@ -105,8 +103,8 @@ class RelaySystem(BaseSystem):
                 self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
                                          device['state'][relay], True)
 
-    def init(self, ip_address):
-        super().init(ip_address)
+    def init(self):
+        super().init()
 
         logging.info("... starting scan thread")
         self.scan_thread = threading.Thread(target=self._run)
@@ -122,7 +120,7 @@ class RelaySystem(BaseSystem):
         self.scan_thread.join()
 
     def announce(self):
-        for device in self.known_device_list:
+        for device in self.config:
             logging.info("... ... announce device [%s]" % device['id'])
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
             logging.info("... ... subscribing to [%s] for commands" % device['id'])
@@ -138,12 +136,12 @@ class RelaySystem(BaseSystem):
         if new_device is not None:
             if new_device[CUBIE_TYPE] == CUBIE_RELAY and self.learn_mode:
                 add = True
-                for known_device in self.known_device_list:
+                for known_device in self.config:
                     if new_device['id'] == known_device['id']:
                         add = False
                         break
                 if add:
-                    self.known_device_list.append(new_device)
+                    self.config.append(new_device)
                     self.update()
                     should_save = True
         else:
@@ -155,7 +153,7 @@ class RelaySystem(BaseSystem):
     def load(self):
         super().load()
         self.module_list = []
-        for device in self.known_device_list:
+        for device in self.config:
             self.module_list.append(device['id'])
         self.update()
 
