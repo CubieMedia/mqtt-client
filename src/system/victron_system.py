@@ -10,7 +10,7 @@ from json import JSONDecodeError
 from paho.mqtt import client as mqtt
 
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, CUBIE_VICTRON, QOS, EXPORT_CORRECTION_FACTOR, \
-    IMPORT_CORRECTION_FACTOR
+    IMPORT_CORRECTION_FACTOR, COLOR_YELLOW, COLOR_DEFAULT
 from system.base_system import BaseSystem
 
 SERVICE_LIST = [
@@ -52,8 +52,8 @@ class VictronSystem(BaseSystem):
     keepalive_thread_event = threading.Event()
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_VICTRON
+        super().__init__()
 
     def action(self, device):
         logging.debug("... ... received device action [%s]" % device)
@@ -163,7 +163,7 @@ class VictronSystem(BaseSystem):
         while not self.keepalive_thread_event.is_set():
             if count == 0:
                 if not self.victron_mqtt_client.is_connected():
-                    self.connect_victron_system(self.client_id)
+                    self.connect_victron_system()
                 else:
                     self.victron_mqtt_client.publish(("R/%s/keepalive" % self.known_device_list[0]["serial"]),
                                                      json.dumps(TOPIC_READ_LIST))
@@ -175,8 +175,8 @@ class VictronSystem(BaseSystem):
 
         return True
 
-    def connect_victron_system(self, client_id):
-        logging.info("... connecting to Victron System [%s] as client [%s]" % (self.victron_system["id"], client_id))
+    def connect_victron_system(self):
+        logging.info("... connecting to Victron System [%s] as client [%s]" % (self.victron_system["id"], self.client_id))
 
         try:
             self.victron_mqtt_client.connect(self.victron_system["id"], 1883, 60)
@@ -185,26 +185,30 @@ class VictronSystem(BaseSystem):
             pass
 
     def on_victron_message(self, client, userdata, msg):
+        message_topic = msg.topic
+        message_payload = msg.payload.decode('UTF-8')
         for topic in TOPIC_READ_LIST:
-            if topic in msg.topic:
+            if topic in message_topic and 'value' in message_payload:
                 try:
-                    logging.info(f"... ... message [{msg.payload.decode('UTF-8')}] on topic [{topic}]")
+                    logging.info(f"... ... message [{message_payload}] on topic [{topic}]")
                     service = get_service_from_topic(topic)
-                    value = json.loads(msg.payload.decode('UTF-8'))['value']
+                    value = json.loads(message_payload)['value']
                     self.updated_data["devices"].append({service: value})
                 except JSONDecodeError:
                     logging.warning(
                         f"message on topic [{topic}] with value [{msg.payload}] seems not to be json format")
+                break
 
     def on_victron_connect(self, client, userdata, flags, rc):
-        logging.info(f"... connected to Victron System [{client._host}] with result [{rc}]")
+        logging.info(f"... connected to Victron System [{self.victron_system['id']}] with result [{rc}]")
         if rc == 0:
-            for victron_topic in TOPIC_READ_LIST:
-                victron_topic = ("N/%s/" % self.known_device_list[0]["serial"]) + victron_topic
-                logging.info(f"... ... subscribe to topic [{victron_topic}]")
-                client.subscribe(victron_topic, QOS)
+            if 'serial' in self.victron_system:
+                for victron_topic in TOPIC_READ_LIST:
+                    victron_topic = ("N/%s/" % self.victron_system["serial"]) + victron_topic
+                    logging.info(f"... ... subscribe to topic [{victron_topic}]")
+                    client.subscribe(victron_topic, QOS)
 
-            self.set_availability(True)
+                self.set_availability(True)
         else:
             logging.info("... bad connection please check login data")
 
@@ -217,6 +221,10 @@ class VictronSystem(BaseSystem):
         self.set_availability(False)
 
     def set_availability(self, state: bool):
-        self.mqtt_client.publish(
-            f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/online",
-            str(state).lower())
+        if 'id' in self.victron_system:
+            self.mqtt_client.publish(
+                f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/online",
+                str(state).lower())
+        else:
+            logging.debug(
+                f"{COLOR_YELLOW}WARNING: could not set availability on uninitialised victron system{COLOR_DEFAULT}")

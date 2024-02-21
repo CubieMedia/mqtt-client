@@ -1,0 +1,42 @@
+[
+  {
+    "id": 4,
+    "type": "in",
+    "value": 0
+  },
+  {
+    "id": 17,
+    "type": "in",
+    "value": 0
+  },
+  {
+    "id": 27,
+    "type": "in",
+    "value": 0
+  },
+  {
+    "id": 22,
+    "type": "in",
+    "value": 0
+  },
+  {
+    "id": 18,
+    "type": "out",
+    "value": 0
+  },
+  {
+    "id": 23,
+    "type": "out",
+    "value": 0
+  },
+  {
+    "id": 24,
+    "type": "out",
+    "value": 0
+  },
+  {
+    "id": 25,
+    "type": "out",
+    "value": 0
+  }
+]

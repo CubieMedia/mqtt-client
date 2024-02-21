@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import subprocess
+from os.path import exists
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, DEFAULT_CONFIGURATION_FILE, CUBIE_CORE
 
@@ -25,6 +26,9 @@ def execute_command(command: []) -> str:
 
 
 def read_lines_from_file(filename: str) -> list:
+    if not exists(filename):
+        if exists("../" + filename):
+            filename = "../" + filename
     with open(filename) as f:
         return [line for line in f]
 
