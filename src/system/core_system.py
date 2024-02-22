@@ -4,40 +4,15 @@
 import json
 import logging
 
-from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE, CUBIE_TYPE
+from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE
 from system.base_system import BaseSystem
 
 
 class CoreSystem(BaseSystem):
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_CORE
-
-    def init(self):
-        super().init()
-        logging.info(f"... init core system [{self.client_id}]")
-
-    def shutdown(self):
-        logging.info(f"... shutdown core system [{self.client_id}]")
-
-    def action(self, device):
-        should_save = False
-
-        if 'mode' in device and device['mode'] == 'update':
-            if CUBIE_TYPE in device and device[CUBIE_TYPE] == self.execution_mode:
-                logging.error(f"TEST [{device}]")
-
-        if should_save:
-            self.save(device)
-
-    def update(self):
-        data = {}
-
-        return data
-
-    def send(self, data):
-        logging.info(f"... send data [{data}] to devices of core system")
+        super().__init__()
 
     def announce(self):
         device = self.core_config

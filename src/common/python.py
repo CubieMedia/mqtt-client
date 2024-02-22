@@ -61,7 +61,9 @@ def get_default_configuration_for(config_name: str) -> str:
     if not exists(config_file):
         config_file = "../" + config_file
         if not exists(config_file):
-            raise FileNotFoundError(f"could not find config file [{config_file}]")
+            config_file = "../" + config_file
+            if not exists(config_file):
+                raise FileNotFoundError(f"could not find config file [{config_file}]")
     with open(config_file) as file:
         config = json.load(file)
     return config
@@ -74,7 +76,9 @@ def set_default_configuration(config_name: str, config: []):
     if not exists(config_file):
         config_file = "../" + config_file
         if not exists(config_file):
-            raise FileNotFoundError(f"could not find config file [{config_file}]")
+            config_file = "../" + config_file
+            if not exists(config_file):
+                raise FileNotFoundError(f"could not find config file [{config_file}]")
     with open(config_file, 'w') as file:
         json.dump(config, file, indent=4, sort_keys=True)
 

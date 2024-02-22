@@ -90,8 +90,8 @@ class CubieMediaMQTTClient:
     def on_connect(self, client, userdata, flags, rc):
         logging.info(f"... connected to Server [{client._host}] as client [{self.client_id}]")
         if rc == 0:
-            logging.info("... ... subscribe to channel [%s]" % DEFAULT_TOPIC_COMMAND)
-            client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
+            logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
+            self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
             self.system.announce()
         else:
             logging.info("... bad connection please check login data")

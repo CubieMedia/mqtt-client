@@ -1,9 +1,9 @@
 [
-  {
-    "type": "core",
-    "host": "homeassistant",
-    "username": "mqtt",
-    "password": "autoInstall",
-    "learn_mode": true
-  }
+    {
+        "host": "homeassistant",
+        "learn_mode": true,
+        "password": "autoInstall",
+        "type": "core",
+        "username": "mqtt"
+    }
 ]

@@ -3,6 +3,7 @@ import logging
 import time
 from random import randint
 
+from common import TIMEOUT_UPDATE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_core_configuration
@@ -13,7 +14,7 @@ class BaseSystem(abc.ABC):
     mqtt_client = None
     client_id = 'unknown'
     ip_address = None
-    last_update = time.time()
+    last_update = time.time() - TIMEOUT_UPDATE
     config: [] = []
     core_config: [] = []
     execution_mode = "Base"
@@ -24,17 +25,23 @@ class BaseSystem(abc.ABC):
         self.mqtt_client = CubieMediaMQTTClient(self.client_id)
 
     def init(self):
+        logging.info(f"... init base system [{self.client_id}]")
         self.load()
         self.mqtt_client.connect(self)
 
     def shutdown(self):
+        logging.info(f"... shutdown base system [{self.client_id}]")
         self.mqtt_client.disconnect()
 
     def action(self, device):
         raise NotImplementedError
 
     def update(self):
-        raise NotImplementedError()
+        # Base system has no entities
+        # no data is updated so there will be no actions executed
+        data = {}
+
+        return data
 
     def send(self, data):
         raise NotImplementedError()

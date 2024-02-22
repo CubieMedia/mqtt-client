@@ -6,8 +6,6 @@ from unittest.mock import MagicMock, PropertyMock
 
 from system.victron_system import TOPIC_READ_LIST, VictronSystem, SERVICE_LIST, VICTRON_WRITE_TOPIC
 
-DEVICE_TEST = {"id": "Test"}
-DEVICE_TEST2 = {"id": "Test2"}
 SERVICE_PAYLOAD = [377, 33, 0, 0, 0, 0, False, 1, 1]
 SERVICE_RESPONSE = [377, 33, 0, 0, 0, 0, False, '{"value": 80}', '{"value": -1}']
 VICTRON_MESSAGE = [b'{"value": 377}', b'{"value": 33}', b'{"value": 0}', b'{"value": 0}', b'{"value": 0}',
@@ -50,7 +48,6 @@ class TestVictronSystem(TestCase):
             SERVICE_RESPONSE[SERVICE_LIST.index(topic)])
 
     def test_init(self):
-        logging.basicConfig(level=logging.DEBUG)
         self.system.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)

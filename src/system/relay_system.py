@@ -134,7 +134,7 @@ class RelaySystem(BaseSystem):
     def save(self, new_device=None):
         should_save = False
         if new_device is not None:
-            if new_device[CUBIE_TYPE] == CUBIE_RELAY and self.learn_mode:
+            if new_device[CUBIE_TYPE] == CUBIE_RELAY and self.core_config['learn_mode']:
                 add = True
                 for known_device in self.config:
                     if new_device['id'] == known_device['id']:
@@ -176,6 +176,7 @@ class RelaySystem(BaseSystem):
                     if not address[0] in self.module_list:
                         logging.info(f"... ... found new module[{address[0]}]")
                         self.module_list.append(address[0])
+                        self.last_update = -1
                 continue
             except socket.timeout:
                 pass
