@@ -18,7 +18,7 @@ class RelaySystem(BaseSystem):
     module_list = []
     subscription_list = []
     scan_thread = threading.Thread()
-    search_thread_event = threading.Event()
+    scan_thread_event = threading.Event()
 
     def __init__(self):
         self.execution_mode = CUBIE_RELAY
@@ -32,7 +32,7 @@ class RelaySystem(BaseSystem):
             self.subscription_list.append(device['id'])
 
         for known_device in self.config:
-            if device['id'] == known_device['id']:
+            if device['id'] == known_device['id'] and 'state' in device:
                 for relay in device['state']:
                     if not device['state'][relay] == known_device['state'][relay]:
                         logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
@@ -99,9 +99,11 @@ class RelaySystem(BaseSystem):
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/online",
                                      str(state).lower())
 
-            for relay in device['state']:
-                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                                         device['state'][relay], True)
+            if 'state' in device:
+                for relay in device['state']:
+                    self.mqtt_client.publish(
+                        f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
+                        device['state'][relay], True)
 
     def init(self):
         super().init()
@@ -116,8 +118,10 @@ class RelaySystem(BaseSystem):
         self.set_availability(False)
 
         logging.info("... stopping scan thread...")
-        self.search_thread_event.set()
+        self.scan_thread_event.set()
         self.scan_thread.join()
+
+        super().shutdown()
 
     def announce(self):
         for device in self.config:
@@ -158,16 +162,16 @@ class RelaySystem(BaseSystem):
         self.update()
 
     def _run(self):
-        self.search_thread_event = threading.Event()
+        self.scan_thread_event = threading.Event()
 
         msg = "DISCOVER_RELAIS_MODULE"
         destination = ('<broadcast>', 30303)
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.settimeout(1)
-        s.sendto(msg.encode(), destination)
-        while not self.search_thread_event.is_set():
+        while not self.scan_thread_event.is_set():
             try:
+                s.sendto(msg.encode(), destination)
                 (buf, address) = s.recvfrom(30303)
                 if not len(buf):
                     break
@@ -177,13 +181,12 @@ class RelaySystem(BaseSystem):
                         logging.info(f"... ... found new module[{address[0]}]")
                         self.module_list.append(address[0])
                         self.last_update = -1
-                continue
-            except socket.timeout:
+            except (socket.timeout, OSError):
                 pass
 
-            self.search_thread_event.wait(60)
-            s.sendto(msg.encode(), destination)
+            self.scan_thread_event.wait(60)
 
+        s.close()
         return True
 
     def _read_status(self, ip):
@@ -195,7 +198,7 @@ class RelaySystem(BaseSystem):
             r = requests.get(url, auth=auth, timeout=1)
 
             content = r.text
-            logging.debug(f"... ... content: {content}")
+            logging.debug(f"... ... content:\n{content}")
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'true')
             for line in content.splitlines():
                 if "relay" in line:

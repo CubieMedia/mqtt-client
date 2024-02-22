@@ -3,7 +3,7 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock, PropertyMock
 
-from common import CUBIE_CORE
+from common import CUBIE_CORE, CUBIE_VICTRON
 from common.python import set_default_configuration, get_default_configuration_for
 from system.victron_system import TOPIC_READ_LIST, VictronSystem, SERVICE_LIST, VICTRON_WRITE_TOPIC
 from test_common import check_mqtt_server, AUTHENTICATION_MOCK
@@ -16,6 +16,7 @@ VICTRON_MESSAGE = [b'{"value": 377}', b'{"value": 33}', b'{"value": 0}', b'{"val
 
 class TestVictronSystem(TestCase):
     config_backup = None
+    victron_backup = None
     mqtt_server_process = subprocess.Popen
     system = None
 
@@ -178,11 +179,13 @@ class TestVictronSystem(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.victron_backup = get_default_configuration_for(CUBIE_VICTRON)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
         set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_VICTRON, cls.victron_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

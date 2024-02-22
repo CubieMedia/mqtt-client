@@ -1,4 +1,3 @@
-import logging
 import subprocess
 import time
 from unittest import TestCase
@@ -9,7 +8,7 @@ import pytest
 from common import CUBIE_ANNOUNCE, CUBIE_RESET, CUBIE_RELOAD, CUBIE_CORE
 from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
-from test_common import check_mqtt_server
+from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
 
 class TestCubieMediaMQTTClient(TestCase):
@@ -19,7 +18,7 @@ class TestCubieMediaMQTTClient(TestCase):
 
     def test_connect_disconnect(self):
         self.system.get_mqtt_data = MagicMock(return_value=("192.168.11.7", None, None))
-        with pytest.raises(TimeoutError) or pytest.raises(ConnectionRefusedError):
+        with pytest.raises((TimeoutError, ConnectionRefusedError, OSError)): # noqa
             self.system.init()
         time.sleep(1)
 
@@ -45,7 +44,7 @@ class TestCubieMediaMQTTClient(TestCase):
         assert self.system.mqtt_client.mqtt_client.is_connected()
 
     def test_publish(self):
-        self.system.get_mqtt_data = MagicMock(return_value=("localhost", None, None))
+        self.system.get_mqtt_data = AUTHENTICATION_MOCK
         self.system.init()
         time.sleep(1)
 
@@ -60,7 +59,7 @@ class TestCubieMediaMQTTClient(TestCase):
         autospec_publish.assert_called()
 
     def test_subscribe(self):
-        self.system.get_mqtt_data = MagicMock(return_value=("localhost", None, None))
+        self.system.get_mqtt_data = AUTHENTICATION_MOCK
         self.system.init()
         time.sleep(1)
 
@@ -75,7 +74,7 @@ class TestCubieMediaMQTTClient(TestCase):
         autospec_publish.assert_called()
 
     def test_on_message(self):
-        self.system.get_mqtt_data = MagicMock(return_value=("localhost", None, None))
+        self.system.get_mqtt_data = AUTHENTICATION_MOCK
         self.system.announce = MagicMock()
         self.system.init()
         time.sleep(1)
@@ -98,7 +97,7 @@ class TestCubieMediaMQTTClient(TestCase):
         self.system.load.assert_called_once()
 
     def test_on_connect(self):
-        self.system.get_mqtt_data = MagicMock(return_value=("localhost", None, None))
+        self.system.get_mqtt_data = AUTHENTICATION_MOCK
         self.system.announce = MagicMock()
         self.system.init()
         time.sleep(1)
@@ -106,7 +105,7 @@ class TestCubieMediaMQTTClient(TestCase):
         self.system.announce.assert_called_once()
 
     def test_on_disconnect(self):
-        self.system.get_mqtt_data = MagicMock(return_value=("localhost", None, None))
+        self.system.get_mqtt_data = AUTHENTICATION_MOCK
         self.system.announce = MagicMock()
         self.system.init()
         time.sleep(1)
@@ -128,12 +127,12 @@ class TestCubieMediaMQTTClient(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.backup_config = get_default_configuration_for(CUBIE_CORE)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_CORE, cls.backup_config)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

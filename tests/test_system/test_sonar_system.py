@@ -3,20 +3,18 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from serial import Serial
-
-from common import CUBIE_CORE
+from common import CUBIE_CORE, CUBIE_SONAR
 from common.python import set_default_configuration, get_default_configuration_for
 from system.sonar_system import SonarSystem, DEFAULT_UPDATE_INTERVAL, DEFAULT_OFFSET, DEFAULT_TRIGGER_OFFSET, \
     DEFAULT_MAXIMAL_DISTANCE, DEFAULT_DISTANCE_OFFSET
 from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
 DEVICE_TEST = {"id": "Test", "value": 1300}
-DEVICE_TEST2 = {"id": "Test2", "value": 2774}
 
 
 class TestSonarSystem(TestCase):
     config_backup = None
+    sonar_backup = None
     mqtt_server_process = subprocess.Popen
     system = None
 
@@ -111,11 +109,13 @@ class TestSonarSystem(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.sonar_backup = get_default_configuration_for(CUBIE_SONAR)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
         set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_SONAR, cls.sonar_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

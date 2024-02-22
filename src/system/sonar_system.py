@@ -61,8 +61,8 @@ class SonarSystem(BaseSystem):
     def shutdown(self):
         logging.info('... set devices unavailable...')
         self.set_availability(False)
-        if self.mqtt_client:
-            self.mqtt_client.disconnect()
+
+        super().shutdown()
 
     def action(self, device):
         logging.info("... ... action for [%s]" % device)

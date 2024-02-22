@@ -140,8 +140,8 @@ class VictronSystem(BaseSystem):
             if self.keepalive_thread.is_alive():
                 self.keepalive_thread.join()
 
-        if self.mqtt_client:
-            self.mqtt_client.disconnect()
+        super().shutdown()
+        logging.info("... disconnect victron client...")
         if self.victron_mqtt_client and self.victron_mqtt_client.is_connected():
             self.victron_mqtt_client.disconnect()
 

@@ -30,8 +30,9 @@ class BaseSystem(abc.ABC):
         self.mqtt_client.connect(self)
 
     def shutdown(self):
-        logging.info(f"... shutdown base system [{self.client_id}]")
-        self.mqtt_client.disconnect()
+        logging.info(f"... disconnect mqtt client [{self.client_id}] fron [{self.get_mqtt_data()[0]}]")
+        if self.mqtt_client:
+            self.mqtt_client.disconnect()
 
     def action(self, device):
         raise NotImplementedError
