@@ -45,6 +45,7 @@ class SonarSystem(BaseSystem):
         self.maximal_distance = self.config[0][
             'maximal_distance'] if 'maximal_distance' in self.config[0] else DEFAULT_MAXIMAL_DISTANCE
 
+        serial_port = None
         try:
             default_serial_port = SONAR_PORT
             serial_json = get_configuration(CUBIE_SERIAL)[0]
@@ -76,57 +77,38 @@ class SonarSystem(BaseSystem):
         data = {}
 
         device_list = []
-        if self.communicator and self.last_update < time.time() - 1:
-            self.communicator.write(0x01)
-            self.communicator.flushOutput()
-
-            if self.communicator.inWaiting() > 0:
-                response = str(self.communicator.read(self.communicator.inWaiting()))
-                if "Gap=" in response:
-                    distance = int(response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
-
-                    if not self.distance or abs(self.distance - distance) > self.offset_trigger:
-                        if 200 <= distance - self.offset <= 8000:
-                            self.distance = distance
-                            device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'value': self.distance}
-                            device_list.append(device)
-                        else:
-                            logging.warning(
-                                f"Distance [{distance}] is out of range, object too close or cable disconnected")
-                else:
-                    logging.warning(f"Could not find [Gap] in response[{response}]")
-
-            self.last_update = time.time()
-
-        data['devices'] = device_list
-
         if self.last_update < time.time() - self.update_interval:
             self.set_availability(True)
             self.last_update = time.time()
-        return data
 
-    def send(self, data):
-        raise NotImplemented(f"sending data[{data}] is not implemented")
+            if self.communicator:
+                self.communicator.write(bytearray([0x01]))
+                self.communicator.flush()
+
+                if self.communicator.in_waiting > 0:
+                    response = str(self.communicator.read(self.communicator.in_waiting))
+                    if "Gap=" in response:
+                        distance = int(response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
+
+                        if not self.distance or abs(self.distance - distance) > self.offset_trigger:
+                            if 200 <= distance - self.offset <= 8000:
+                                self.distance = distance
+                                device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'value': self.distance}
+                                device_list.append(device)
+                            else:
+                                logging.warning(
+                                    f"Distance [{distance}] is out of range, object too close or cable disconnected")
+                    else:
+                        logging.warning(f"Could not find [Gap] in response[{response}]")
+
+        data['devices'] = device_list
+        return data
 
     def announce(self):
         device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'client_id': self.client_id, 'value': 0}
         logging.info("... ... announce sonar device [%s]" % device)
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
-        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
-                                 json.dumps(device['value']), True)
-        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
-                                 0, True)
-
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/command"
         logging.info("... ... subscribing to [%s] for sonar commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
-        self.set_availability(True)
-
-    def save(self, new_device=None):
-        if new_device is None:
-            super().save()
-
-    def delete(self, device):
-        logging.warning(
-            "... delete not supported for SONAR devices, please change config locally or via web tool")

@@ -21,7 +21,7 @@ class BaseSystem(abc.ABC):
 
     def __init__(self):
         self.ip_address = get_ip_address()
-        self.client_id = f"{self.ip_address}-{self.execution_mode}-client-{str(randint(0, 9))}"
+        self.client_id = f"{self.ip_address}-{self.execution_mode}-client"
         self.mqtt_client = CubieMediaMQTTClient(self.client_id)
 
     def init(self):
@@ -44,7 +44,7 @@ class BaseSystem(abc.ABC):
         return data
 
     def send(self, data):
-        raise NotImplementedError()
+        raise NotImplemented(f"sending data[{data}] is not implemented")
 
     def announce(self):
         raise NotImplementedError()

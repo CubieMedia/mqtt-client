@@ -96,8 +96,8 @@ def get_configuration(config_name: str) -> []:
         except:
             if USER_MESSAGE_SHOULD_BE_SHOWN:
                 logging.warning(
-                    f"seems to be a non snap environment, could not load config [{config_name}]\n"
-                    f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
+                    f"{COLOR_YELLOW}seems to be a non snap environment, could not load config [{config_name}]\n"
+                    f"Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
                 USER_MESSAGE_SHOULD_BE_SHOWN = False
 
     if value and len(value) > 3:
