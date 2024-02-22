@@ -7,3 +7,4 @@ Flask
 Werkzeug
 setuptools
 pytest
+psutil

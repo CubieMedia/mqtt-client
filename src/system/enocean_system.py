@@ -246,7 +246,6 @@ class EnoceanSystem(BaseSystem):
                         if new_device['dbm'] > known_device['dbm']:
                             device = copy.copy(new_device)
                             del new_device['state']
-                            print("... ... replace device[%s]" % new_device)
                             logging.info("... ... replace device[%s]" % new_device)
                             self.config[self.config.index(known_device)] = new_device
                             should_save = True

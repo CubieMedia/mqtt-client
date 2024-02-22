@@ -7,21 +7,24 @@ import time
 
 from serial import Serial, SerialException
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, DEFAULT_OFFSET, CUBIE_DEVICE, CUBIE_SERIAL, \
+from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, CUBIE_DEVICE, CUBIE_SERIAL, \
     CUBIE_TYPE
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE
-from common.network import get_ip_address
 from common.python import get_configuration
 from system.base_system import BaseSystem
 
+DEFAULT_UPDATE_INTERVAL = 10
+DEFAULT_OFFSET = 0
+DEFAULT_TRIGGER_OFFSET = 5
+DEFAULT_DISTANCE_OFFSET = 500
+DEFAULT_MAXIMAL_DISTANCE = 8000
+
 
 class SonarSystem(BaseSystem):
-    ip_address = None
     communicator = None
-    last_update = time.time()
     distance = None
-    update_interval = 10
-    offset = 0
+    update_interval = None
+    offset = None
     offset_trigger = 5
     maximal_distance = 8000
     offset_distance = 500
@@ -32,26 +35,23 @@ class SonarSystem(BaseSystem):
 
     def init(self):
         super().init()
-        self.ip_address = get_ip_address()
-        self.update_interval = self.config[
-            'update_interval'] if 'update_interval' in self.config else 10
-        self.offset = self.config[
-            'offset'] if 'offset' in self.config else 0
-        self.offset_trigger = self.config[
-            'trigger_offset'] if 'trigger_offset' in self.config else DEFAULT_OFFSET
-        self.maximal_distance = self.config[
-            'maximal_distance'] if 'maximal_distance' in self.config else 8000
-        self.offset_distance = self.config[
-            'offset_distance'] if 'offset_distance' in self.config else 500
+        self.update_interval = self.config[0]['update_interval'] if 'update_interval' in self.config[
+            0] else DEFAULT_UPDATE_INTERVAL
+        self.offset = self.config[0]['offset'] if 'offset' in self.config[0] else DEFAULT_OFFSET
+        self.offset_trigger = self.config[0][
+            'trigger_offset'] if 'trigger_offset' in self.config[0] else DEFAULT_TRIGGER_OFFSET
+        self.offset_distance = self.config[0][
+            'offset_distance'] if 'offset_distance' in self.config[0] else DEFAULT_DISTANCE_OFFSET
+        self.maximal_distance = self.config[0][
+            'maximal_distance'] if 'maximal_distance' in self.config[0] else DEFAULT_MAXIMAL_DISTANCE
+
         try:
             default_serial_port = SONAR_PORT
             serial_json = get_configuration(CUBIE_SERIAL)[0]
             if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
                 default_serial_port = serial_json[CUBIE_DEVICE]
-            serial_port = self.config[
-                CUBIE_DEVICE] if CUBIE_DEVICE in self.config else default_serial_port
-            self.communicator = Serial(
-                serial_port, 9600)
+            serial_port = self.config[0][CUBIE_DEVICE] if CUBIE_DEVICE in self.config[0] else default_serial_port
+            self.communicator = Serial(serial_port, 9600)
             self.communicator.flush()
         except SerialException:
             logging.warning(
@@ -60,6 +60,8 @@ class SonarSystem(BaseSystem):
     def shutdown(self):
         logging.info('... set devices unavailable...')
         self.set_availability(False)
+        if self.mqtt_client:
+            self.mqtt_client.disconnect()
 
     def action(self, device):
         logging.info("... ... action for [%s]" % device)

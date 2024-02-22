@@ -1,10 +1,12 @@
-import logging
 import subprocess
 import time
 from unittest import TestCase
 from unittest.mock import MagicMock, PropertyMock
 
+from common import CUBIE_CORE
+from common.python import set_default_configuration, get_default_configuration_for
 from system.victron_system import TOPIC_READ_LIST, VictronSystem, SERVICE_LIST, VICTRON_WRITE_TOPIC
+from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
 SERVICE_PAYLOAD = [377, 33, 0, 0, 0, 0, False, 1, 1]
 SERVICE_RESPONSE = [377, 33, 0, 0, 0, 0, False, '{"value": 80}', '{"value": -1}']
@@ -13,6 +15,7 @@ VICTRON_MESSAGE = [b'{"value": 377}', b'{"value": 33}', b'{"value": 0}', b'{"val
 
 
 class TestVictronSystem(TestCase):
+    config_backup = None
     mqtt_server_process = subprocess.Popen
     system = None
 
@@ -167,21 +170,19 @@ class TestVictronSystem(TestCase):
 
     def setUp(self):
         self.system = VictronSystem()
-        self.system.get_mqtt_data = MagicMock(return_value=("localhost", None, None))
+        self.system.get_mqtt_data = AUTHENTICATION_MOCK
 
     def tearDown(self):
         self.system.shutdown()
 
     @classmethod
     def setUpClass(cls):
-        # DODO check mosquitto already running
-        try:
-            cls.mqtt_server_process = subprocess.Popen("mosquitto")
-            time.sleep(1)
-        except FileNotFoundError:
-            logging.error("could not start mosquitto [sudo apt install mosquitto]")
+        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        cls.mqtt_server_process.terminate()
-        cls.mqtt_server_process.communicate()
+        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        if cls.mqtt_server_process:
+            cls.mqtt_server_process.terminate()
+            cls.mqtt_server_process.communicate()

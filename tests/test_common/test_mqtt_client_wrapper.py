@@ -6,11 +6,14 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from common import CUBIE_ANNOUNCE, CUBIE_RESET, CUBIE_RELOAD
+from common import CUBIE_ANNOUNCE, CUBIE_RESET, CUBIE_RELOAD, CUBIE_CORE
+from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
+from test_common import check_mqtt_server
 
 
 class TestCubieMediaMQTTClient(TestCase):
+    backup_config = None
     mqtt_server_process = subprocess.Popen
     system = None
 
@@ -125,13 +128,12 @@ class TestCubieMediaMQTTClient(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            cls.mqtt_server_process = subprocess.Popen("mosquitto")
-            time.sleep(1)
-        except FileNotFoundError:
-            logging.error("could not start mosquitto [sudo apt install mosquitto]")
+        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        cls.mqtt_server_process.terminate()
-        cls.mqtt_server_process.communicate()
+        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        if cls.mqtt_server_process:
+            cls.mqtt_server_process.terminate()
+            cls.mqtt_server_process.communicate()

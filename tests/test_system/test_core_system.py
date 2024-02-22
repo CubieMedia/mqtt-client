@@ -28,9 +28,9 @@ DIFFERENT_CORE_CONFIG = {
 
 
 class TestCoreSystem(TestCase):
+    config_backup = None
     mqtt_server_process = subprocess.Popen
     system = None
-    config_backup = None
 
     def test_announce(self):
         self.system.mqtt_client.publish = MagicMock()
@@ -74,5 +74,6 @@ class TestCoreSystem(TestCase):
     @classmethod
     def tearDownClass(cls):
         set_default_configuration(CUBIE_CORE, cls.config_backup)
-        cls.mqtt_server_process.terminate()
-        cls.mqtt_server_process.communicate()
+        if cls.mqtt_server_process:
+            cls.mqtt_server_process.terminate()
+            cls.mqtt_server_process.communicate()

@@ -1,11 +1,11 @@
 #!/bin/sh -e
 
-snapctl set core='[]'
+snapctl set core='`cat ../../src/config/core.json`'
 
-snapctl set serial='[]'
+snapctl set serial='`cat ../../src/config/serial.json`'
 
-snapctl set gpio='[]'
-snapctl set sonar='[]'
-snapctl set relay='[]'
-snapctl set victron='[]'
-snapctl set enocean='[]'
+snapctl set gpio='`cat ../../src/config/gpio.json`'
+snapctl set sonar='`cat ../../src/config/sonar.json`'
+snapctl set relay='`cat ../../src/config/relay.json`'
+snapctl set victron='`cat ../../src/config/victron.json`'
+snapctl set enocean='`cat ../../src/config/enocean.json`'

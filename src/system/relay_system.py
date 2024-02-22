@@ -171,7 +171,7 @@ class RelaySystem(BaseSystem):
                 (buf, address) = s.recvfrom(30303)
                 if not len(buf):
                     break
-                #      print("... received from %s: %s" %(address, buf))
+                logging.debug(f"... received from {address}: {buf}")
                 if "ETH008" in str(buf):
                     if not address[0] in self.module_list:
                         logging.info(f"... ... found new module[{address[0]}]")
@@ -195,7 +195,7 @@ class RelaySystem(BaseSystem):
             r = requests.get(url, auth=auth, timeout=1)
 
             content = r.text
-            #  print("... ... content: " + str(content))
+            logging.debug(f"... ... content: {content}")
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'true')
             for line in content.splitlines():
                 if "relay" in line:

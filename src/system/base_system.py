@@ -67,7 +67,8 @@ class BaseSystem(abc.ABC):
                            self.config]
             if new_device not in self.config:
                 self.config.append(new_device)
-        set_configuration(self.execution_mode, self.config)
+        if self.execution_mode != "Base":
+            set_configuration(self.execution_mode, self.config)
 
     def delete(self, device):
         deleted = False
