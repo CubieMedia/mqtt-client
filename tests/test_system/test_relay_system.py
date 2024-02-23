@@ -53,10 +53,15 @@ class TestRelaySystem(TestCase):
 
     def test_update(self):
         self.system.init()
+        data = self.system.update()
+        assert data == {}, "Fast Check failed, did i really find Relay Boards?"
         time.sleep(1)
 
         data = self.system.update()
-        assert data == {}, "Relayboards have been found but not expected, are you in a network with active Boards?"
+        if len(self.system.module_list) > 0:
+            assert len(data) > 0
+        else:
+            assert data == {}
 
     def test_set_availability(self):
         self.system.mqtt_client = MagicMock()

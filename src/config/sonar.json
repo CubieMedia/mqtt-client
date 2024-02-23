@@ -1,11 +1,11 @@
 [
   {
-    "type": "sonar",
     "device": "/dev/ttyS0",
-    "update_interval": 10,
-    "offset": 0,
-    "offset_trigger": 5,
     "maximal_distance": 4800,
-    "offset_distance": 500
+    "offset": 0,
+    "offset_distance": 500,
+    "offset_trigger": 5,
+    "type": "sonar",
+    "update_interval": 10
   }
 ]

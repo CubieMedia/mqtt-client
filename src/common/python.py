@@ -80,7 +80,7 @@ def set_default_configuration(config_name: str, config: []):
             if not exists(config_file):
                 raise FileNotFoundError(f"could not find config file [{config_file}]")
     with open(config_file, 'w') as file:
-        json.dump(config, file, indent=4, sort_keys=True)
+        json.dump(config, file, indent=2, sort_keys=True)
 
 
 def get_configuration(config_name: str) -> []:
