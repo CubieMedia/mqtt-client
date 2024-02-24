@@ -55,13 +55,14 @@ class TestRelaySystem(TestCase):
         self.system.init()
         data = self.system.update()
         assert data == {}, "Fast Check failed, did i really find Relay Boards?"
-        time.sleep(1)
+        time.sleep(3)
 
+        self.system.last_update = -1
         data = self.system.update()
-        if len(self.system.module_list) > 0:
-            assert len(data) > 0
+        if 'devices' in data:
+            assert len(data['devices']) == len(self.system.module_list)
         else:
-            assert data == {}
+            assert len(self.system.module_list) == 0, f"module list [{self.system.module_list}] is not empty!"
 
     def test_set_availability(self):
         self.system.mqtt_client = MagicMock()
@@ -74,6 +75,7 @@ class TestRelaySystem(TestCase):
         self.system.set_availability(False)
 
         self.system.mqtt_client.publish.assert_called_once()
+        self.system.delete(DEVICE_TEST)
 
     def test_init(self):
         self.system.init()

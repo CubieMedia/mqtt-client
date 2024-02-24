@@ -13,12 +13,18 @@ from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_USERNAME, RELAY_PAS
     TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY, CUBIE_TYPE
 from system.base_system import BaseSystem
 
+DISCOVERY_MESSAGE = "DISCOVER_RELAIS_MODULE".encode()
+DESTINATION_ADDRESS = ('<broadcast>', 30303)
+
 
 class RelaySystem(BaseSystem):
     module_list = []
     subscription_list = []
     scan_thread = threading.Thread()
     scan_thread_event = threading.Event()
+    discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    discovery_socket.settimeout(1)
 
     def __init__(self):
         self.execution_mode = CUBIE_RELAY
@@ -164,29 +170,27 @@ class RelaySystem(BaseSystem):
     def _run(self):
         self.scan_thread_event = threading.Event()
 
-        msg = "DISCOVER_RELAIS_MODULE"
-        destination = ('<broadcast>', 30303)
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.settimeout(1)
+        buf = []
         while not self.scan_thread_event.is_set():
             try:
-                s.sendto(msg.encode(), destination)
-                (buf, address) = s.recvfrom(30303)
                 if not len(buf):
-                    break
+                    logging.info("... ... sending discovery message for relay boards")
+                    self.discovery_socket.sendto(DISCOVERY_MESSAGE, DESTINATION_ADDRESS)
+                    self.scan_thread_event.wait(1)
+                (buf, address) = self.discovery_socket.recvfrom(30303)
                 logging.debug(f"... received from {address}: {buf}")
                 if "ETH008" in str(buf):
                     if not address[0] in self.module_list:
                         logging.info(f"... ... found new module[{address[0]}]")
                         self.module_list.append(address[0])
                         self.last_update = -1
+                        continue
+                self.scan_thread_event.wait(1)
             except (socket.timeout, OSError):
-                pass
+                buf = []
+                self.scan_thread_event.wait(TIMEOUT_UPDATE_SEND)
 
-            self.scan_thread_event.wait(60)
-
-        s.close()
+        self.discovery_socket.close()
         return True
 
     def _read_status(self, ip):
