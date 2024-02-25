@@ -62,11 +62,7 @@ class TestVictronSystem(TestCase):
         assert not self.system.keepalive_thread_event.is_set()
 
     def test_shutdown(self):
-        self.system.init()
-        time.sleep(1)
-
-        assert self.system.mqtt_client.mqtt_client.is_connected()
-        assert not self.system.keepalive_thread_event.is_set()
+        self.test_init()
 
         self.system.shutdown()
         time.sleep(1)

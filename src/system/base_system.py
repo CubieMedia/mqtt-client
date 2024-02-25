@@ -34,7 +34,7 @@ class BaseSystem(abc.ABC):
         if self.mqtt_client:
             self.mqtt_client.disconnect()
 
-    def action(self, device):
+    def action(self, device: {}) -> bool:
         raise NotImplementedError
 
     def update(self):
@@ -44,7 +44,7 @@ class BaseSystem(abc.ABC):
 
         return data
 
-    def send(self, data):
+    def send(self, data: {}) -> bool:
         raise NotImplemented(f"sending data[{data}] is not implemented")
 
     def announce(self):
@@ -63,6 +63,8 @@ class BaseSystem(abc.ABC):
             self.config = get_configuration(self.execution_mode)
 
     def save(self, new_device=None):
+        if 'client_id' not in new_device:
+            new_device['client_id'] = self.client_id
         if new_device and 'id' in new_device:
             self.config = [new_device if device['id'] == new_device['id'] else device for device in
                            self.config]

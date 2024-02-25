@@ -20,8 +20,6 @@ class TestCubieMediaMQTTClient(TestCase):
         self.system.get_mqtt_data = MagicMock(return_value=("192.168.11.7", None, None))
         with pytest.raises((TimeoutError, ConnectionRefusedError, OSError)): # noqa
             self.system.init()
-        time.sleep(1)
-
         self.system.get_mqtt_data.assert_called_once()
         assert not self.system.mqtt_client.mqtt_client.is_connected()
 

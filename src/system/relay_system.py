@@ -30,28 +30,31 @@ class RelaySystem(BaseSystem):
         self.execution_mode = CUBIE_RELAY
         super().__init__()
 
-    def action(self, device):
-        if not device['id'] in self.subscription_list:
-            logging.info("... ... subscribing to [%s] for commands" % device['id'])
-            self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
-                                       2)
-            self.subscription_list.append(device['id'])
+    def action(self, device: {}) -> bool:
+        if 'id' in device:
+            if not device['id'] in self.subscription_list:
+                logging.info("... ... subscribing to [%s] for commands" % device['id'])
+                self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
+                                           2)
+                self.subscription_list.append(device['id'])
 
-        for known_device in self.config:
-            if device['id'] == known_device['id'] and 'state' in device:
-                for relay in device['state']:
-                    if not device['state'][relay] == known_device['state'][relay]:
-                        logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
-                            device['id'], relay, device['state'][relay]))
-                        self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                            device['state'][relay], True)
-                        known_device['state'][relay] = device['state'][relay]
-                return True
+            for known_device in self.config:
+                if device['id'] == known_device['id'] and 'state' in device:
+                    for relay in device['state']:
+                        if not device['state'][relay] == known_device['state'][relay]:
+                            logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
+                                device['id'], relay, device['state'][relay]))
+                            self.mqtt_client.publish(
+                                f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
+                                device['state'][relay], True)
+                            known_device['state'][relay] = device['state'][relay]
+                    return True
 
-        if self.core_config['learn_mode']:
-            logging.info("... ... unknown device, announce [%s]" % device['id'])
-            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+            if self.core_config['learn_mode']:
+                logging.info("... ... unknown device, announce [%s]" % device['id'])
+                self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+        else:
+            logging.warning(f"... received action with wrong data [{device}]")
         return False
 
     def send(self, data):

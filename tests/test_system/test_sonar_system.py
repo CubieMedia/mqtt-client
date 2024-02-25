@@ -31,10 +31,7 @@ class TestSonarSystem(TestCase):
         assert self.system.offset_distance == DEFAULT_DISTANCE_OFFSET
 
     def test_shutdown(self):
-        self.system.init()
-        time.sleep(1)
-
-        assert self.system.mqtt_client.mqtt_client.is_connected()
+        self.test_init()
 
         self.system.set_availability = MagicMock()
         self.system.shutdown()

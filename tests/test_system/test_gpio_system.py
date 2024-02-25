@@ -4,18 +4,18 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import CUBIE_CORE, CUBIE_RELAY
+from common import CUBIE_CORE, CUBIE_GPIO
 from common.python import set_default_configuration, get_default_configuration_for
-from system.relay_system import RelaySystem
+from system.gpio_system import GPIOSystem
 from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
-DEVICE_TEST = {"id": "Test", "type": "relay"}
-DATA_TEST = {"ip": "Test", "type": "relay", "id": 3, "state": "1"}
+DEVICE_TEST = {"id": "Test", "type": "relay", "value": 0}
+DATA_TEST = {"ip": "Test", "type": "relay", "id": 3, "state": b"0"}
 
 
-class TestRelaySystem(TestCase):
+class TestGPIOSystem(TestCase):
     config_backup = None
-    relay_backup = None
+    gpio_backup = None
     mqtt_server_process = subprocess.Popen
     system = None
 
@@ -23,77 +23,75 @@ class TestRelaySystem(TestCase):
         self.system.init()
         time.sleep(1)
 
-        self.system.mqtt_client.subscribe = MagicMock()
         self.system.mqtt_client.publish = MagicMock()
-        self.system.action(DEVICE_TEST)
+        response = self.system.action(None)
         time.sleep(1)
 
-        self.system.mqtt_client.subscribe.assert_called_once()
-        self.system.mqtt_client.publish.assert_called_once()
-        assert DEVICE_TEST['id'] in self.system.subscription_list
-        assert len(self.system.subscription_list) == 1
+        assert not response
+        self.system.mqtt_client.publish.assert_not_called()
 
-        self.system.mqtt_client.publish.reset_mock()
-        self.system.action(DEVICE_TEST)
+        self.system.mqtt_client.publish = MagicMock()
+        response = self.system.action({})
         time.sleep(1)
 
-        self.system.mqtt_client.subscribe.assert_called_once()
+        assert not response
+        self.system.mqtt_client.publish.assert_not_called()
+
+        self.system.mqtt_client.publish = MagicMock()
+        response = self.system.action(DEVICE_TEST)
+        time.sleep(1)
+
+        assert response
         self.system.mqtt_client.publish.assert_called_once()
-        assert DEVICE_TEST['id'] in self.system.subscription_list
-        assert len(self.system.subscription_list) == 1
 
     def test_send(self):
         self.system.init()
         time.sleep(1)
 
-        self.system._set_status = MagicMock()
+        self.system.gpio_control = MagicMock()
         self.system.send(DATA_TEST)
 
-        self.system._set_status.assert_called_with("Test", 3, "1", False)
+        self.system.gpio_control.output.assert_called_with(int(DATA_TEST['id']),
+                                                           0 if int(DATA_TEST['state'].decode()) == 1 else 1)
 
     def test_update(self):
         self.system.init()
-        data = self.system.update()
-        assert data == {}, "Fast Check failed, did i really find Relay Boards?"
-        time.sleep(3)
+        time.sleep(1)
 
-        self.system.last_update = -1
         data = self.system.update()
-        if 'devices' in data:
-            assert len(data['devices']) == len(self.system.module_list)
-        else:
-            assert len(self.system.module_list) == 0, f"module list [{self.system.module_list}] is not empty!"
+        assert len(data['devices']) > 0
 
     def test_set_availability(self):
-        self.system.mqtt_client = MagicMock()
-        self.system.set_availability(False)
-
-        self.system.mqtt_client.publish.assert_not_called()
         self.system.init()
-        self.system.save(DEVICE_TEST)
+        time.sleep(1)
+
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
         self.system.mqtt_client.publish.assert_called_once()
-        self.system.delete(DEVICE_TEST)
+        self.system.mqtt_client.reset_mock()
+        self.system.set_availability(True)
+
+        assert len(self.system.mqtt_client.publish.mock_calls) == 9
 
     def test_init(self):
+        self.system.gpio_control = MagicMock()
         self.system.init()
         time.sleep(1)
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
-        assert not self.system.scan_thread_event.is_set()
-        assert self.system.scan_thread.is_alive()
+        assert len(self.system.gpio_control.setup.mock_calls) == 8
+        assert len(self.system.gpio_control.output.mock_calls) == 4
 
     def test_shutdown(self):
         self.test_init()
 
+        self.system.gpio_control = MagicMock()
         self.system.shutdown()
         time.sleep(1)
 
         assert not self.system.mqtt_client.mqtt_client.is_connected()
-        assert self.system.scan_thread_event.is_set()
-        assert not self.system.scan_thread.is_alive()
+        self.system.gpio_control.cleanup.assert_called_once()
 
     def test_announce(self):
         self.system.set_availability = MagicMock()
@@ -105,7 +103,7 @@ class TestRelaySystem(TestCase):
         self.system.set_availability.assert_called()
 
     def setUp(self):
-        self.system = RelaySystem()
+        self.system = GPIOSystem()
         self.system.get_mqtt_data = AUTHENTICATION_MOCK
 
     def tearDown(self):
@@ -114,13 +112,13 @@ class TestRelaySystem(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config_backup = get_default_configuration_for(CUBIE_CORE)
-        cls.relay_backup = get_default_configuration_for(CUBIE_RELAY)
+        cls.gpio_backup = get_default_configuration_for(CUBIE_GPIO)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
         set_default_configuration(CUBIE_CORE, cls.config_backup)
-        set_default_configuration(CUBIE_RELAY, cls.relay_backup)
+        set_default_configuration(CUBIE_GPIO, cls.gpio_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

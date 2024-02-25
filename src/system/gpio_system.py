@@ -8,79 +8,62 @@ import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT, CUBIE_TYPE
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
-from common.network import get_ip_address
-from common.python import install_package
 from system.base_system import BaseSystem
 
-snap_arch = os.environ.get('SNAP_ARCH')
-if (snap_arch and "arm" in snap_arch) or "arm" in os.uname()[4]:
-    try:
-        import RPi.GPIO as GPIO
-    except (ModuleNotFoundError, RuntimeError) as e:
-        install_package("RPi.GPIO")
-        import RPi.GPIO as GPIO
-else:
-    GPIO = None
+try:
+    from RPi import GPIO
+except ImportError as error:
+    snap_arch = os.environ.get('SNAP_ARCH')
+    if (snap_arch and "arm" in snap_arch) or "arm" in os.uname()[4]:
+        logging.warning(
+            f"{COLOR_YELLOW} ... could not initialise GPIO, package RPi.GPIO is missing{COLOR_DEFAULT}")
+    else:
+        logging.warning(
+            f"{COLOR_YELLOW} ... could not initialise GPIO, package rpi-gpio-emu is missing{COLOR_DEFAULT}")
+    raise error
 
 
 class GPIOSystem(BaseSystem):
+    gpio_control = GPIO
 
     def __init__(self):
         self.execution_mode = CUBIE_GPIO
         super().__init__()
 
-    def init(self):
-        super().init()
-        if not GPIO:
-            logging.warning(
-                f"{COLOR_YELLOW} ... could not initialise GPIO, running in development mode?{COLOR_DEFAULT}")
-        else:
-            GPIO.setmode(GPIO.BCM)
-            for device in self.config:
-                device_type = str(device[CUBIE_TYPE]).lower()
-                if device_type == GPIO_PIN_TYPE_IN:
-                    logging.info("... set Pin %d as INPUT" % device['id'])
-                    GPIO.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-                elif device_type == GPIO_PIN_TYPE_OUT:
-                    logging.info("... set Pin %d as OUTPUT" % device['id'])
-                    GPIO.setup(device['id'], GPIO.OUT)
-                    GPIO.output(device['id'], GPIO.HIGH)
-                else:
-                    logging.warning("WARN: could not find valid function for device[%s] on init" % device)
+    def action(self, device: {}) -> bool:
+        if device and {'id', 'value'}.issubset(device.keys()):
+            logging.info("... ... action for [%s]" % device)
+            topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{device['id']}"
+            self.mqtt_client.publish(topic, json.dumps(device['value']))
+            return True
+        return False
 
-    def shutdown(self):
-        logging.info('... set devices unavailable...')
-        self.set_availability(False)
-
-        logging.info('... cleanup GPIO Pins...')
-        if GPIO and len(self.config) > 0:
-            GPIO.cleanup()
-
-    def action(self, device):
-        logging.info("... ... action for [%s]" % device)
-        topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{device['id']}"
-        self.mqtt_client.publish(topic, json.dumps(device['value']))
+    def send(self, data: {}) -> bool:
+        if data and {'id', 'state'}.issubset(data.keys()):
+            logging.info("... ... send data[%s] from HA" % data)
+            self.gpio_control.output(int(data['id']), GPIO.LOW if int(data['state'].decode()) == 1 else GPIO.HIGH)
+            return True
+        return False
 
     def update(self):
         data = {}
 
         device_list = []
-        if GPIO:
-            for device in self.config:
-                device_type = str(device[CUBIE_TYPE]).lower()
-                if device_type == GPIO_PIN_TYPE_IN:
-                    value = GPIO.input(device['id'])
-                elif device_type == GPIO_PIN_TYPE_OUT:
-                    value = 1 if GPIO.input(device['id']) == 0 else 0
-                else:
-                    logging.warning("WARN: could not find valid function for device[%s] on update" % device)
-                    continue
+        for device in self.config:
+            device_type = str(device[CUBIE_TYPE]).lower()
+            if device_type == GPIO_PIN_TYPE_IN:
+                value = self.gpio_control.input(device['id'])
+            elif device_type == GPIO_PIN_TYPE_OUT:
+                value = 1 if self.gpio_control.input(device['id']) == 0 else 0
+            else:
+                logging.warning("WARN: could not find valid function for device[%s] on update" % device)
+                continue
 
-                if value != device['value']:
-                    logging.debug("%s value %s" % (device['id'], value))
-                    device['value'] = value
-                    device['client_id'] = self.client_id
-                    device_list.append(device)
+            if value != device['value']:
+                logging.debug(f"... ... update GPIO [{device['id']}] with value [{value}]")
+                device['value'] = value
+                device['client_id'] = self.client_id
+                device_list.append(device)
 
         data['devices'] = device_list
 
@@ -89,10 +72,39 @@ class GPIOSystem(BaseSystem):
             self.last_update = time.time()
         return data
 
-    def send(self, data):
-        logging.info("... ... send data[%s] from HA" % data)
-        if GPIO:
-            GPIO.output(int(data['id']), GPIO.LOW if int(data['state'].decode()) == 1 else GPIO.HIGH)
+    def set_availability(self, state: bool):
+        super().set_availability(state)
+        if state:
+            for gpio in self.config:
+                self.mqtt_client.publish(
+                    f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
+                    str(gpio['value']).lower(), True)
+
+    def init(self):
+        super().init()
+
+        self.gpio_control.setmode(GPIO.BCM)
+        for device in self.config:
+            device_type = str(device[CUBIE_TYPE]).lower()
+            if device_type == GPIO_PIN_TYPE_IN:
+                logging.info("... set Pin %d as INPUT" % device['id'])
+                self.gpio_control.setup(device['id'], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+            elif device_type == GPIO_PIN_TYPE_OUT:
+                logging.info("... set Pin %d as OUTPUT" % device['id'])
+                self.gpio_control.setup(device['id'], GPIO.OUT)
+                self.gpio_control.output(device['id'], GPIO.HIGH)
+            else:
+                logging.warning("WARN: could not find valid function for device[%s] on init" % device)
+
+    def shutdown(self):
+        logging.info('... set devices unavailable...')
+        self.set_availability(False)
+
+        super().shutdown()
+
+        logging.info('... cleanup GPIO Pins...')
+        if self.gpio_control and len(self.config) > 0:
+            self.gpio_control.cleanup()
 
     def announce(self):
         device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_GPIO, 'client_id': self.client_id,
@@ -103,18 +115,3 @@ class GPIOSystem(BaseSystem):
         logging.info("... ... subscribing to [%s] for gpio output commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
         self.set_availability(True)
-
-    def set_availability(self, state: bool):
-        super().set_availability(state)
-        if state:
-            for gpio in self.config:
-                self.mqtt_client.publish(
-                    f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
-                    str(gpio['value']).lower(), True)
-
-    def save(self, new_device=None):
-        if new_device is None:
-            super().save()
-
-    def delete(self, device):
-        logging.warning("... delete not supported for GPIO devices, please change config locally")
