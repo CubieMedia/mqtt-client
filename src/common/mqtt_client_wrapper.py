@@ -47,7 +47,7 @@ class CubieMediaMQTTClient:
         elif msg.payload.decode('UTF-8') == CUBIE_RELOAD:
             self.system.load()
         else:
-            logging.debug("... received data: format to json[%s]" % msg.payload)
+            logging.debug(f"... on_message received payload [{msg.payload}]")
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
                     message_data = json.loads(msg.payload.decode())

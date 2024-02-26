@@ -45,6 +45,17 @@ class GPIOSystem(BaseSystem):
             return True
         return False
 
+    def save(self, device=None):
+        if not device:
+            super().save()
+        elif device[CUBIE_TYPE] == GPIO_PIN_TYPE_IN or device[CUBIE_TYPE] == GPIO_PIN_TYPE_OUT:
+            super().save(device)
+        elif 'state' in device:
+            for state in device['state']:
+                super().save(state)
+        else:
+            logging.warning(f"... unknown device [{device}], could not save")
+
     def update(self) -> {}:
         data = {}
 

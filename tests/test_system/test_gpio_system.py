@@ -9,8 +9,10 @@ from common.python import set_default_configuration, get_default_configuration_f
 from system.gpio_system import GPIOSystem
 from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
-DEVICE_TEST = {"id": "Test", "type": "relay", "value": 0}
-DATA_TEST = {"ip": "Test", "type": "relay", "id": 3, "state": b"0"}
+DEVICE_TEST = {"id": 18, "type": "out", "value": 0}
+DEVICE_TEST_2 = {"id": 4, "type": "in", "value": 0}
+DEVICE_TEST_3 = {"id": "Test", "type": "gpio"}
+DATA_TEST = {"ip": "Test", "type": "gpio", "id": 3, "state": b"0"}
 
 
 class TestGPIOSystem(TestCase):
@@ -53,6 +55,24 @@ class TestGPIOSystem(TestCase):
 
         self.system.gpio_control.output.assert_called_with(int(DATA_TEST['id']),
                                                            0 if int(DATA_TEST['state'].decode()) == 1 else 1)
+
+    def test_save(self):
+        self.system.init()
+        time.sleep(1)
+
+        self.system.delete(DEVICE_TEST)
+        self.system.delete(DEVICE_TEST_2)
+        assert len(self.system.config) == 6
+
+        self.system.save(DEVICE_TEST_3)
+        assert len(self.system.config) == 6
+
+        self.system.save(DEVICE_TEST)
+        assert len(self.system.config) == 7
+
+        DEVICE_TEST_3['state'] = [DEVICE_TEST, DEVICE_TEST_2]
+        self.system.save(DEVICE_TEST_3)
+        assert len(self.system.config) == 8
 
     def test_update(self):
         self.system.init()
