@@ -1,7 +1,6 @@
 import abc
 import logging
 import time
-from random import randint
 
 from common import TIMEOUT_UPDATE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
@@ -66,8 +65,7 @@ class BaseSystem(abc.ABC):
         if device and 'client_id' not in device:
             device['client_id'] = self.client_id
         if device and 'id' in device:
-            self.config = [device if device['id'] == temp_device['id'] else temp_device for temp_device in
-                           self.config]
+            self.config = [device if device['id'] == temp_device['id'] else temp_device for temp_device in self.config]
             if device not in self.config:
                 self.config.append(device)
         if self.execution_mode != "Base":

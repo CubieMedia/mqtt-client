@@ -8,7 +8,7 @@ from enocean.protocol.constants import RORG
 from enocean.protocol.packet import Packet
 
 from common import CUBIE_CORE, CUBIE_ENOCEAN
-from common.python import set_default_configuration, get_default_configuration_for
+from common.python import set_default_configuration, get_default_configuration_for, get_core_configuration
 from system.enocean_system import EnoceanSystem
 from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
@@ -104,14 +104,16 @@ class TestEnoceanSystem(TestCase):
         self.system.communicator = MagicMock()
         self.system.load = MagicMock()
         self.system.mqtt_client.publish = MagicMock()
+        self.system.core_config = get_core_configuration(self.system.ip_address)
         DEVICE_TEST_WITH_STATE['client_id'] = self.system.client_id
-        self.system.config.append(DEVICE_TEST_WITH_STATE)
+        self.system.save(DEVICE_TEST_WITH_STATE)
         self.system.init()
         time.sleep(1)
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
         self.system.communicator.start.assert_called_once()
         assert len(self.system.mqtt_client.publish.mock_calls) == 10
+        self.system.delete(DEVICE_TEST_WITH_STATE)
 
     def test_shutdown(self):
         self.system.init()

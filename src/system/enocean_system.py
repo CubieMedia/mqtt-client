@@ -152,10 +152,11 @@ class EnoceanSystem(BaseSystem):
             if device['client_id'] == self.client_id:
                 logging.info("... ... announce device [%s]" % device['id'])
                 self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
-                for topic in device['state']:
-                    if device['state'][topic] == 1:
-                        channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
-                        self._create_timer_for(channel_topic, True)
+                if 'state' in device:
+                    for topic in device['state']:
+                        if device['state'][topic] == 1:
+                            channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                            self._create_timer_for(channel_topic, True)
         self.last_update = 0
 
     def save(self, device=None):

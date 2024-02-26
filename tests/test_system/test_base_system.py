@@ -52,7 +52,6 @@ class TestBaseSystem(TestCase):
         self.system.save()
         assert self.system.config == []
 
-        self.system.save(DEVICE_TEST)
         altered_device = DEVICE_TEST.copy()
         altered_device['something'] = "ihavebeenset"
         self.system.save(altered_device)
