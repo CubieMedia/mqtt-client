@@ -65,7 +65,7 @@ class TestRelaySystem(TestCase):
             assert len(self.system.module_list) == 0, f"module list [{self.system.module_list}] is not empty!"
 
     def test_set_availability(self):
-        self.system.mqtt_client = MagicMock()
+        self.system.mqtt_client.publish = MagicMock()
         self.system.set_availability(False)
 
         self.system.mqtt_client.publish.assert_not_called()

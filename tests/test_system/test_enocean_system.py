@@ -4,15 +4,20 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+from enocean.protocol.constants import RORG
+from enocean.protocol.packet import Packet
+
 from common import CUBIE_CORE, CUBIE_ENOCEAN
 from common.python import set_default_configuration, get_default_configuration_for
 from system.enocean_system import EnoceanSystem
 from test_common import check_mqtt_server, AUTHENTICATION_MOCK
 
 DEVICE_TEST = {"id": "Test", "type": "RPS", "dbm": 67}
+DEVICE_TEST_WITH_STATE = {"id": "Test2", "type": "RPS", "dbm": 83, "state": {'a1': 0, 'a2': 0, 'b1': 0, 'b2': 0}}
 ACTION_TEST_OFF = {"id": "Test", "type": "RPS", "state": {'a1': 0}, "dbm": 67}
 ACTION_TEST_ON = {"id": "Test", "type": "RPS", "state": {'a1': 1}, "dbm": 67}
 DATA_TEST = {"ip": "Test", "type": "RPS", "id": 3, "state": b"0"}
+PACKET = Packet.create(0x01, RORG.RPS, 0x02, 0x01)
 
 
 class TestEnoceanSystem(TestCase):
@@ -68,19 +73,12 @@ class TestEnoceanSystem(TestCase):
         time.sleep(1)
         assert len(self.system.mqtt_client.publish.mock_calls) == 2
 
-    def test_send(self):
-        self.system.init()
-        time.sleep(1)
-
-        self.system.gpio_control = MagicMock()
-        self.system.send(DATA_TEST)
-
-        self.system.gpio_control.output.assert_called_with(int(DATA_TEST['id']),
-                                                           0 if int(DATA_TEST['state'].decode()) == 1 else 1)
-
     def test_update(self):
         self.system.init()
         time.sleep(1)
+
+        self.system.communicator = MagicMock()
+        self.system.communicator.receive.get = MagicMock(return_value=PACKET)
 
         data = self.system.update()
         assert len(data['devices']) > 0
@@ -88,46 +86,71 @@ class TestEnoceanSystem(TestCase):
     def test_set_availability(self):
         self.system.init()
         time.sleep(1)
+        self.system.save(DEVICE_TEST)
 
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
         self.system.mqtt_client.publish.assert_called_once()
+
+        self.system.delete(DEVICE_TEST)
+        self.system.save(DEVICE_TEST_WITH_STATE)
         self.system.mqtt_client.reset_mock()
         self.system.set_availability(True)
 
         assert len(self.system.mqtt_client.publish.mock_calls) == 9
 
     def test_init(self):
-        self.system.gpio_control = MagicMock()
+        self.system.communicator = MagicMock()
+        self.system.load = MagicMock()
+        self.system.mqtt_client.publish = MagicMock()
+        DEVICE_TEST_WITH_STATE['client_id'] = self.system.client_id
+        self.system.config.append(DEVICE_TEST_WITH_STATE)
         self.system.init()
         time.sleep(1)
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
-        assert len(self.system.gpio_control.setup.mock_calls) == 8
-        assert len(self.system.gpio_control.output.mock_calls) == 4
+        self.system.communicator.start.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 10
 
     def test_shutdown(self):
-        self.test_init()
+        self.system.init()
+        time.sleep(1)
 
-        self.system.gpio_control = MagicMock()
+        self.system.communicator = MagicMock()
         self.system.shutdown()
         time.sleep(1)
 
         assert not self.system.mqtt_client.mqtt_client.is_connected()
-        self.system.gpio_control.cleanup.assert_called_once()
+        self.system.communicator.stop.assert_called_once()
 
     def test_announce(self):
         self.system.set_availability = MagicMock()
+        self.system.communicator = MagicMock()
         self.system.mqtt_client.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)
 
+        self.system.communicator.start.assert_called_once()
         self.system.mqtt_client.mqtt_client.subscribe.assert_called()
         self.system.set_availability.assert_called()
 
     def test_save(self):
-        assert False
+        self.system.init()
+        time.sleep(1)
+
+        self.system.save(DEVICE_TEST)
+
+        assert len(self.system.config) == 1
+
+        self.system.save(DEVICE_TEST_WITH_STATE)
+
+        assert len(self.system.config) == 2
+
+        self.system.delete(DEVICE_TEST)
+        self.system.delete(DEVICE_TEST_WITH_STATE)
+
+        assert len(self.system.config) == 0
 
     def setUp(self):
         self.system = EnoceanSystem()

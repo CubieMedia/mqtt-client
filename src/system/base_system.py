@@ -37,7 +37,7 @@ class BaseSystem(abc.ABC):
     def action(self, device: {}) -> bool:
         raise NotImplementedError
 
-    def update(self):
+    def update(self) -> {}:
         # Base system has no entities
         # no data is updated so there will be no actions executed
         data = {}
@@ -62,14 +62,14 @@ class BaseSystem(abc.ABC):
         if self.execution_mode != "Base":
             self.config = get_configuration(self.execution_mode)
 
-    def save(self, new_device=None):
-        if 'client_id' not in new_device:
-            new_device['client_id'] = self.client_id
-        if new_device and 'id' in new_device:
-            self.config = [new_device if device['id'] == new_device['id'] else device for device in
+    def save(self, device=None):
+        if device and 'client_id' not in device:
+            device['client_id'] = self.client_id
+        if device and 'id' in device:
+            self.config = [device if device['id'] == temp_device['id'] else temp_device for temp_device in
                            self.config]
-            if new_device not in self.config:
-                self.config.append(new_device)
+            if device not in self.config:
+                self.config.append(device)
         if self.execution_mode != "Base":
             set_configuration(self.execution_mode, self.config)
 

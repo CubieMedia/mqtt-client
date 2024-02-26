@@ -126,9 +126,10 @@ class RelaySystem(BaseSystem):
         logging.info('... set devices unavailable...')
         self.set_availability(False)
 
-        logging.info("... stopping scan thread...")
-        self.scan_thread_event.set()
-        self.scan_thread.join()
+        if self.scan_thread.is_alive():
+            logging.info("... stopping scan thread...")
+            self.scan_thread_event.set()
+            self.scan_thread.join()
 
         super().shutdown()
 
@@ -144,17 +145,17 @@ class RelaySystem(BaseSystem):
 
         self.set_availability(True)
 
-    def save(self, new_device=None):
+    def save(self, device=None):
         should_save = False
-        if new_device is not None:
-            if new_device[CUBIE_TYPE] == CUBIE_RELAY and self.core_config['learn_mode']:
+        if device is not None:
+            if device[CUBIE_TYPE] == CUBIE_RELAY and self.core_config['learn_mode']:
                 add = True
                 for known_device in self.config:
-                    if new_device['id'] == known_device['id']:
+                    if device['id'] == known_device['id']:
                         add = False
                         break
                 if add:
-                    self.config.append(new_device)
+                    self.config.append(device)
                     self.update()
                     should_save = True
         else:

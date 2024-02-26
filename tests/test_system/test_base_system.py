@@ -45,6 +45,7 @@ class TestBaseSystem(TestCase):
 
     def test_save(self):
         self.system.load()
+        self.system.reset()
 
         assert self.system.config == []
 

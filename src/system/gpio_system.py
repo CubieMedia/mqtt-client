@@ -45,7 +45,7 @@ class GPIOSystem(BaseSystem):
             return True
         return False
 
-    def update(self):
+    def update(self) -> {}:
         data = {}
 
         device_list = []

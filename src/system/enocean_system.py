@@ -86,10 +86,7 @@ class EnoceanSystem(BaseSystem):
             logging.warning(f"could not execute action on device [{device}]")
         return False
 
-    def send(self, data):
-        raise NotImplemented(f"sending data[{data}] for enocean is not implemented")
-
-    def update(self):
+    def update(self) -> {}:
         data = {}
 
         try:
@@ -119,7 +116,7 @@ class EnoceanSystem(BaseSystem):
             if device['client_id'] == self.client_id:
                 self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
                                          str(state).lower())
-                if state:
+                if state and 'state' in device:
                     for topic in device['state']:
                         self.mqtt_client.publish(
                             f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}",
@@ -143,6 +140,8 @@ class EnoceanSystem(BaseSystem):
         logging.info('... set devices unavailable...')
         self.set_availability(False)
 
+        super().shutdown()
+
         if self.communicator:
             logging.info('... stopping Enocean Communicator...')
             self.communicator.stop()
@@ -159,37 +158,28 @@ class EnoceanSystem(BaseSystem):
                         self._create_timer_for(channel_topic, True)
         self.last_update = 0
 
-    def save(self, new_device=None):
-        should_save = False
-        device = None
-        if new_device and {'id', 'dbm'}.issubset(new_device.keys()):
-            if (str(new_device[CUBIE_TYPE]).upper() == "RPS" or str(
-                    new_device[CUBIE_TYPE]).upper() == "TEMP") and self.core_config['learn_mode']:
+    def save(self, device=None):
+        if device and {'id', 'dbm'}.issubset(device.keys()):
+            if (str(device[CUBIE_TYPE]).upper() == "RPS" or str(
+                    device[CUBIE_TYPE]).upper() == "TEMP") and self.core_config['learn_mode']:
                 add = True
                 for known_device in self.config:
-                    if str(new_device['id']).upper() == str(known_device['id']).upper():
+                    if str(device['id']).upper() == str(known_device['id']).upper():
                         add = False
-                        if new_device['dbm'] > known_device['dbm']:
-                            device = copy.copy(new_device)
-                            del new_device['state']
-                            logging.info("... ... replace device[%s]" % new_device)
-                            self.config[self.config.index(known_device)] = new_device
-                            should_save = True
+                        if device['dbm'] > known_device['dbm']:
+                            device = copy.copy(device)
+                            del device['state']
+                            logging.info("... ... replace device[%s]" % device)
+                            self.config[self.config.index(known_device)] = device
+                            add = True
                         break
 
                 if add:
-                    device = copy.copy(new_device)
-                    if 'state' in new_device:
-                        del new_device['state']
-                    logging.info("... ... adding new device[%s]" % new_device['id'])
-                    self.config.append(new_device)
-                    should_save = True
+                    logging.info("... ... adding new device[%s]" % device['id'])
+                    super().save(device)
             else:
-                logging.warning(f"could not save unknown device [{new_device}]")
+                logging.warning(f"could not save unknown device [{device}]")
         else:
-            should_save = True
-
-        if should_save:
             super().save(device)
 
         if device and 'state' in device:
