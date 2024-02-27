@@ -105,10 +105,18 @@ class SonarSystem(BaseSystem):
         return data
 
     def announce(self):
-        device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'client_id': self.client_id, 'value': 0}
-        logging.info("... ... announce sonar device [%s]" % device)
-        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
-
-        topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/command"
-        logging.info("... ... subscribing to [%s] for sonar commands" % topic)
-        self.mqtt_client.subscribe(topic, 2)
+        for device in self.config:
+            if 'id' not in device:
+                already_exists = False
+                for temp_device in self.config:
+                    if 'id' in temp_device and temp_device['id'] == self.ip_address:
+                        already_exists = True
+                        break
+                if not already_exists:
+                    device['id'] = self.ip_address
+                else:
+                    logging.warning(f'{COLOR_YELLOW}something ist wrong with your config (id matching){COLOR_DEFAULT}')
+                    break
+            device['client_id'] = self.client_id
+            logging.info("... ... announce sonar device [%s]" % device)
+            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))

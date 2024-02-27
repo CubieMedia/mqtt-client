@@ -6,7 +6,7 @@ import logging
 
 from paho.mqtt import client as mqtt
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD, CUBIEMEDIA
 
 
 class CubieMediaMQTTClient:
@@ -40,14 +40,15 @@ class CubieMediaMQTTClient:
         self.mqtt_client.subscribe(topic, qos)
 
     def on_message(self, client, userdata, msg):
-        if msg.payload.decode('UTF-8') == CUBIE_ANNOUNCE:
+        msg_payload = msg.payload.decode('UTF-8')
+        logging.debug(f"... ... mqtt message [{msg_payload}]")
+        if msg_payload == CUBIE_ANNOUNCE:
             self.system.announce()
-        elif msg.payload.decode('UTF-8') == CUBIE_RESET:
+        elif msg_payload == CUBIE_RESET:
             self.system.reset()
-        elif msg.payload.decode('UTF-8') == CUBIE_RELOAD:
+        elif msg_payload == CUBIE_RELOAD:
             self.system.load()
         else:
-            logging.debug(f"... on_message received payload [{msg.payload}]")
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
                     message_data = json.loads(msg.payload.decode())
@@ -67,7 +68,7 @@ class CubieMediaMQTTClient:
                                 else:
                                     logging.warning(f"WARNING: no device data given [{message_data}] for deletion")
                             elif message_mode == 'values':
-                                logging.info(f"... send data with [{msg.topic}]: {msg.payload}")
+                                logging.info(f"... send data with [{msg.topic}]: {msg_payload}")
                                 self.system.send(message_data)
                             else:
                                 logging.warning(f"WARNING: unknown mode [{message_mode}]")
@@ -92,6 +93,9 @@ class CubieMediaMQTTClient:
         if rc == 0:
             logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
             self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
+            device_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/{str(self.system.ip_address).replace('.', '_')}/command"
+            logging.info(f"... ... subscribe to channel [{device_specific_command_topic}]")
+            self.mqtt_client.subscribe(device_specific_command_topic, QOS)
             self.system.announce()
         else:
             logging.info("... bad connection please check login data")

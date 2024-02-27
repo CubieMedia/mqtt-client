@@ -176,7 +176,7 @@ class EnoceanSystem(BaseSystem):
                         break
 
                 if add:
-                    logging.info("... ... adding new device[%s]" % device['id'])
+                    logging.info("... ... adding new/changed device[%s]" % device['id'])
                     super().save(device)
             else:
                 logging.warning(f"could not save unknown device [{device}]")

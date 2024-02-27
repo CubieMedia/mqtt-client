@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import time
 from unittest import TestCase
@@ -97,10 +98,13 @@ class TestCubieMediaMQTTClient(TestCase):
     def test_on_connect(self):
         self.system.get_mqtt_data = AUTHENTICATION_MOCK
         self.system.announce = MagicMock()
+        self.system.mqtt_client.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)
 
+        self.system.mqtt_client.mqtt_client.is_connected()
         self.system.announce.assert_called_once()
+        self.system.mqtt_client.mqtt_client.subscribe.assert_called()
 
     def test_on_disconnect(self):
         self.system.get_mqtt_data = AUTHENTICATION_MOCK
@@ -125,6 +129,7 @@ class TestCubieMediaMQTTClient(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        logging.basicConfig(level=logging.DEBUG)
         cls.backup_config = get_default_configuration_for(CUBIE_CORE)
         cls.mqtt_server_process = check_mqtt_server()
 

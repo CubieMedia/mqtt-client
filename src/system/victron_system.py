@@ -108,10 +108,6 @@ class VictronSystem(BaseSystem):
     def init(self):
         super().init()
 
-        device_command_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command"
-        logging.info(f"... ... subscribing to [{device_command_topic}] for victron write commands")
-        self.mqtt_client.subscribe(device_command_topic, 2)
-
         self.victron_system['client_id'] = self.client_id
         self.victron_mqtt_client = mqtt.Client(client_id=self.client_id, clean_session=True, userdata=None,
                                                transport="tcp")
@@ -151,6 +147,11 @@ class VictronSystem(BaseSystem):
             temp_victron_system = copy.copy(self.victron_system)
             temp_victron_system['state'] = SERVICE_LIST
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_victron_system))
+
+            device_command_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.victron_system['id'].replace('.', '_')}/+/command"
+            logging.info(f"... ... subscribing to [{device_command_topic}] for victron write commands")
+            self.mqtt_client.subscribe(device_command_topic, 2)
+
             self.set_availability(True)
         else:
             self.set_availability(False)
@@ -211,9 +212,12 @@ class VictronSystem(BaseSystem):
                     logging.info(f"... ... subscribe to topic [{victron_topic}]")
                     client.subscribe(victron_topic, QOS)
 
+                self.ip_address = self.victron_system['id']
                 self.announce()
+            else:
+                logging.warning("WARNING: could not find serial, will not subscribe to any topics")
         else:
-            logging.info("... bad connection please check login data")
+            logging.error("ERROR: bad connection (please check login data)")
 
     def on_victron_disconnect(self, client, userdata, rc):
         if rc == 0:

@@ -1,4 +1,3 @@
-import logging
 import subprocess
 import time
 from unittest import TestCase
@@ -163,7 +162,6 @@ class TestEnoceanSystem(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.DEBUG)
         cls.config_backup = get_default_configuration_for(CUBIE_CORE)
         cls.enocean_backup = get_default_configuration_for(CUBIE_ENOCEAN)
         cls.mqtt_server_process = check_mqtt_server()

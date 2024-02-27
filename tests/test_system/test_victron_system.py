@@ -52,12 +52,10 @@ class TestVictronSystem(TestCase):
             SERVICE_RESPONSE[SERVICE_LIST.index(topic)])
 
     def test_init(self):
-        self.system.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
-        self.system.mqtt_client.subscribe.assert_called_once()
         assert not self.system.victron_mqtt_client.is_connected()
         assert not self.system.keepalive_thread_event.is_set()
 
@@ -74,11 +72,9 @@ class TestVictronSystem(TestCase):
 
     def test_announce(self):
         self.system.set_availability = MagicMock()
-        self.system.mqtt_client.subscribe = MagicMock()
         self.system.init()
         time.sleep(1)
 
-        self.system.mqtt_client.subscribe.assert_called_once()
         self.system.set_availability.assert_called()
 
     def test_load(self):

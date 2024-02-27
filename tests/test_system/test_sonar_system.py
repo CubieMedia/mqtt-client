@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import time
 from unittest import TestCase
@@ -94,7 +95,6 @@ class TestSonarSystem(TestCase):
         self.system.mqtt_client = MagicMock()
         self.system.announce()
         self.system.mqtt_client.publish.assert_called_once()
-        self.system.mqtt_client.subscribe.assert_called_once()
 
     def setUp(self):
         self.system = SonarSystem()
@@ -105,6 +105,7 @@ class TestSonarSystem(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        logging.basicConfig(level=logging.DEBUG)
         cls.config_backup = get_default_configuration_for(CUBIE_CORE)
         cls.sonar_backup = get_default_configuration_for(CUBIE_SONAR)
         cls.mqtt_server_process = check_mqtt_server()
