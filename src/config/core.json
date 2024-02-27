@@ -1,7 +1,6 @@
 [
   {
     "host": "homeassistant",
-    "id": "10.10.23.25",
     "learn_mode": true,
     "password": "autoInstall",
     "type": "core",
