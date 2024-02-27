@@ -123,6 +123,6 @@ class GPIOSystem(BaseSystem):
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
         topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"
-        logging.info("... ... subscribing to [%s] for gpio output commands" % topic)
+        logging.info("... ... subscribe to [%s] for gpio output commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
         self.set_availability(True)

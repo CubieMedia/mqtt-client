@@ -6,7 +6,7 @@ from common import TIMEOUT_UPDATE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_core_configuration
-from src.common import CUBIEMEDIA
+from common import CUBIEMEDIA
 
 
 class BaseSystem(abc.ABC):
