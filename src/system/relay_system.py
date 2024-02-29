@@ -178,7 +178,7 @@ class RelaySystem(BaseSystem):
         while not self.scan_thread_event.is_set():
             try:
                 if not len(buf):
-                    logging.info("... ... sending discovery message for relay boards")
+                    logging.debug("... ... sending discovery message for relay boards")
                     self.discovery_socket.sendto(DISCOVERY_MESSAGE, DESTINATION_ADDRESS)
                     self.scan_thread_event.wait(1)
                 (buf, address) = self.discovery_socket.recvfrom(30303)
