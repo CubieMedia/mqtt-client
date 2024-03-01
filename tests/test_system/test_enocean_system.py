@@ -34,14 +34,16 @@ class TestEnoceanSystem(TestCase):
 
         self.system.mqtt_client.publish.assert_not_called()
 
-        self.system.mqtt_client.publish = MagicMock()
+        self.system.mqtt_client.publish.reset_mock()
         assert not self.system.action({})
 
         self.system.mqtt_client.publish.assert_not_called()
 
-        self.system.mqtt_client.publish = MagicMock()
+        self.system.mqtt_client.publish.reset_mock()
         self.system.save(DEVICE_TEST)
+        self.system.mqtt_client.publish.assert_called_once()
 
+        self.system.mqtt_client.publish.reset_mock()
         action_off = ACTION_TEST_OFF.copy()
         action_off['client_id'] = self.system.client_id
         assert self.system.action(action_off)
@@ -111,7 +113,7 @@ class TestEnoceanSystem(TestCase):
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
         self.system.communicator.start.assert_called_once()
-        assert len(self.system.mqtt_client.publish.mock_calls) == 10
+        assert len(self.system.mqtt_client.publish.mock_calls) == 11
         self.system.delete(DEVICE_TEST_WITH_STATE)
 
     def test_shutdown(self):
