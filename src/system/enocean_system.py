@@ -29,7 +29,7 @@ class EnoceanSystem(BaseSystem):
         super().__init__()
 
     def action(self, device):
-        if device and {'id', 'state', 'dbm', 'client_id'}.issubset(device.keys()):
+        if device and {'id', 'state', 'dbm'}.issubset(device.keys()):
             should_save = False
 
             for known_device in self.config:
@@ -176,8 +176,9 @@ class EnoceanSystem(BaseSystem):
                         break
 
                 if add:
-                    logging.info("... ... adding new/changed device[%s]" % device['id'])
+                    logging.info(f"... ... adding new/changed device[{device['id']}]")
                     super().save(device)
+                    self.announce()
             else:
                 logging.warning(f"could not save unknown device [{device}]")
         else:
