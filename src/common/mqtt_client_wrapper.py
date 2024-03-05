@@ -89,7 +89,7 @@ class CubieMediaMQTTClient:
                 logging.warning(f"... could not decode message[{msg.payload.decode()}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
-        logging.info(f"... connected to Server [{client._host}] as client [{self.client_id}]")
+        logging.info(f"... connected to Server [{self.system.get_mqtt_data()[0]}] as client [{self.client_id}]")
         if rc == 0:
             logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
             self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
@@ -100,10 +100,9 @@ class CubieMediaMQTTClient:
         else:
             logging.info("... bad connection please check login data")
 
-    @staticmethod
-    def on_disconnect(client, userdata, rc):
+    def on_disconnect(self, client, userdata, rc):
         if rc == 0:
-            logging.info("... ...disconnected from Service [%s] with result [%s]" % (client._host, rc))
+            logging.info(f"... ...disconnected from Service [{self.system.get_mqtt_data()[0]}] with result [{rc}]")
         else:
             logging.warning(
-                "... ... lost connection to Service [%s] with result [%s]\n%s" % (client._host, rc, userdata))
+                f"... ... lost connection to Service [{self.system.get_mqtt_data()[0]}] with result [{rc}]\n{userdata}")
