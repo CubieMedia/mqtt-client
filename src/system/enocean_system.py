@@ -35,12 +35,12 @@ class EnoceanSystem(BaseSystem):
             for known_device in self.config:
                 if str(device['id']).upper() == str(known_device['id']).upper():
                     if known_device['client_id'] != self.client_id:
-                        # device is not managed by this gateway
                         if device['dbm'] > known_device['dbm']:
                             device['client_id'] = self.client_id
                             logging.info("... ... device with better connection, announce [%s]" % device)
                             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
                             return False
+                        logging.debug("... ... device is not managed by this gateway [%s]" % device)
                         return True
                     if str(device[CUBIE_TYPE]).upper() == "RPS":
                         for topic in device['state']:
@@ -87,29 +87,33 @@ class EnoceanSystem(BaseSystem):
         return False
 
     def update(self) -> {}:
-        data = {}
-
         try:
             if self.communicator:
+                data = {}
                 packet = self.communicator.receive.get(block=False, timeout=1)
                 if packet.packet_type == PACKET.RADIO_ERP1:
-                    sensor = {'id': packet.sender_hex.replace(':', '').lower()}
+                    sensor = {'id': packet.sender_hex.replace(':', '').lower(), 'dbm': packet.dBm}
                     if packet.rorg == RORG.RPS:
                         sensor[CUBIE_TYPE] = 'RPS'
-                        sensor['dbm'] = packet.dBm
                         sensor['state'] = self._get_rps_state_from(packet)
                         data['devices'] = [sensor]
+                    elif packet.rorg == RORG.BS4:
+                        sensor[CUBIE_TYPE] = 'TEMP'
+                        sensor['state'] = self._get_temp_state_from(packet)
+                        data['devices'] = [sensor]
+                        logging.critical(f"update with data [{data}]")
                     else:
                         logging.error(f"device type (RORG: {packet.rorg}) not supported")
+
+                if self.last_update < time.time() - TIMEOUT_UPDATE:
+                    self.set_availability(True)
+                    self.last_update = time.time()
+                return data
         except queue.Empty:
             pass
         except Exception as e:
             logging.error("ERROR: %s" % e)
-
-        if self.last_update < time.time() - TIMEOUT_UPDATE:
-            self.set_availability(True)
-            self.last_update = time.time()
-        return data
+        return {}
 
     def set_availability(self, state: bool):
         for device in self.config:
@@ -186,6 +190,11 @@ class EnoceanSystem(BaseSystem):
 
         if device and 'state' in device:
             self.action(device)
+
+    @staticmethod
+    def _get_temp_state_from(packet):
+        temperature = round(packet.parsed['TMP']['value'], 1)
+        return {"value": temperature}
 
     @staticmethod
     def _get_rps_state_from(packet):
