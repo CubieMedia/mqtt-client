@@ -8,7 +8,7 @@ from common import CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAU
     CUBIE_CORE
 from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
-from test_common import AUTHENTICATION_MOCK, check_mqtt_server
+from test_common import MQTT_HOST_MOCK, check_mqtt_server
 
 DEVICE_TEST = {"id": "Test"}
 DEVICE_TEST2 = {"id": "Test2"}
@@ -90,7 +90,7 @@ class TestBaseSystem(TestCase):
 
     def setUp(self):
         self.system = BaseSystem()
-        self.system.get_mqtt_data = AUTHENTICATION_MOCK
+        self.system.get_mqtt_host = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()

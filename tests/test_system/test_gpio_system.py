@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from common import CUBIE_CORE, CUBIE_GPIO
 from common.python import set_default_configuration, get_default_configuration_for
 from system.gpio_system import GPIOSystem
-from test_common import check_mqtt_server, AUTHENTICATION_MOCK
+from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
 DEVICE_TEST = {"id": 18, "type": "out", "value": 0}
 DEVICE_TEST_2 = {"id": 4, "type": "in", "value": 0}
@@ -124,7 +124,7 @@ class TestGPIOSystem(TestCase):
 
     def setUp(self):
         self.system = GPIOSystem()
-        self.system.get_mqtt_data = AUTHENTICATION_MOCK
+        self.system.get_mqtt_host = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()

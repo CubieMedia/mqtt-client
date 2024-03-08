@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, PropertyMock
 from common import CUBIE_CORE, CUBIE_VICTRON
 from common.python import set_default_configuration, get_default_configuration_for
 from system.victron_system import TOPIC_READ_LIST, VictronSystem, SERVICE_LIST, VICTRON_WRITE_TOPIC
-from test_common import check_mqtt_server, AUTHENTICATION_MOCK
+from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
 SERVICE_PAYLOAD = [377, 33, 0, 0, 0, 0, False, 1, 1]
 SERVICE_RESPONSE = [377, 33, 0, 0, 0, 0, False, '{"value": 80}', '{"value": -1}']
@@ -163,7 +163,7 @@ class TestVictronSystem(TestCase):
 
     def setUp(self):
         self.system = VictronSystem()
-        self.system.get_mqtt_data = AUTHENTICATION_MOCK
+        self.system.get_mqtt_host = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()

@@ -2,11 +2,11 @@ import abc
 import logging
 import time
 
+from common import CUBIEMEDIA
 from common import TIMEOUT_UPDATE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_core_configuration
-from common import CUBIEMEDIA
 
 
 class BaseSystem(abc.ABC):
@@ -29,7 +29,7 @@ class BaseSystem(abc.ABC):
         self.mqtt_client.connect(self)
 
     def shutdown(self):
-        logging.info(f"... disconnect mqtt client [{self.client_id}] fron [{self.get_mqtt_data()[0]}]")
+        logging.info(f"... disconnect mqtt client [{self.client_id}] from [{self.get_mqtt_host()}]")
         if self.mqtt_client:
             self.mqtt_client.disconnect()
 
@@ -90,7 +90,9 @@ class BaseSystem(abc.ABC):
         self.config = []
         self.save()
 
-    def get_mqtt_data(self):
-        return (self.core_config['host'],
-                self.core_config['username'],
+    def get_mqtt_host(self):
+        return self.core_config['host']
+
+    def get_mqtt_login(self):
+        return (self.core_config['username'],
                 self.core_config['password'])

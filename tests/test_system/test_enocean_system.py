@@ -9,7 +9,7 @@ from enocean.protocol.packet import Packet
 from common import CUBIE_CORE, CUBIE_ENOCEAN
 from common.python import set_default_configuration, get_default_configuration_for, get_core_configuration
 from system.enocean_system import EnoceanSystem
-from test_common import check_mqtt_server, AUTHENTICATION_MOCK
+from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
 DEVICE_TEST = {"id": "Test", "type": "RPS", "dbm": 67}
 DEVICE_TEST_WITH_STATE = {"id": "Test2", "type": "RPS", "dbm": 83, "state": {'a1': 0, 'a2': 0, 'b1': 0, 'b2': 0}}
@@ -157,7 +157,7 @@ class TestEnoceanSystem(TestCase):
 
     def setUp(self):
         self.system = EnoceanSystem()
-        self.system.get_mqtt_data = AUTHENTICATION_MOCK
+        self.system.get_mqtt_host = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()

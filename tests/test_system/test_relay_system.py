@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from common import CUBIE_CORE, CUBIE_RELAY
 from common.python import set_default_configuration, get_default_configuration_for
 from system.relay_system import RelaySystem
-from test_common import check_mqtt_server, AUTHENTICATION_MOCK
+from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
 DEVICE_TEST = {"id": "Test", "type": "relay"}
 DATA_TEST = {"ip": "Test", "type": "relay", "id": 3, "state": "1"}
@@ -106,7 +106,7 @@ class TestRelaySystem(TestCase):
 
     def setUp(self):
         self.system = RelaySystem()
-        self.system.get_mqtt_data = AUTHENTICATION_MOCK
+        self.system.get_mqtt_host = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()

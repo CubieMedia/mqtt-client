@@ -18,13 +18,13 @@ class CubieMediaMQTTClient:
 
     def connect(self, system):
         self.system = system
-        server, user, password = system.get_mqtt_data()
 
-        self.mqtt_client.username_pw_set(username=user, password=password)
+        self.mqtt_client.username_pw_set(username=system.get_mqtt_login()[0], password=system.get_mqtt_login()[1])
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
 
+        server = system.get_mqtt_host()
         logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
         self.mqtt_client.connect(server, 1883, 60)
         self.mqtt_client.loop_start()
@@ -89,7 +89,7 @@ class CubieMediaMQTTClient:
                 logging.warning(f"... could not decode message[{msg.payload.decode()}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
-        logging.info(f"... connected to Server [{self.system.get_mqtt_data()[0]}] as client [{self.client_id}]")
+        logging.info(f"... connected to Server [{self.system.get_mqtt_host()}] as client [{self.client_id}]")
         if rc == 0:
             logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
             self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
@@ -102,7 +102,7 @@ class CubieMediaMQTTClient:
 
     def on_disconnect(self, client, userdata, rc):
         if rc == 0:
-            logging.info(f"... ...disconnected from Service [{self.system.get_mqtt_data()[0]}] with result [{rc}]")
+            logging.info(f"... ...disconnected from Service [{self.system.get_mqtt_host}] with result [{rc}]")
         else:
             logging.warning(
-                f"... ... lost connection to Service [{self.system.get_mqtt_data()[0]}] with result [{rc}]\n{userdata}")
+                f"... ... lost connection to Service [{self.system.get_mqtt_host}] with result [{rc}]\n{userdata}")

@@ -8,7 +8,7 @@ from common import CUBIE_CORE, CUBIE_SONAR
 from common.python import set_default_configuration, get_default_configuration_for
 from system.sonar_system import SonarSystem, DEFAULT_UPDATE_INTERVAL, DEFAULT_OFFSET, DEFAULT_TRIGGER_OFFSET, \
     DEFAULT_MAXIMAL_DISTANCE, DEFAULT_DISTANCE_OFFSET
-from test_common import check_mqtt_server, AUTHENTICATION_MOCK
+from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
 DEVICE_TEST = {"id": "Test", "value": 1300}
 
@@ -98,7 +98,7 @@ class TestSonarSystem(TestCase):
 
     def setUp(self):
         self.system = SonarSystem()
-        self.system.get_mqtt_data = AUTHENTICATION_MOCK
+        self.system.get_mqtt_host = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()
