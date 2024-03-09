@@ -8,6 +8,7 @@ import threading
 import time
 
 import requests
+from requests import ConnectionError
 
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_USERNAME, RELAY_PASSWORD, STATE_UNKNOWN, \
     TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY, CUBIE_TYPE
