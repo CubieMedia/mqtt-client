@@ -93,6 +93,9 @@ class CubieMediaMQTTClient:
         if rc == 0:
             logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
             self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
+            mode_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/command"
+            logging.info(f"... ... subscribe to channel [{mode_specific_command_topic}]")
+            self.mqtt_client.subscribe(mode_specific_command_topic, QOS)
             device_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/{str(self.system.ip_address).replace('.', '_')}/command"
             logging.info(f"... ... subscribe to channel [{device_specific_command_topic}]")
             self.mqtt_client.subscribe(device_specific_command_topic, QOS)

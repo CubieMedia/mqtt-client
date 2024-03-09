@@ -111,10 +111,9 @@ class RelaySystem(BaseSystem):
                                      str(state).lower())
 
             if 'state' in device:
-                for relay in device['state']:
+                for relay, state in device['state'].items():
                     self.mqtt_client.publish(
-                        f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                        device['state'][relay], True)
+                        f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}", state, True)
 
     def init(self):
         super().init()
