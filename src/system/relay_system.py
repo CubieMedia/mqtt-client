@@ -35,8 +35,8 @@ class RelaySystem(BaseSystem):
         if 'id' in device:
             if not device['id'] in self.subscription_list:
                 logging.info("... ... subscribing to [%s] for commands" % device['id'])
-                self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
-                                           2)
+                self.mqtt_client.subscribe(
+                    f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command", 2)
                 self.subscription_list.append(device['id'])
 
             for known_device in self.config:
@@ -71,6 +71,7 @@ class RelaySystem(BaseSystem):
     def update(self):
         data = {}
         if self.last_update < time.time() - TIMEOUT_UPDATE:
+            logging.info(f"... ... updating for all relay modules")
             relayboard_list = []
             send_data = False
             for module in self.module_list:
@@ -219,13 +220,13 @@ class RelaySystem(BaseSystem):
                         logging.warning("... ... WARN: state [%s] unknown" % status)
 
         except ConnectionError:
-            logging.info(f"ERROR ... could not read status from relay board [{ip}]")
+            logging.error(f"could not read status from relay board [{ip}]")
+            self.last_update = -1
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'false')
         finally:
             return status_list
 
-    @staticmethod
-    def _set_status(ip, relay, state, toggle: bool = False):
+    def _set_status(self, ip, relay, state, toggle: bool = False):
         auth = (RELAY_USERNAME, RELAY_PASSWORD)
 
         url = "http://" + str(ip) + "/io.cgi?"
@@ -234,6 +235,8 @@ class RelaySystem(BaseSystem):
         if toggle:
             url += '=30'  # + str(int(toggle) * 10)
         try:
-            requests.get(url, auth=auth)
+            requests.get(url, auth=auth, timeout=1)
         except ConnectionError:
-            logging.info(f"ERROR ... could not set value on relay board [{ip}]")
+            logging.error(f"could not set value on relay board [{ip}]")
+            self.last_update = -1
+            self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'false')
