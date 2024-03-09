@@ -135,10 +135,11 @@ class RelaySystem(BaseSystem):
         super().shutdown()
 
     def announce(self):
+        logging.info("... ... announce message received, announcing devices...")
         for device in self.config:
-            logging.info("... ... announce device [%s]" % device['id'])
+            logging.info("... ... ... announce device [%s]" % device['id'])
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
-            logging.info("... ... subscribing to [%s] for commands" % device['id'])
+            logging.info("... ... ... ...subscribing to [%s] for commands" % device['id'])
             self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
                                        2)
             if not device['id'] in self.subscription_list:

@@ -1,6 +1,15 @@
 #!/bin/bash
 
 # this script is only for none snap environment
+restart_service () {
+  systemctl is-active --quiet cubiemedia-$1
+  RETURN=$?
+  if [ $RETURN -eq 0 ]
+  then
+    systemctl restart cubiemedia-$1
+  fi
+}
+
 
 while :
 do
@@ -21,7 +30,16 @@ do
     git pull --rebase
     echo "... unstash changes ..."
     git stash pop
-    echo "... finished update successfully"
+    echo "... finished update, restarting services"
+    restart_service relay
+    restart_service enocean
+    restart_service victron
+    restart_service gpio
+    restart_service sonar
+    restart_service core
+    restart_service git-updater
+    restart_service webtool
+    break
   else
     echo "... no updates found!"
   fi
