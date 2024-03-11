@@ -4,7 +4,7 @@
 import json
 import logging
 
-from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE
+from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE, DEFAULT_TOPIC_COMMAND
 from system.base_system import BaseSystem
 
 
@@ -23,6 +23,7 @@ class CoreSystem(BaseSystem):
 
     def save(self, device: {} = None):
         is_new_device = True
+        should_reload = False
         if device:
             for core_config in self.config:
                 if 'id' not in device or device['id'] == core_config['id']:
@@ -32,11 +33,15 @@ class CoreSystem(BaseSystem):
                             core_config[key] = device[key]
                         logging.info(f"... save config [{core_config}] for core system")
                         self.config[index] = core_config
+                        should_reload = True
                     is_new_device = False
 
         if device and is_new_device:
             self.config.append(device)
         super().save()
+
+        if should_reload:
+            self.mqtt_client.publish(DEFAULT_TOPIC_COMMAND, "reload")
 
     def delete(self, device):
         logging.info(f"... delete device [{device}] from core system")
