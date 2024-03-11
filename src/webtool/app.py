@@ -59,6 +59,8 @@ def update_application_parameter(application, parameter_id):
     mqtt_client.publish("cubiemedia/command", json.dumps(message))
     mqtt_client.disconnect()
 
+    if parameter_id == 'learn_mode':
+        return redirect(url_for('index'))
     return render_template('application.html', application=application, device_list=get_device_list(application))
 
 

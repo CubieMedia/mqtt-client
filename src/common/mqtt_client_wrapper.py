@@ -33,14 +33,14 @@ class CubieMediaMQTTClient:
         self.mqtt_client.disconnect()
         self.mqtt_client.loop_stop()
 
-    def publish(self, topic, payload, retain: bool = False):
+    def publish(self, topic, payload: str, retain: bool = False):
         self.mqtt_client.publish(topic, payload, 0, retain)
 
     def subscribe(self, topic, qos):
         self.mqtt_client.subscribe(topic, qos)
 
     def on_message(self, client, userdata, msg):
-        msg_payload = msg.payload.decode('UTF-8')
+        msg_payload = str(msg.payload.decode()).replace("False", "false").replace("True", "true").strip()
         logging.debug(f"... ... mqtt message [{msg_payload}]")
         if msg_payload == CUBIE_ANNOUNCE:
             self.system.announce()
@@ -51,7 +51,7 @@ class CubieMediaMQTTClient:
         else:
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
-                    message_data = json.loads(msg.payload.decode())
+                    message_data = json.loads(msg_payload)
                     if "type" in message_data and message_data["type"] == self.system.execution_mode:
                         if "mode" in message_data:
                             message_mode = message_data["mode"]
@@ -81,12 +81,12 @@ class CubieMediaMQTTClient:
                         topic_array = msg.topic.split("/")
                         if len(topic_array) > 3:
                             message_data = {'ip': topic_array[2].replace("_", "."), 'id': topic_array[3],
-                                            'state': msg.payload}
+                                            'state': msg_payload}
                             self.system.send(message_data)
                     else:
                         logging.warning(f"... ... unknown topic [{msg.topic}]")
             except json.JSONDecodeError as json_error:
-                logging.warning(f"... could not decode message[{msg.payload.decode()}] with [{json_error}]")
+                logging.warning(f"... could not decode message[{msg_payload}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
         logging.info(f"... connected to Server [{self.system.get_mqtt_host()}] as client [{self.client_id}]")

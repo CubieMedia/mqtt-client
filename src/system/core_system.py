@@ -22,28 +22,21 @@ class CoreSystem(BaseSystem):
         self.set_availability(True)
 
     def save(self, device: {} = None):
-        should_save = False if device else True
+        is_new_device = True
         if device:
-            if 'id' not in device:
-                device['id'] = self.ip_address
             for core_config in self.config:
-                if device['id'] == core_config['id']:
+                if 'id' not in device or device['id'] == core_config['id']:
                     if sorted(device.items()) != sorted(core_config.items()):
-                        logging.info(f"... save config [{device}] for core system")
                         index = self.config.index(core_config)
                         for key in device:
                             core_config[key] = device[key]
+                        logging.info(f"... save config [{core_config}] for core system")
                         self.config[index] = core_config
-                        should_save = True
-                    device = None
-                    break
+                    is_new_device = False
 
-            if device:
-                self.config.append(device)
-                should_save = True
-
-        if should_save:
-            super().save()
+        if device and is_new_device:
+            self.config.append(device)
+        super().save()
 
     def delete(self, device):
         logging.info(f"... delete device [{device}] from core system")
