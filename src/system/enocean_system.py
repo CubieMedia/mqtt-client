@@ -101,7 +101,6 @@ class EnoceanSystem(BaseSystem):
                         sensor[CUBIE_TYPE] = 'TEMP'
                         sensor['state'] = self._get_temp_state_from(packet)
                         data['devices'] = [sensor]
-                        logging.critical(f"update with data [{data}]")
                     else:
                         logging.error(f"device type (RORG: {packet.rorg}) not supported")
                 else:
