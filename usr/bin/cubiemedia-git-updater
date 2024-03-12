@@ -6,7 +6,7 @@ restart_service () {
   RETURN=$?
   if [ $RETURN -eq 0 ]
   then
-    sudo systemctl restart cubiemedia-$1
+    systemctl restart cubiemedia-$1
   fi
 }
 
@@ -20,16 +20,16 @@ do
   if [ $UPDATE = 1 ]
   then
     echo "... update found ... "
-    # not cleaning because sudo is not nice
-    #echo "... clean repository ..."
-    #sudo git clean -f ./*/__pycache__
-    #sudo git clean -f ./*/*/__pycache__
+    echo "... clean repository ..."
+    git clean -f ./*/__pycache__
+    git clean -f ./*/*/__pycache__
     echo "... stash changes ..."
     git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
     echo "... pull changes ..."
     git pull --rebase
     echo "... unstash changes ..."
     git stash pop
+    chown pi -R ./*
     echo "... finished update, restarting services"
     restart_service relay
     restart_service enocean
