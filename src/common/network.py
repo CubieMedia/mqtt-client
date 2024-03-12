@@ -35,7 +35,7 @@ def get_ip_address_of_interface(interfaces):
     try:
         for interface in interfaces:
             if interface in net.interfaces():
-                if len(net.ifaddresses(interface)) > 1 and len(net.ifaddresses(interface)[2]) > 0:
+                if len(net.ifaddresses(interface)) > 2 and len(net.ifaddresses(interface)[2]) > 0:
                     return net.ifaddresses(interface)[2][0]['addr']
     except KeyError:
         pass

@@ -193,7 +193,11 @@ class EnoceanSystem(BaseSystem):
 
     @staticmethod
     def _get_temp_state_from(packet):
+        logging.info(packet)
+        message = packet.parse_eep(0x02, 0x05)
+        logging.info(message)
         temperature = round(packet.parsed['TMP']['value'], 1)
+        logging.info(temperature)
         return {"value": temperature}
 
     @staticmethod
