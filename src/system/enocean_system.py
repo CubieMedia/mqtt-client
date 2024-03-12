@@ -58,13 +58,13 @@ class EnoceanSystem(BaseSystem):
                                         timer = self.timers[channel_topic]
                                         timer.cancel()
                                         del self.timers[channel_topic]
-                                        short_press_timer = Timer(0.5, self.mqtt_client.publish,
+                                        short_push_timer = Timer(0.5, self.mqtt_client.publish,
                                                                   [channel_topic, 0, True])
-                                        short_press_timer.start()
+                                        short_push_timer.start()
                                     else:
                                         if channel_topic in self.timers:
                                             del self.timers[channel_topic]
-                                        self.mqtt_client.publish(channel_topic + "/longpress", 0, True)
+                                        self.mqtt_client.publish(channel_topic + "/longpush", 0, True)
                                 should_save = True
                         known_device['state'] = device['state']
                         if device['dbm'] > known_device['dbm']:
@@ -127,7 +127,7 @@ class EnoceanSystem(BaseSystem):
                             f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}",
                             str(device['state'][topic]).lower(), True)
                         self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpress", str(0),
+                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpush", str(0),
                             True)
 
     def init(self):
@@ -276,17 +276,17 @@ class EnoceanSystem(BaseSystem):
 
     def _create_timer_for(self, channel_topic, force=False):
         if channel_topic not in self.timers:
-            timer = Timer(0.8, self._long_press_timer, [channel_topic])
+            timer = Timer(0.8, self._long_push_timer, [channel_topic])
             self.timers[channel_topic] = timer
             timer.start()
         elif force:
-            logging.info("... ... sending longpress [%s]" % channel_topic)
-            self.mqtt_client.publish(channel_topic + "/longpress", 1, True)
+            logging.info("... ... sending longpush [%s]" % channel_topic)
+            self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
 
-    def _long_press_timer(self, channel_topic):
+    def _long_push_timer(self, channel_topic):
         self.timers[channel_topic] = True
-        logging.info("... ... sending longpress [%s]" % channel_topic)
-        self.mqtt_client.publish(channel_topic + "/longpress", 1, True)
+        logging.info("... ... sending longpush [%s]" % channel_topic)
+        self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
 
         topic_array = channel_topic.split('/')
         device_id = topic_array[1]
