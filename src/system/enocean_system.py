@@ -64,7 +64,7 @@ class EnoceanSystem(BaseSystem):
                                     else:
                                         if channel_topic in self.timers:
                                             del self.timers[channel_topic]
-                                        self.mqtt_client.publish(channel_topic + "/longpush", 0, True)
+                                        self.mqtt_client.publish(channel_topic + "/longpress", 0, True)
                                 should_save = True
                         known_device['state'] = device['state']
                         if device['dbm'] > known_device['dbm']:
@@ -95,7 +95,7 @@ class EnoceanSystem(BaseSystem):
                     sensor = {'id': packet.sender_hex.replace(':', '').lower(), 'dbm': packet.dBm}
                     if packet.rorg == RORG.RPS:
                         sensor[CUBIE_TYPE] = 'RPS'
-                        sensor['state'] = self._get_rps_state_from(packet)
+                        sensor['state'] = self._get_rps_state_from2(packet)
                         data['devices'] = [sensor]
                     elif packet.rorg == RORG.BS4:
                         sensor[CUBIE_TYPE] = 'TEMP'
@@ -113,7 +113,7 @@ class EnoceanSystem(BaseSystem):
         except queue.Empty:
             pass
         except Exception as e:
-            logging.error("ERROR: %s" % e)
+            logging.error("ERROR on update: %s" % e)
         return {}
 
     def set_availability(self, state: bool):
@@ -200,8 +200,43 @@ class EnoceanSystem(BaseSystem):
 
     @staticmethod
     def _get_rps_state_from2(packet):
+        state = {}
         for k in packet.parse_eep(0x02, 0x02):
-            logging.debug('%s: %s' % (k, packet.parsed[k]))
+            if k == 'R1':
+                button_action = int(packet.parsed[k]['raw_value'])
+            if k == 'R2':
+                button_action_2 = int(packet.parsed[k]['raw_value'])
+            if k == 'EB':
+                energy_bow_active = int(packet.parsed[k]['raw_value']) == 1
+            if k == 'SA':
+                has_second_action = int(packet.parsed[k]['raw_value']) == 1
+
+        logging.debug(f"Action: {button_action}, SA: {has_second_action}, Action2: {button_action_2}, EB: {energy_bow_active}")
+
+        if energy_bow_active:
+            if button_action == 0:
+                state['a2'] = 1
+            elif button_action == 1:
+                state['a1'] = 1
+            elif button_action == 2:
+                state['b2'] = 1
+            elif button_action == 3:
+                state['b1'] = 1
+
+            if has_second_action:
+                if button_action_2 == 2:
+                    state['b2'] = 1
+                elif button_action_2 == 3:
+                    state['b1'] = 1
+        else:
+            state['a1'] = 0
+            state['a2'] = 0
+            state['b1'] = 0
+            state['b2'] = 0
+
+        logging.debug(state)
+
+        return state
 
     @staticmethod
     def _get_rps_state_from(packet):
@@ -245,13 +280,13 @@ class EnoceanSystem(BaseSystem):
             self.timers[channel_topic] = timer
             timer.start()
         elif force:
-            logging.info("... ... sending longpush [%s]" % channel_topic)
-            self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
+            logging.info("... ... sending longpress [%s]" % channel_topic)
+            self.mqtt_client.publish(channel_topic + "/longpress", 1, True)
 
     def _long_press_timer(self, channel_topic):
         self.timers[channel_topic] = True
-        logging.info("... ... sending longpush [%s]" % channel_topic)
-        self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
+        logging.info("... ... sending longpress [%s]" % channel_topic)
+        self.mqtt_client.publish(channel_topic + "/longpress", 1, True)
 
         topic_array = channel_topic.split('/')
         device_id = topic_array[1]

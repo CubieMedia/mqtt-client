@@ -159,7 +159,6 @@ if ATTR_MODEL_SWITCH == device_type:
         sensor_name = f"Sensor {ATTR_MODEL_SWITCH_ARRAY[sensorId].title()}"
         unique_id = f"enocean-{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-input"
         config_topic = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}/config"
-        config_topic_longpush = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-longpush/config"
         state_topic = f"{CUBIE_TOPIC}/{plugin_type}/{device_id}/{ATTR_MODEL_SWITCH_ARRAY[sensorId]}"
         availability_topic = f"{CUBIE_TOPIC}/{plugin_type}/{device_id}/online"
         payload = PAYLOAD_SENSOR
@@ -173,17 +172,18 @@ if ATTR_MODEL_SWITCH == device_type:
 
         mqtt_publish(config_topic, payload)
 
-        # also create longpush sensor for all normal sensors
+        # also create long press sensor for all normal sensors
+        config_topic_long_press = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-longpress/config"
         payload = PAYLOAD_SENSOR
-        payload[MQTT_NAME] = sensor_name + "-longpush"
-        payload[MQTT_STATE_TOPIC] = state_topic + "/longpush"
+        payload[MQTT_NAME] = sensor_name + "-longpress"
+        payload[MQTT_STATE_TOPIC] = state_topic + "/longpress"
         payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
-        payload[MQTT_UNIQUE_ID] = unique_id + "_longpush"
+        payload[MQTT_UNIQUE_ID] = unique_id + "_longpress"
         payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
         payload[MQTT_DEVICE][MQTT_NAME] = device_name
         payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Enocean Gateway ({client_id})"
 
-        mqtt_publish(config_topic_longpush, payload)
+        mqtt_publish(config_topic_long_press, payload)
     success = True
 # Relay Boards
 elif ATTR_MODEL_RELAY in device_type:
