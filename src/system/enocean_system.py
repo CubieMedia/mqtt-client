@@ -104,6 +104,8 @@ class EnoceanSystem(BaseSystem):
                         logging.critical(f"update with data [{data}]")
                     else:
                         logging.error(f"device type (RORG: {packet.rorg}) not supported")
+                else:
+                    logging.error(f"packet type ({packet.packet_type}) not supported")
 
                 if self.last_update < time.time() - TIMEOUT_UPDATE:
                     self.set_availability(True)
@@ -193,12 +195,14 @@ class EnoceanSystem(BaseSystem):
 
     @staticmethod
     def _get_temp_state_from(packet):
-        logging.info(packet)
-        message = packet.parse_eep(0x02, 0x05)
-        logging.info(message)
+        packet.parse_eep(0x02, 0x05)
         temperature = round(packet.parsed['TMP']['value'], 1)
-        logging.info(temperature)
         return {"value": temperature}
+
+    @staticmethod
+    def _get_rps_state_from2(packet):
+        for k in packet.parse_eep(0x02, 0x02):
+            logging.debug('%s: %s' % (k, packet.parsed[k]))
 
     @staticmethod
     def _get_rps_state_from(packet):
