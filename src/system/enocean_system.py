@@ -49,6 +49,7 @@ class EnoceanSystem(BaseSystem):
                                         topic]):
                                 channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                                 value = device['state'][topic]
+                                known_device['state'][topic] = value
                                 if value == 1:
                                     self._create_timer_for(channel_topic)
                                 else:
@@ -59,7 +60,7 @@ class EnoceanSystem(BaseSystem):
                                         timer.cancel()
                                         del self.timers[channel_topic]
                                         short_push_timer = Timer(0.5, self.mqtt_client.publish,
-                                                                  [channel_topic, 0, True])
+                                                                 [channel_topic, 0, True])
                                         short_push_timer.start()
                                     else:
                                         if channel_topic in self.timers:
@@ -70,7 +71,7 @@ class EnoceanSystem(BaseSystem):
                         if device['dbm'] > known_device['dbm']:
                             known_device['dbm'] = device['dbm']
                         if should_save:
-                            self.save(device)
+                            self.save()
                     else:
                         logging.debug("... ... send message for [%s]" % device['id'])
                         self.mqtt_client.publish(
@@ -201,7 +202,17 @@ class EnoceanSystem(BaseSystem):
     @staticmethod
     def _get_rps_state_from2(packet):
         state = {}
-        for k in packet.parse_eep(0x02, 0x02):
+        try:
+            attribute_list = packet.parse_eep(0x02, 0x01)
+        except TypeError:
+            attribute_list = packet.parse_eep(0x01, 0x01)
+
+        button_action = 1
+        has_second_action = False
+        button_action_2 = 0
+        energy_bow_active = False
+
+        for k in attribute_list:
             if k == 'R1':
                 button_action = int(packet.parsed[k]['raw_value'])
             if k == 'R2':
@@ -210,8 +221,12 @@ class EnoceanSystem(BaseSystem):
                 energy_bow_active = int(packet.parsed[k]['raw_value']) == 1
             if k == 'SA':
                 has_second_action = int(packet.parsed[k]['raw_value']) == 1
+            if k == 'PB':
+                button_action = int(packet.parsed[k]['raw_value'])
+                energy_bow_active = int(packet.parsed[k]['raw_value']) == 1
 
-        logging.debug(f"Action: {button_action}, SA: {has_second_action}, Action2: {button_action_2}, EB: {energy_bow_active}")
+        logging.debug(
+            f"Action: {button_action}, SA: {has_second_action}, Action2: {button_action_2}, EB: {energy_bow_active}")
 
         if energy_bow_active:
             if button_action == 0:
