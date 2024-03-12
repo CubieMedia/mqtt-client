@@ -6,7 +6,7 @@ restart_service () {
   RETURN=$?
   if [ $RETURN -eq 0 ]
   then
-    systemctl restart cubiemedia-$1
+    sudo systemctl restart cubiemedia-$1
   fi
 }
 
