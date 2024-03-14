@@ -10,39 +10,31 @@ restart_service () {
   fi
 }
 
+echo "Checking for updates..."
+UPDATE=0
+sudo -H -u pi bash -c 'git remote update && git status -uno | grep -q "Your branch is behind" && UPDATE=1'
 
-while :
-do
-  echo "Checking for updates..."
-  UPDATE=0
-  git remote update && git status -uno | grep -q 'Your branch is behind' && UPDATE=1
-
-  if [ $UPDATE = 1 ]
-  then
-    echo "... update found ... "
-    echo "... clean repository ..."
-    git clean -f ./*/__pycache__
-    git clean -f ./*/*/__pycache__
-    echo "... stash changes ..."
-    git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
-    echo "... pull changes ..."
-    git pull --rebase
-    echo "... unstash changes ..."
-    git stash pop
-    chown pi -R ./*
-    echo "... finished update, restarting services"
-    restart_service relay
-    restart_service enocean
-    restart_service victron
-    restart_service gpio
-    restart_service sonar
-    restart_service core
-    restart_service git-updater
-    restart_service webtool
-    break
-  else
-    echo "... no updates found!"
-  fi
-
-  sleep 300
-done
+if [ $UPDATE = 1 ]
+then
+  echo "... update found ... "
+  echo "... clean repository ..."
+  git clean -f ./*/__pycache__
+  git clean -f ./*/*/__pycache__
+  echo "... stash changes ..."
+  sudo -H -u pi bash -c 'git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash'
+  echo "... pull changes ..."
+  sudo -H -u pi bash -c 'git pull --rebase'
+  echo "... unstash changes ..."
+  sudo -H -u pi bash -c 'git stash pop'
+  echo "... finished update, restarting services"
+  restart_service relay
+  restart_service enocean
+  restart_service victron
+  restart_service gpio
+  restart_service sonar
+  restart_service core
+  restart_service git-updater
+  restart_service webtool
+else
+  echo "... no updates found!"
+fi
