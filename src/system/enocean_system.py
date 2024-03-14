@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-import copy
 import json
 import logging
 import platform
 import queue
 import time
+import traceback
 from threading import Timer
 
 from enocean.communicators.serialcommunicator import SerialCommunicator
@@ -49,7 +49,6 @@ class EnoceanSystem(BaseSystem):
                                         topic]):
                                 channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                                 value = device['state'][topic]
-                                known_device['state'][topic] = value
                                 if value == 1:
                                     self._create_timer_for(channel_topic)
                                 else:
@@ -76,8 +75,7 @@ class EnoceanSystem(BaseSystem):
                         logging.debug("... ... send message for [%s]" % device['id'])
                         self.mqtt_client.publish(
                             f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}",
-                            json.dumps(device['state']),
-                            True)
+                            json.dumps(device['state']), True)
                     return True
 
             device['client_id'] = self.client_id
@@ -114,7 +112,8 @@ class EnoceanSystem(BaseSystem):
         except queue.Empty:
             pass
         except Exception as e:
-            logging.error("ERROR on update: %s" % e)
+            logging.error(f"ERROR on update: {e}")
+            traceback.print_exc()
         return {}
 
     def set_availability(self, state: bool):
@@ -157,7 +156,9 @@ class EnoceanSystem(BaseSystem):
         for device in self.config:
             if device['client_id'] == self.client_id:
                 logging.info("... ... announce device [%s]" % device['id'])
-                self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+                temp_device = device.copy()
+                del temp_device['state']
+                self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_device))
                 if 'state' in device:
                     for topic in device['state']:
                         if device['state'][topic] == 1:
@@ -174,8 +175,6 @@ class EnoceanSystem(BaseSystem):
                     if str(device['id']).upper() == str(known_device['id']).upper():
                         add = False
                         if device['dbm'] > known_device['dbm']:
-                            device = copy.copy(device)
-                            del device['state']
                             logging.info("... ... replace device[%s]" % device)
                             self.config[self.config.index(known_device)] = device
                             add = True
@@ -184,7 +183,6 @@ class EnoceanSystem(BaseSystem):
                 if add:
                     logging.info(f"... ... adding new/changed device[{device['id']}]")
                     super().save(device)
-                    self.announce()
             else:
                 logging.warning(f"could not save unknown device [{device}]")
         else:
@@ -201,11 +199,13 @@ class EnoceanSystem(BaseSystem):
 
     @staticmethod
     def _get_rps_state_from2(packet):
+        is_door_window_contact = False
         state = {}
         try:
             attribute_list = packet.parse_eep(0x02, 0x01)
         except TypeError:
             attribute_list = packet.parse_eep(0x01, 0x01)
+            is_door_window_contact = True
 
         button_action = 1
         has_second_action = False
@@ -245,9 +245,10 @@ class EnoceanSystem(BaseSystem):
                     state['b1'] = 1
         else:
             state['a1'] = 0
-            state['a2'] = 0
-            state['b1'] = 0
-            state['b2'] = 0
+            if not is_door_window_contact:
+                state['a2'] = 0
+                state['b1'] = 0
+                state['b2'] = 0
 
         logging.debug(state)
 
