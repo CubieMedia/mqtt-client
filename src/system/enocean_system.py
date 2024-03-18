@@ -6,7 +6,6 @@ import logging
 import platform
 import queue
 import time
-import traceback
 from threading import Timer
 
 from enocean.communicators.serialcommunicator import SerialCommunicator
@@ -113,7 +112,6 @@ class EnoceanSystem(BaseSystem):
             pass
         except Exception as e:
             logging.error(f"ERROR on update: {e}")
-            traceback.print_exc()
         return {}
 
     def set_availability(self, state: bool):
@@ -121,14 +119,6 @@ class EnoceanSystem(BaseSystem):
             if device['client_id'] == self.client_id:
                 self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
                                          str(state).lower())
-                if state and 'state' in device:
-                    for topic in device['state']:
-                        self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}",
-                            str(device['state'][topic]).lower(), True)
-                        self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpush", str(0),
-                            True)
 
     def init(self):
         super().init()
@@ -224,9 +214,6 @@ class EnoceanSystem(BaseSystem):
             if k == 'PB':
                 button_action = int(packet.parsed[k]['raw_value'])
                 energy_bow_active = int(packet.parsed[k]['raw_value']) == 1
-
-        logging.debug(
-            f"Action: {button_action}, SA: {has_second_action}, Action2: {button_action_2}, EB: {energy_bow_active}")
 
         if energy_bow_active:
             if button_action == 0:
