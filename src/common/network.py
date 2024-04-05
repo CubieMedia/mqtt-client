@@ -26,7 +26,7 @@ def get_ip_address() -> str:
             else:
                 time.sleep(3)
         else:
-            logging.debug("... ... found IP [%s]" % ip)
+            logging.debug("... found IP [%s]" % ip)
             break
     return ip
 

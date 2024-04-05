@@ -12,7 +12,7 @@ from enocean.communicators.serialcommunicator import SerialCommunicator
 from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
-from common import *
+import common
 from common.python import get_configuration
 from system.base_system import BaseSystem
 
@@ -24,7 +24,7 @@ class EnoceanSystem(BaseSystem):
     timers = {}
 
     def __init__(self):
-        self.execution_mode = CUBIE_ENOCEAN
+        self.execution_mode = common.CUBIE_ENOCEAN
         super().__init__()
 
     def action(self, device):
@@ -37,16 +37,16 @@ class EnoceanSystem(BaseSystem):
                         if device['dbm'] > known_device['dbm']:
                             device['client_id'] = self.client_id
                             logging.info("... ... device with better connection, announce [%s]" % device)
-                            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+                            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
                             return False
                         logging.debug("... ... device is not managed by this gateway [%s]" % device)
                         return True
-                    if str(device[CUBIE_TYPE]).upper() == "RPS":
+                    if str(device[common.CUBIE_TYPE]).upper() == "RPS":
                         for topic in device['state']:
                             if 'state' not in known_device or len(known_device['state']) == 0 or \
                                     (topic in known_device['state'] and device['state'][topic] != known_device['state'][
                                         topic]):
-                                channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                                channel_topic = f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                                 value = device['state'][topic]
                                 if value == 1:
                                     self._create_timer_for(channel_topic)
@@ -73,13 +73,13 @@ class EnoceanSystem(BaseSystem):
                     else:
                         logging.debug("... ... send message for [%s]" % device['id'])
                         self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}",
+                            f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}",
                             json.dumps(device['state']), True)
                     return True
 
             device['client_id'] = self.client_id
             logging.info("... ... unknown device, announce [%s]" % device)
-            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
         else:
             logging.warning(f"could not execute action on device [{device}]")
         return False
@@ -92,11 +92,11 @@ class EnoceanSystem(BaseSystem):
                 if packet.packet_type == PACKET.RADIO_ERP1:
                     sensor = {'id': packet.sender_hex.replace(':', '').lower(), 'dbm': packet.dBm}
                     if packet.rorg == RORG.RPS:
-                        sensor[CUBIE_TYPE] = 'RPS'
+                        sensor[common.CUBIE_TYPE] = 'RPS'
                         sensor['state'] = self._get_rps_state_from2(packet)
                         data['devices'] = [sensor]
                     elif packet.rorg == RORG.BS4:
-                        sensor[CUBIE_TYPE] = 'TEMP'
+                        sensor[common.CUBIE_TYPE] = 'TEMP'
                         sensor['state'] = self._get_temp_state_from(packet)
                         data['devices'] = [sensor]
                     else:
@@ -104,7 +104,7 @@ class EnoceanSystem(BaseSystem):
                 else:
                     logging.error(f"packet type ({packet.packet_type}) not supported")
 
-                if self.last_update < time.time() - TIMEOUT_UPDATE:
+                if self.last_update < time.time() - common.TIMEOUT_UPDATE:
                     self.set_availability(True)
                     self.last_update = time.time()
                 return data
@@ -117,7 +117,7 @@ class EnoceanSystem(BaseSystem):
     def set_availability(self, state: bool):
         for device in self.config:
             if device['client_id'] == self.client_id:
-                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
+                self.mqtt_client.publish(f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
                                          str(state).lower())
 
     def init(self):
@@ -148,18 +148,18 @@ class EnoceanSystem(BaseSystem):
                 logging.info("... ... announce device [%s]" % device['id'])
                 temp_device = device.copy()
                 del temp_device['state']
-                self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_device))
+                self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_device))
                 if 'state' in device:
                     for topic in device['state']:
                         if device['state'][topic] == 1:
-                            channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                            channel_topic = f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                             self._create_timer_for(channel_topic, True)
         self.last_update = 0
 
     def save(self, device=None):
         if device and {'id', 'dbm'}.issubset(device.keys()):
-            if (str(device[CUBIE_TYPE]).upper() == "RPS" or str(
-                    device[CUBIE_TYPE]).upper() == "TEMP") and self.core_config['learn_mode']:
+            if (str(device[common.CUBIE_TYPE]).upper() == "RPS" or str(
+                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.core_config['learn_mode']:
                 add = True
                 for known_device in self.config:
                     if str(device['id']).upper() == str(known_device['id']).upper():
@@ -316,13 +316,13 @@ class EnoceanSystem(BaseSystem):
 
     def _open_communicator(self):
         try:
-            serial_json = get_configuration(CUBIE_SERIAL)[0]
-            if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
-                self.communicator = SerialCommunicator(ENOCEAN_PORT)
+            serial_json = get_configuration(common.CUBIE_SERIAL)[0]
+            if serial_json[common.CUBIE_TYPE] == common.CUBIE_SERIAL and common.CUBIE_DEVICE in serial_json:
+                self.communicator = SerialCommunicator(common.ENOCEAN_PORT)
         except SerialException:
             if "arm" in platform.machine():
                 logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{COLOR_DEFAULT}")
+                    f"{common.COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{common.COLOR_DEFAULT}")
             else:
                 logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
+                    f"{common.COLOR_YELLOW}could not initialise serial communication, running in development mode?{common.COLOR_DEFAULT}")
