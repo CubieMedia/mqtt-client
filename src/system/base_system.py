@@ -44,10 +44,10 @@ class BaseSystem(abc.ABC):
         return data
 
     def send(self, data: {}) -> bool:
-        raise NotImplemented(f"sending data[{data}] is not implemented")
+        raise NotImplementedError(f"sending data[{data}] is not implemented")
 
     def announce(self):
-        raise NotImplementedError()
+        raise NotImplementedError("announce needs to be implemented for every system")
 
     def set_availability(self, state: bool):
         self.mqtt_client.publish(

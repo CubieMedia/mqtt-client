@@ -1,3 +1,4 @@
+# pylint: skip-file
 """
 This script adds MQTT discovery support for CubieMedia devices.
 """
