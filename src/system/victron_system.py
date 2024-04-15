@@ -109,7 +109,7 @@ class VictronSystem(BaseSystem):
         super().init()
 
         self.victron_system['client_id'] = self.client_id
-        self.victron_mqtt_client = mqtt.Client(client_id=self.client_id, clean_session=True, userdata=None,
+        self.victron_mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=self.client_id, clean_session=True, userdata=None,
                                                transport="tcp")
         # self.mqtt_client.username_pw_set(username=user, password=password)
         self.victron_mqtt_client.on_connect = self.on_victron_connect

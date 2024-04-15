@@ -14,7 +14,8 @@ class CubieMediaMQTTClient:
 
     def __init__(self, client_id):
         self.client_id = client_id
-        self.mqtt_client = mqtt.Client(client_id=client_id, clean_session=True, userdata=None, transport="tcp")
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id, clean_session=True,
+                                       userdata=None, transport="tcp")
 
     def connect(self, system):
         self.system = system
