@@ -22,7 +22,7 @@ CONFIG_DICT = {
 
 
 def exit_gracefully(system, *args):
-    logging.info("... shutdown process [%s]", *args)
+    logging.info("... shutdown mqtt client [" + str(args) + "]")
     system.RUN = False
 
     system.shutdown()
