@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint paho.mqtt netifaces enocean serial
+        pip install pylint paho.mqtt netifaces enocean serial requests flask werkzeug pytest
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=C,R,W,I $(git ls-files '*.py')
+        pylint --disable=C,R,W,I $(git ls-files 'src/*/*.py')
