@@ -1,0 +1,10 @@
+[Unit]
+Description=CubieMedia Git-Updater Timer
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Unit=cubiemedia-git-updater.service
+
+[Install]
+WantedBy=multi-user.target

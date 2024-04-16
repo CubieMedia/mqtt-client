@@ -4,82 +4,51 @@
 import json
 import logging
 
-from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE
-from common.python import get_configuration, get_core_configuration
+from common import CUBIE_CORE, DEFAULT_TOPIC_ANNOUNCE, DEFAULT_TOPIC_COMMAND
 from system.base_system import BaseSystem
 
 
 class CoreSystem(BaseSystem):
-    config = None
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_CORE
-
-    def init(self, ip_address):
-        super().init(ip_address)
-        logging.info("... init core system")
-        self.config = get_configuration(CUBIE_CORE)
-
-    def shutdown(self):
-        logging.info("... shutdown core system")
-        pass
-
-    def action(self, device):
-        should_save = False
-
-        if 'mode' in device and device['mode'] == 'update':
-            if 'type' in device and device['type'] == self.execution_mode:
-                logging.error(f"TEST [{device}]")
-
-        if should_save:
-            self.save(device)
-
-    def update(self):
-        data = {}
-
-        return data
-
-    def send(self, data):
-        logging.info(f"... send data [{data}] to devices of core system")
+        super().__init__()
 
     def announce(self):
-        device = get_core_configuration(self.ip_address)
+        device = self.core_config
         logging.info("... ... announce core device [%s]" % device)
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
         self.set_availability(True)
 
-    def save(self, new_device: {} = None):
-        should_save = False if new_device else True
-        if new_device:
-            if 'id' not in new_device:
-                new_device['id'] = self.ip_address
-            for core_config in self.known_device_list:
-                if new_device['id'] == core_config['id']:
-                    if sorted(new_device.items()) != sorted(core_config.items()):
-                        logging.info(f"... save config [{new_device}] for core system")
-                        index = self.known_device_list.index(core_config)
-                        for key in new_device:
-                            core_config[key] = new_device[key]
-                        self.known_device_list[index] = core_config
-                        should_save = True
-                    new_device = None
-                    break
+    def save(self, device: {} = None):
+        is_new_device = True
+        should_reload = False
+        if device:
+            for core_config in self.config:
+                if 'id' not in device or device['id'] == core_config['id']:
+                    if sorted(device.items()) != sorted(core_config.items()):
+                        index = self.config.index(core_config)
+                        for key in device:
+                            core_config[key] = device[key]
+                        logging.info(f"... save config [{core_config}] for core system")
+                        self.config[index] = core_config
+                        should_reload = True
+                    is_new_device = False
 
-            if new_device:
-                self.known_device_list.append(new_device)
-                should_save = True
+        if device and is_new_device:
+            self.config.append(device)
+        super().save()
 
-        if should_save:
-            super().save()
+        if should_reload:
+            self.mqtt_client.publish(DEFAULT_TOPIC_COMMAND, "reload")
 
     def delete(self, device):
         logging.info(f"... delete device [{device}] from core system")
-        for core_config in self.known_device_list:
+        for core_config in self.config:
             if 'id' in core_config:
                 if str(core_config['id']) == str(device['id']) and str(device['id']) != str(self.ip_address):
-                    self.known_device_list.remove(core_config)
+                    self.config.remove(core_config)
                     self.save()
                     return
 

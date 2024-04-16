@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-import copy
 import json
 import logging
 import platform
+import queue
 import time
 from threading import Timer
 
@@ -12,167 +12,234 @@ from enocean.communicators.serialcommunicator import SerialCommunicator
 from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
-from common import *
+import common
+from common.python import get_configuration
 from system.base_system import BaseSystem
-
-try:
-    import queue
-except ImportError:
-    logging.warning(f"{COLOR_YELLOW}queue not found, trying Queue WARNING{COLOR_DEFAULT}")
-    import Queue as queue
 
 
 class EnoceanSystem(BaseSystem):
+    serial_port = None
     communicator = None
     update_timeout = 30
     timers = {}
 
     def __init__(self):
+        self.execution_mode = common.CUBIE_ENOCEAN
         super().__init__()
-        self.execution_mode = CUBIE_ENOCEAN
-        try:
-            self.communicator = SerialCommunicator(ENOCEAN_PORT)
-        except SerialException:
-            if "arm" in platform.machine():
-                logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{COLOR_DEFAULT}")
-            else:
-                logging.warning(
-                    f"{COLOR_YELLOW}could not initialise serial communication, running in development mode?{COLOR_DEFAULT}")
 
     def action(self, device):
-        should_save = False
-        client_id = self.client_id
+        if device and {'id', 'state', 'dbm'}.issubset(device.keys()):
+            should_save = False
 
-        for known_device in self.known_device_list:
-            if str(device['id']).upper() == str(known_device['id']).upper():
-                if known_device['client_id'] != client_id:
-                    # device is not managed by this gateway
-                    if device['dbm'] > known_device['dbm']:
-                        device['client_id'] = client_id
-                        logging.info("... ... device with better connection, announce [%s]" % device)
-                        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
-                        return False
-                    return True
-                if str(device['type']).upper() == "RPS":
-                    for topic in device['state']:
-                        if 'state' not in known_device or len(known_device['state']) == 0 or \
-                                (topic in known_device['state'] and device['state'][topic] != known_device['state'][
-                                    topic]):
-                            channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
-                            value = device['state'][topic]
-                            if value == 1:
-                                self.create_timer_for(channel_topic)
-                            else:
-                                print("... ... action for [%s]" % channel_topic)
-                                logging.info("... ... action for [%s]" % channel_topic)
-                                if channel_topic in self.timers and self.timers[channel_topic] is not True:
-                                    self.mqtt_client.publish(channel_topic, 1)
-                                    timer = self.timers[channel_topic]
-                                    timer.cancel()
-                                    del self.timers[channel_topic]
-                                    short_press_timer = Timer(0.5, self.mqtt_client.publish, [channel_topic, 0, True])
-                                    short_press_timer.start()
+            for known_device in self.config:
+                if str(device['id']).upper() == str(known_device['id']).upper():
+                    if known_device['client_id'] != self.client_id:
+                        if device['dbm'] > known_device['dbm']:
+                            device['client_id'] = self.client_id
+                            logging.info("... ... device with better connection, announce [%s]" % device)
+                            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+                            return False
+                        logging.debug("... ... device is not managed by this gateway [%s]" % device)
+                        return True
+                    if str(device[common.CUBIE_TYPE]).upper() == "RPS":
+                        for topic in device['state']:
+                            if 'state' not in known_device or len(known_device['state']) == 0 or \
+                                    (topic in known_device['state'] and device['state'][topic] != known_device['state'][
+                                        topic]):
+                                channel_topic = f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                                value = device['state'][topic]
+                                if value == 1:
+                                    self._create_timer_for(channel_topic)
                                 else:
-                                    if channel_topic in self.timers:
+                                    logging.info("... ... action for [%s]" % channel_topic)
+                                    if channel_topic in self.timers and self.timers[channel_topic] is not True:
+                                        self.mqtt_client.publish(channel_topic, 1)
+                                        timer = self.timers[channel_topic]
+                                        timer.cancel()
                                         del self.timers[channel_topic]
-                                    self.mqtt_client.publish(channel_topic + "/longpush", 0, True)
-                            should_save = True
-                    known_device['state'] = device['state']
-                    if device['dbm'] > known_device['dbm']:
-                        known_device['dbm'] = device['dbm']
-                    if should_save:
-                        self.save()
-                else:
-                    print("... ... send message for [%s]" % device['id'])
-                    self.mqtt_client.publish(
-                        f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}", json.dumps(device['state']),
-                        True)
-                return True
+                                        short_push_timer = Timer(0.5, self.mqtt_client.publish,
+                                                                 [channel_topic, 0, True])
+                                        short_push_timer.start()
+                                    else:
+                                        if channel_topic in self.timers:
+                                            del self.timers[channel_topic]
+                                        self.mqtt_client.publish(channel_topic + "/longpush", 0, True)
+                                should_save = True
+                        known_device['state'] = device['state']
+                        if device['dbm'] > known_device['dbm']:
+                            known_device['dbm'] = device['dbm']
+                        if should_save:
+                            self.save()
+                    else:
+                        logging.debug("... ... send message for [%s]" % device['id'])
+                        self.mqtt_client.publish(
+                            f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}",
+                            json.dumps(device['state']), True)
+                    return True
 
-        device['client_id'] = client_id
-        logging.info("... ... unknown device, announce [%s]" % device)
-        self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+            device['client_id'] = self.client_id
+            logging.info("... ... unknown device, announce [%s]" % device)
+            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+        else:
+            logging.warning(f"could not execute action on device [{device}]")
         return False
 
-    def create_timer_for(self, channel_topic, force=False):
-        if channel_topic not in self.timers:
-            timer = Timer(0.8, self.longpress_timer, [channel_topic])
-            self.timers[channel_topic] = timer
-            timer.start()
-        elif force:
-            logging.info("... ... sending longpush [%s]" % channel_topic)
-            self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
-
-    def longpress_timer(self, channel_topic):
-        self.timers[channel_topic] = True
-        logging.info("... ... sending longpush [%s]" % channel_topic)
-        self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
-
-        topic_array = channel_topic.split('/')
-        device_id = topic_array[1]
-        button = topic_array[2]
-        device = None
-        for known_device in self.known_device_list:
-            if device_id == known_device['id']:
-                device = known_device
-                break
-
-        if device is not None and 'channel_config' in device:
-            channel_config = device['channel_config']
-            logging.info(f"... ... ... found config[{channel_config}] for device[{device_id}] and button[{button}]")
-            if button[0] in channel_config:
-                device_topic = channel_config[button[0]]
-                if 'dimmer' in device_topic:
-                    value = 5 if button[1] == '1' else 95
-                    while channel_topic in self.timers:
-                        self.mqtt_client.publish(device_topic, '{"turn": "on","brightness": ' + str(value), True)
-                        value += 10 if button[1] == '1' else -10
-                        time.sleep(0.5)
-                else:
-                    logging.warning("WARN: unknown device[%s]" % device_topic)
-
-    def set_availability(self, state: bool):
-        for device in self.known_device_list:
-            if device['client_id'] == self.client_id:
-                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
-                                         str(state).lower())
-                if state:
-                    for topic in device['state']:
-                        self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}",
-                            str(device['state'][topic]).lower(), True)
-                        self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}/longpress", str(0),
-                            True)
-
-    def send(self, data):
-        raise NotImplemented(f"sending data[{data}] for enocean is not implemented")
-
-    def update(self):
-        data = {}
-
+    def update(self) -> {}:
         try:
             if self.communicator:
+                data = {}
                 packet = self.communicator.receive.get(block=False, timeout=1)
                 if packet.packet_type == PACKET.RADIO_ERP1:
-                    sensor = {'id': packet.sender_hex.replace(':', '').lower()}
+                    sensor = {'id': packet.sender_hex.replace(':', '').lower(), 'dbm': packet.dBm}
                     if packet.rorg == RORG.RPS:
-                        sensor['type'] = 'RPS'
-                        sensor['dbm'] = packet.dBm
-                        sensor['state'] = self._get_rps_state_from(packet)
+                        sensor[common.CUBIE_TYPE] = 'RPS'
+                        sensor['state'] = self._get_rps_state_from2(packet)
+                        data['devices'] = [sensor]
+                    elif packet.rorg == RORG.BS4:
+                        sensor[common.CUBIE_TYPE] = 'TEMP'
+                        sensor['state'] = self._get_temp_state_from(packet)
                         data['devices'] = [sensor]
                     else:
                         logging.error(f"device type (RORG: {packet.rorg}) not supported")
+                else:
+                    logging.error(f"packet type ({packet.packet_type}) not supported")
+
+                if self.last_update < time.time() - common.TIMEOUT_UPDATE:
+                    self.set_availability(True)
+                    self.last_update = time.time()
+                return data
         except queue.Empty:
             pass
         except Exception as e:
-            logging.error("ERROR: %s" % e)
+            logging.error(f"ERROR on update: {e}")
+        return {}
 
-        if self.last_update < time.time() - TIMEOUT_UPDATE:
+    def set_availability(self, state: bool):
+        for device in self.config:
+            if device['client_id'] == self.client_id:
+                self.mqtt_client.publish(f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
+                                         str(state).lower())
+
+    def init(self):
+        super().init()
+
+        self._open_communicator()
+
+        if self.communicator:
+            logging.info("... starting serial communicator")
+            self.communicator.start()
+            time.sleep(0.100)
             self.set_availability(True)
-            self.last_update = time.time()
-        return data
+
+    def shutdown(self):
+        logging.info('... set devices unavailable...')
+        self.set_availability(False)
+
+        super().shutdown()
+
+        if self.communicator:
+            logging.info('... stopping Enocean Communicator...')
+            self.communicator.stop()
+            time.sleep(1)
+
+    def announce(self):
+        for device in self.config:
+            if device['client_id'] == self.client_id:
+                logging.info("... ... announce device [%s]" % device['id'])
+                temp_device = device.copy()
+                del temp_device['state']
+                self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_device))
+                if 'state' in device:
+                    for topic in device['state']:
+                        if device['state'][topic] == 1:
+                            channel_topic = f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                            self._create_timer_for(channel_topic, True)
+        self.last_update = 0
+
+    def save(self, device=None):
+        if device and {'id', 'dbm'}.issubset(device.keys()):
+            if (str(device[common.CUBIE_TYPE]).upper() == "RPS" or str(
+                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.core_config['learn_mode']:
+                add = True
+                for known_device in self.config:
+                    if str(device['id']).upper() == str(known_device['id']).upper():
+                        add = False
+                        if device['dbm'] > known_device['dbm']:
+                            logging.info("... ... replace device[%s]" % device)
+                            self.config[self.config.index(known_device)] = device
+                            add = True
+                        break
+
+                if add:
+                    logging.info(f"... ... adding new/changed device[{device['id']}]")
+                    super().save(device)
+            else:
+                logging.warning(f"could not save unknown device [{device}]")
+        else:
+            super().save(device)
+
+        if device and 'state' in device:
+            self.action(device)
+
+    @staticmethod
+    def _get_temp_state_from(packet):
+        packet.parse_eep(0x02, 0x05)
+        temperature = round(packet.parsed['TMP']['value'], 1)
+        return {"value": temperature}
+
+    @staticmethod
+    def _get_rps_state_from2(packet):
+        is_door_window_contact = False
+        state = {}
+        try:
+            attribute_list = packet.parse_eep(0x02, 0x01)
+        except TypeError:
+            attribute_list = packet.parse_eep(0x01, 0x01)
+            is_door_window_contact = True
+
+        button_action = 1
+        has_second_action = False
+        button_action_2 = 0
+        energy_bow_active = False
+
+        for k in attribute_list:
+            if k == 'R1':
+                button_action = int(packet.parsed[k]['raw_value'])
+            if k == 'R2':
+                button_action_2 = int(packet.parsed[k]['raw_value'])
+            if k == 'EB':
+                energy_bow_active = int(packet.parsed[k]['raw_value']) == 1
+            if k == 'SA':
+                has_second_action = int(packet.parsed[k]['raw_value']) == 1
+            if k == 'PB':
+                button_action = int(packet.parsed[k]['raw_value'])
+                energy_bow_active = int(packet.parsed[k]['raw_value']) == 1
+
+        if energy_bow_active:
+            if button_action == 0:
+                state['a2'] = 1
+            elif button_action == 1:
+                state['a1'] = 1
+            elif button_action == 2:
+                state['b2'] = 1
+            elif button_action == 3:
+                state['b1'] = 1
+
+            if has_second_action:
+                if button_action_2 == 2:
+                    state['b2'] = 1
+                elif button_action_2 == 3:
+                    state['b1'] = 1
+        else:
+            state['a1'] = 0
+            if not is_door_window_contact:
+                state['a2'] = 0
+                state['b1'] = 0
+                state['b2'] = 0
+
+        logging.debug(state)
+
+        return state
 
     @staticmethod
     def _get_rps_state_from(packet):
@@ -182,7 +249,7 @@ class EnoceanSystem(BaseSystem):
         button_action = data & 0xE0
         energy_bow = (data & 0x10) >> 4
 
-        # print("SA: %s, Action: %02X, EB: %s" % (sa, button_action, energy_bow))
+        logging.debug("SA: %s, Action: %02X, EB: %s" % (sa, button_action, energy_bow))
         if button_action == 0xE0:
             state['a1'] = energy_bow
         elif energy_bow == 1:
@@ -210,65 +277,52 @@ class EnoceanSystem(BaseSystem):
 
         return state
 
-    def init(self, ip_address):
-        super().init(ip_address)
-        if self.communicator:
-            logging.info("... starting serial communicator")
-            self.communicator.start()
-            time.sleep(0.100)
-        self.set_availability(True)
+    def _create_timer_for(self, channel_topic, force=False):
+        if channel_topic not in self.timers:
+            timer = Timer(0.8, self._long_push_timer, [channel_topic])
+            self.timers[channel_topic] = timer
+            timer.start()
+        elif force:
+            logging.info("... ... sending longpush [%s]" % channel_topic)
+            self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
 
-    def shutdown(self):
-        logging.info('... set devices unavailable...')
-        self.set_availability(False)
+    def _long_push_timer(self, channel_topic):
+        self.timers[channel_topic] = True
+        logging.info("... ... sending longpush [%s]" % channel_topic)
+        self.mqtt_client.publish(channel_topic + "/longpush", 1, True)
 
-        if self.communicator:
-            logging.info('... stopping Enocean Communicator...')
-            self.communicator.stop()
-            time.sleep(1)
-
-    def announce(self):
-        for device in self.known_device_list:
-            if device['client_id'] == self.client_id:
-                logging.info("... ... announce device [%s]" % device['id'])
-                self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
-                for topic in device['state']:
-                    if device['state'][topic] == 1:
-                        channel_topic = f"{CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
-                        self.create_timer_for(channel_topic, True)
-        self.last_update = 0
-
-    def save(self, new_device=None):
-        should_save = False
+        topic_array = channel_topic.split('/')
+        device_id = topic_array[1]
+        button = topic_array[2]
         device = None
-        if new_device:
-            if (str(new_device['type']).upper() == "RPS" or str(
-                    new_device['type']).upper() == "TEMP") and self.learn_mode:
-                add = True
-                for known_device in self.known_device_list:
-                    if str(new_device['id']).upper() == str(known_device['id']).upper():
-                        add = False
-                        if new_device['dbm'] > known_device['dbm']:
-                            device = copy.copy(new_device)
-                            del new_device['state']
-                            print("... ... replace device[%s]" % new_device)
-                            logging.info("... ... replace device[%s]" % new_device)
-                            self.known_device_list[self.known_device_list.index(known_device)] = new_device
-                            should_save = True
-                        break
+        for known_device in self.config:
+            if device_id == known_device['id']:
+                device = known_device
+                break
 
-                if add:
-                    device = copy.copy(new_device)
-                    if 'state' in new_device:
-                        del new_device['state']
-                    logging.info("... ... adding new device[%s]" % new_device['id'])
-                    self.known_device_list.append(new_device)
-                    should_save = True
-        else:
-            should_save = True
+        if device is not None and 'channel_config' in device:
+            channel_config = device['channel_config']
+            logging.info(f"... ... ... found config[{channel_config}] for device[{device_id}] and button[{button}]")
+            if button[0] in channel_config:
+                device_topic = channel_config[button[0]]
+                if 'dimmer' in device_topic:
+                    value = 5 if button[1] == '1' else 95
+                    while channel_topic in self.timers:
+                        self.mqtt_client.publish(device_topic, '{"turn": "on","brightness": ' + str(value), True)
+                        value += 10 if button[1] == '1' else -10
+                        time.sleep(0.5)
+                else:
+                    logging.warning("WARN: unknown device[%s]" % device_topic)
 
-        if should_save:
-            super().save()
-
-        if device is not None:
-            self.action(device)
+    def _open_communicator(self):
+        try:
+            serial_json = get_configuration(common.CUBIE_SERIAL)[0]
+            if serial_json[common.CUBIE_TYPE] == common.CUBIE_SERIAL and common.CUBIE_DEVICE in serial_json:
+                self.communicator = SerialCommunicator(common.ENOCEAN_PORT)
+        except SerialException:
+            if "arm" in platform.machine():
+                logging.warning(
+                    f"{common.COLOR_YELLOW}could not initialise serial communication, is the plug [serial-port] connected to [bt-serial]?{common.COLOR_DEFAULT}")
+            else:
+                logging.warning(
+                    f"{common.COLOR_YELLOW}could not initialise serial communication, running in development mode?{common.COLOR_DEFAULT}")

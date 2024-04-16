@@ -1,6 +1,8 @@
+# pylint: skip-file
 """
 This script adds MQTT discovery support for CubieMedia devices.
 """
+
 MQTT_SOFTWARE_VERSION = "sw"
 MQTT_MANUFACTURER = "mf"
 CONF_ID = "id"
@@ -64,7 +66,7 @@ PAYLOAD_ACTOR = {
     MQTT_NAME: "SERVICE_NAME",
     MQTT_COMMAND_TOPIC: "STATE_TOPIC/command",
     MQTT_STATE_TOPIC: "STATE_TOPIC",
-    MQTT_AVAILIBILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_AVAILABILITY_TOPIC: "AVAILABILITY_TOPIC",
     MQTT_PAYLOAD_ON: "1", MQTT_PAYLOAD_OFF: "0", MQTT_PAYLOAD_AVAILABLE: "true", MQTT_PAYLOAD_NOT_AVAILABLE: "false",
     MQTT_UNIQUE_ID: "UNIQUE_ID",
     MQTT_QOS: "0",
@@ -80,7 +82,7 @@ PAYLOAD_ACTOR = {
 PAYLOAD_SENSOR = {
     MQTT_NAME: "SERVICE_NAME",
     MQTT_STATE_TOPIC: "STATE_TOPIC",
-    MQTT_AVAILIBILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_AVAILABILITY_TOPIC: "AVAILABILITY_TOPIC",
     MQTT_PAYLOAD_ON: "1", MQTT_PAYLOAD_OFF: "0", MQTT_PAYLOAD_AVAILABLE: "true", MQTT_PAYLOAD_NOT_AVAILABLE: "false",
     MQTT_UNIQUE_ID: "UNIQUE_ID",
     MQTT_QOS: "0",
@@ -96,7 +98,7 @@ PAYLOAD_SPECIAL_ACTOR = {
     MQTT_NAME: "SERVICE_NAME",
     MQTT_COMMAND_TOPIC: "STATE_TOPIC/command",
     MQTT_STATE_TOPIC: "STATE_TOPIC",
-    MQTT_AVAILIBILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_AVAILABILITY_TOPIC: "AVAILABILITY_TOPIC",
     MQTT_UNIT_OF_MEASUREMENT: "UNIT_OF_MEASUREMENT",
     MQTT_STATE_CLASS: "STATE_CLASS",
     MQTT_DEVICE_CLASS: "DEVICE_CLASS",
@@ -158,7 +160,6 @@ if ATTR_MODEL_SWITCH == device_type:
         sensor_name = f"Sensor {ATTR_MODEL_SWITCH_ARRAY[sensorId].title()}"
         unique_id = f"enocean-{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-input"
         config_topic = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}/config"
-        config_topic_longpush = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-longpush/config"
         state_topic = f"{CUBIE_TOPIC}/{plugin_type}/{device_id}/{ATTR_MODEL_SWITCH_ARRAY[sensorId]}"
         availability_topic = f"{CUBIE_TOPIC}/{plugin_type}/{device_id}/online"
         payload = PAYLOAD_SENSOR
@@ -168,10 +169,12 @@ if ATTR_MODEL_SWITCH == device_type:
         payload[MQTT_UNIQUE_ID] = unique_id
         payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
         payload[MQTT_DEVICE][MQTT_NAME] = device_name
+        payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Enocean Gateway ({client_id})"
 
         mqtt_publish(config_topic, payload)
 
-        # also create longpush sensor for all normal sensors
+        # also create long push sensor for all normal sensors
+        config_topic_long_push = f"{disc_prefix}/binary_sensor/{device_id}-{ATTR_MODEL_SWITCH_ARRAY[sensorId]}-longpush/config"
         payload = PAYLOAD_SENSOR
         payload[MQTT_NAME] = sensor_name + "-longpush"
         payload[MQTT_STATE_TOPIC] = state_topic + "/longpush"
@@ -179,8 +182,9 @@ if ATTR_MODEL_SWITCH == device_type:
         payload[MQTT_UNIQUE_ID] = unique_id + "_longpush"
         payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
         payload[MQTT_DEVICE][MQTT_NAME] = device_name
+        payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Enocean Gateway ({client_id})"
 
-        mqtt_publish(config_topic_longpush, payload)
+        mqtt_publish(config_topic_long_push, payload)
     success = True
 # Relay Boards
 elif ATTR_MODEL_RELAY in device_type:
@@ -201,6 +205,7 @@ elif ATTR_MODEL_RELAY in device_type:
             payload[MQTT_UNIQUE_ID] = unique_id
             payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = [device_id]
             payload[MQTT_DEVICE][MQTT_NAME] = device_name
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Relay Gateway ({client_id})"
 
             mqtt_publish(config_topic, payload)
         success = True
@@ -213,7 +218,7 @@ elif ATTR_MODEL_GPIO == device_type:
             device_name = f"GPIO Device {device_id}"
             state_topic = f"{CUBIE_TOPIC}/gpio/{string_id}/{gpio['id']}"
             availability_topic = f"{CUBIE_TOPIC}/gpio/{string_id}/online"
-            if gpio['type'] == GPIO_TYPE_OUT:
+            if gpio[CONF_TYPE] == GPIO_TYPE_OUT:
                 gpio_name = f"Output {gpio['id']}"
                 unique_id = f"{string_id}-out-{gpio['id']}"
                 config_topic = f"{disc_prefix}/{ATTR_LIGHT}/{string_id}-{gpio['id']}/config"
@@ -226,7 +231,8 @@ elif ATTR_MODEL_GPIO == device_type:
                 payload[MQTT_UNIQUE_ID] = unique_id
                 payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
                 payload[MQTT_DEVICE][MQTT_NAME] = device_name
-            elif gpio['type'] == GPIO_TYPE_IN:
+                payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via GPIO Gateway ({client_id})"
+            elif gpio[CONF_TYPE] == GPIO_TYPE_IN:
                 gpio_name = f"Input {gpio['id']}"
                 unique_id = f"{string_id}-in-{gpio['id']}"
                 config_topic = f"{disc_prefix}/binary_sensor/{string_id}-{gpio['id']}/config"
@@ -238,6 +244,7 @@ elif ATTR_MODEL_GPIO == device_type:
                 payload[MQTT_UNIQUE_ID] = unique_id
                 payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
                 payload[MQTT_DEVICE][MQTT_NAME] = device_name
+                payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via GPIO Gateway ({client_id})"
             else:
                 continue
             mqtt_publish(config_topic, payload)
@@ -261,6 +268,8 @@ elif ATTR_MODEL_SONAR == device_type:
             payload[MQTT_UNIQUE_ID] = unique_id
             payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
             payload[MQTT_DEVICE][MQTT_NAME] = device_name
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Sonar Gateway ({client_id})"
+
             mqtt_publish(config_topic, payload)
 
         success = True
@@ -300,6 +309,7 @@ elif ATTR_MODEL_VICTRON == device_type:
             payload[MQTT_UNIQUE_ID] = unique_id
             payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
             payload[MQTT_DEVICE][MQTT_NAME] = device_name
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Victron Gateway ({client_id})"
         else:
             if "allow" in service:
                 config_topic = f"{disc_prefix}/{ATTR_LIGHT}/{string_id}-{service}/config"
@@ -313,6 +323,7 @@ elif ATTR_MODEL_VICTRON == device_type:
             payload[MQTT_UNIQUE_ID] = unique_id
             payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
             payload[MQTT_DEVICE][MQTT_NAME] = device_name
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Victron Gateway ({client_id})"
 
         mqtt_publish(config_topic, payload)
     success = True

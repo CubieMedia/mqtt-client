@@ -8,31 +8,17 @@ import time
 import warnings
 from functools import partial
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, COLOR_DEFAULT, COLOR_RED, CUBIE_SONAR, CUBIE_VICTRON, \
-    CUBIE_CORE  # noqa
-from common.network import get_ip_address  # noqa
+import common
 from common.python import exit_gracefully
 
 
 def get_execution_mode() -> str:
     for arg in sys.argv:
         arg = arg.lower()
-        if arg == CUBIE_GPIO:
-            return CUBIE_GPIO
-        elif arg == CUBIE_ENOCEAN:
-            return CUBIE_ENOCEAN
-        elif arg == CUBIE_RELAY:
-            return CUBIE_RELAY
-        elif arg == CUBIE_VICTRON:
-            return CUBIE_VICTRON
-        elif arg == CUBIE_SONAR:
-            return CUBIE_SONAR
-        elif arg == CUBIE_CORE:
-            return CUBIE_CORE
+        if arg in common.CUBIE_MODE_LIST:
+            return arg
 
-    raise RuntimeError(
-        f"Please give Mode [%s,%s,%s,%s,%s,%s] for script" % (
-            CUBIE_CORE, CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_SONAR, CUBIE_VICTRON))
+    raise RuntimeError(f"Please give Mode [{common.CUBIE_MODE_LIST}] for script")
 
 
 def is_verbose() -> bool:
@@ -57,26 +43,27 @@ def configure_logger():
 
 
 def get_system(execution_mode: str):
-    if execution_mode == CUBIE_GPIO:
-        from system.gpio_system import GPIOSystem
+    from system.core_system import CoreSystem
+    from system.enocean_system import EnoceanSystem
+    from system.gpio_system import GPIOSystem
+    from system.relay_system import RelaySystem
+    from system.sonar_system import SonarSystem
+    from system.victron_system import VictronSystem
+
+    if execution_mode == common.CUBIE_GPIO:
         return GPIOSystem()
-    elif execution_mode == CUBIE_ENOCEAN:
-        from system.enocean_system import EnoceanSystem
+    if execution_mode == common.CUBIE_ENOCEAN:
         return EnoceanSystem()
-    elif execution_mode == CUBIE_RELAY:
-        from system.relay_system import RelaySystem
+    if execution_mode == common.CUBIE_RELAY:
         return RelaySystem()
-    elif execution_mode == CUBIE_SONAR:
-        from system.sonar_system import SonarSystem
+    if execution_mode == common.CUBIE_SONAR:
         return SonarSystem()
-    elif execution_mode == CUBIE_VICTRON:
-        from system.victron_system import VictronSystem
+    if execution_mode == common.CUBIE_VICTRON:
         return VictronSystem()
-    elif execution_mode == CUBIE_CORE:
-        from system.core_system import CoreSystem
+    if execution_mode == common.CUBIE_CORE:
         return CoreSystem()
-    else:
-        raise RuntimeError(f"could not find system for mode[{execution_mode}]")
+
+    raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 
 
 def main():
@@ -84,11 +71,11 @@ def main():
         configure_logger()
         mode = get_execution_mode()
 
-        logging.info("Starting Cubie MQTT Client with mode [%s]" % mode)
+        logging.info("Starting Cubie MQTT Client with mode [%s]", mode)
 
-        ip_address = get_ip_address()
         system = get_system(mode)
-        system.init(ip_address)
+        system.init()
+
         # noinspection PyTypeChecker
         signal.signal(signal.SIGINT, partial(exit_gracefully, system))
         # noinspection PyTypeChecker
@@ -107,22 +94,20 @@ def main():
 
         logging.info('all done, exit program')
     except RuntimeError as exception:
+        logging.error(exception)
+        if "Try running as root!" in str(exception):
+            logging.error("%sPlease connect plugs [gpio-memory-control |"
+                          " serial-port]%s", common.COLOR_RED, common.COLOR_DEFAULT)
         if is_verbose():
             raise exception
-        else:
-            logging.error(exception)
-        if "Try running as root!" in exception.__str__():
-            logging.error(
-                f"{COLOR_RED}Also remember to connect plugs [gpio-memory-control | serial-port]{COLOR_DEFAULT}")
 
 
 if __name__ == '__main__':
     try:
         sys.exit(main())
     except RuntimeError as e:
+        logging.error(e)
         if is_verbose():
             raise e
-        else:
-            logging.error(e)
 
     sys.exit(0)

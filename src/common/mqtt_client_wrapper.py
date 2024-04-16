@@ -4,15 +4,9 @@
 import json
 import logging
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD
-from common.network import get_ip_address  # noqa
-from common.python import install_package
+from paho.mqtt import client as mqtt
 
-try:
-    from paho.mqtt import client as mqtt
-except (ModuleNotFoundError, RuntimeError) as e:
-    install_package("paho-mqtt")
-    from paho.mqtt import client as mqtt
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD, CUBIEMEDIA
 
 
 class CubieMediaMQTTClient:
@@ -20,42 +14,45 @@ class CubieMediaMQTTClient:
 
     def __init__(self, client_id):
         self.client_id = client_id
-        self.mqtt_client = mqtt.Client(client_id=client_id, clean_session=True, userdata=None, transport="tcp")
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id, clean_session=True,
+                                       userdata=None, transport="tcp")
 
     def connect(self, system):
         self.system = system
-        server, user, password = system.get_mqtt_data()
-        logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
-        self.mqtt_client.username_pw_set(username=user, password=password)
+
+        self.mqtt_client.username_pw_set(username=system.get_mqtt_login()[0], password=system.get_mqtt_login()[1])
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
 
+        server = system.get_mqtt_host()
+        logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
         self.mqtt_client.connect(server, 1883, 60)
         self.mqtt_client.loop_start()
 
     def disconnect(self):
         self.mqtt_client.disconnect()
+        self.mqtt_client.loop_stop()
 
-    def publish(self, topic, payload, retain: bool = False):
+    def publish(self, topic, payload: str, retain: bool = False):
         self.mqtt_client.publish(topic, payload, 0, retain)
 
     def subscribe(self, topic, qos):
         self.mqtt_client.subscribe(topic, qos)
 
     def on_message(self, client, userdata, msg):
-        # print(msg.payload)
-        if msg.payload.decode('UTF-8') == CUBIE_ANNOUNCE:
+        msg_payload = str(msg.payload.decode()).replace("False", "false").replace("True", "true").strip()
+        logging.debug(f"... ... mqtt message [{msg_payload}]")
+        if msg_payload == CUBIE_ANNOUNCE:
             self.system.announce()
-        elif msg.payload.decode('UTF-8') == CUBIE_RESET:
+        elif msg_payload == CUBIE_RESET:
             self.system.reset()
-        elif msg.payload.decode('UTF-8') == CUBIE_RELOAD:
+        elif msg_payload == CUBIE_RELOAD:
             self.system.load()
         else:
-            # print("... received data: format to json[%s]" % msg.payload)
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
-                    message_data = json.loads(msg.payload.decode())
+                    message_data = json.loads(msg_payload)
                     if "type" in message_data and message_data["type"] == self.system.execution_mode:
                         if "mode" in message_data:
                             message_mode = message_data["mode"]
@@ -72,7 +69,7 @@ class CubieMediaMQTTClient:
                                 else:
                                     logging.warning(f"WARNING: no device data given [{message_data}] for deletion")
                             elif message_mode == 'values':
-                                logging.info(f"... send data with [{msg.topic}]: {msg.payload}")
+                                logging.info(f"... send data with [{msg.topic}]: {msg_payload}")
                                 self.system.send(message_data)
                             else:
                                 logging.warning(f"WARNING: unknown mode [{message_mode}]")
@@ -85,26 +82,31 @@ class CubieMediaMQTTClient:
                         topic_array = msg.topic.split("/")
                         if len(topic_array) > 3:
                             message_data = {'ip': topic_array[2].replace("_", "."), 'id': topic_array[3],
-                                            'state': msg.payload}
+                                            'state': msg_payload}
                             self.system.send(message_data)
                     else:
                         logging.warning(f"... ... unknown topic [{msg.topic}]")
             except json.JSONDecodeError as json_error:
-                logging.warning(f"... could not decode message[{msg.payload.decode()}] with [{json_error}]")
+                logging.warning(f"... could not decode message[{msg_payload}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
-        logging.info("... connected to Service [%s]" % client._host)
+        logging.info(f"... connected to Server [{self.system.get_mqtt_host()}] as client [{self.client_id}]")
         if rc == 0:
-            logging.info("... ... subscribe to channel [%s]" % DEFAULT_TOPIC_COMMAND)
-            client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
+            logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
+            self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
+            mode_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/command"
+            logging.info(f"... ... subscribe to channel [{mode_specific_command_topic}]")
+            self.mqtt_client.subscribe(mode_specific_command_topic, QOS)
+            device_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/{str(self.system.ip_address).replace('.', '_')}/command"
+            logging.info(f"... ... subscribe to channel [{device_specific_command_topic}]")
+            self.mqtt_client.subscribe(device_specific_command_topic, QOS)
             self.system.announce()
         else:
             logging.info("... bad connection please check login data")
 
-    @staticmethod
-    def on_disconnect(client, userdata, rc):
+    def on_disconnect(self, client, userdata, rc):
         if rc == 0:
-            logging.info("... ...disconnected from Service [%s] with result [%s]" % (client._host, rc))
+            logging.info(f"... ...disconnected from Service [{self.system.get_mqtt_host}] with result [{rc}]")
         else:
             logging.warning(
-                "... ... lost connection to Service [%s] with result [%s]\n%s" % (client._host, rc, userdata))
+                f"... ... lost connection to Service [{self.system.get_mqtt_host}] with result [{rc}]\n{userdata}")

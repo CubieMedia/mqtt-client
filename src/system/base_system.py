@@ -2,8 +2,10 @@ import abc
 import logging
 import time
 
-from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, CUBIEMEDIA
+from common import CUBIEMEDIA
+from common import TIMEOUT_UPDATE
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
+from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_core_configuration
 
 
@@ -11,36 +13,41 @@ class BaseSystem(abc.ABC):
     mqtt_client = None
     client_id = 'unknown'
     ip_address = None
-    mqtt_server: str = DEFAULT_MQTT_SERVER
-    mqtt_user: str = DEFAULT_MQTT_USERNAME
-    mqtt_password: str = DEFAULT_MQTT_PASSWORD
-    learn_mode: bool = DEFAULT_LEARN_MODE
-    last_update = time.time()
-    known_device_list: [] = []
-    execution_mode = None
+    last_update = time.time() - TIMEOUT_UPDATE
+    config: [] = []
+    core_config: [] = []
+    execution_mode = "Base"
 
-    def init(self, ip_address: str):
-        self.ip_address = ip_address
-        self.client_id = client_id = ip_address + "-" + self.execution_mode + "-client"
+    def __init__(self):
+        self.ip_address = get_ip_address()
+        self.client_id = f"{self.ip_address}-{self.execution_mode}-client"
+        self.mqtt_client = CubieMediaMQTTClient(self.client_id)
 
+    def init(self):
+        logging.info(f"... init base system [{self.client_id}]")
         self.load()
-        self.mqtt_client = CubieMediaMQTTClient(client_id)
         self.mqtt_client.connect(self)
 
     def shutdown(self):
+        logging.info(f"... disconnect mqtt client [{self.client_id}] from [{self.get_mqtt_host()}]")
+        if self.mqtt_client:
+            self.mqtt_client.disconnect()
+
+    def action(self, device: {}) -> bool:
         raise NotImplementedError
 
-    def action(self, device):
-        raise NotImplementedError
+    def update(self) -> {}:
+        # Base system has no entities
+        # no data is updated so there will be no actions executed
+        data = {}
 
-    def update(self):
-        raise NotImplementedError()
+        return data
 
-    def send(self, data):
-        raise NotImplementedError()
+    def send(self, data: {}) -> bool:
+        raise NotImplementedError(f"sending data[{data}] is not implemented")
 
     def announce(self):
-        raise NotImplementedError()
+        raise NotImplementedError("announce needs to be implemented for every system")
 
     def set_availability(self, state: bool):
         self.mqtt_client.publish(
@@ -50,24 +57,25 @@ class BaseSystem(abc.ABC):
     def load(self):
         logging.info("... loading config")
 
-        core_config = get_core_configuration(self.ip_address)
-        device_list = get_configuration(self.execution_mode)
+        self.core_config = get_core_configuration(self.ip_address)
+        if self.execution_mode != "Base":
+            self.config = get_configuration(self.execution_mode)
 
-        self.mqtt_server = core_config['host'] if core_config else DEFAULT_MQTT_SERVER
-        self.mqtt_user = core_config['username'] if core_config else DEFAULT_MQTT_USERNAME
-        self.mqtt_password = core_config['password'] if core_config else DEFAULT_MQTT_PASSWORD
-        self.learn_mode = core_config['learn_mode'] if core_config else DEFAULT_LEARN_MODE
-        self.known_device_list = device_list if device_list else []
-
-    def save(self, new_device=None):
-        if new_device is None:
-            set_configuration(self.execution_mode, self.known_device_list)
+    def save(self, device=None):
+        if device and 'client_id' not in device:
+            device['client_id'] = self.client_id
+        if device and 'id' in device:
+            self.config = [device if device['id'] == temp_device['id'] else temp_device for temp_device in self.config]
+            if device not in self.config:
+                self.config.append(device)
+        if self.execution_mode != "Base":
+            set_configuration(self.execution_mode, self.config)
 
     def delete(self, device):
         deleted = False
-        for known_device in self.known_device_list:
+        for known_device in self.config:
             if str(device['id']).upper() == str(known_device['id']).upper():
-                self.known_device_list.remove(known_device)
+                self.config.remove(known_device)
                 self.save()
                 deleted = True
                 break
@@ -79,8 +87,12 @@ class BaseSystem(abc.ABC):
 
     def reset(self):
         logging.info("... resetting device list")
-        self.known_device_list = []
+        self.config = []
         self.save()
 
-    def get_mqtt_data(self):
-        return self.mqtt_server, self.mqtt_user, self.mqtt_password
+    def get_mqtt_host(self):
+        return self.core_config['host']
+
+    def get_mqtt_login(self):
+        return (self.core_config['username'],
+                self.core_config['password'])

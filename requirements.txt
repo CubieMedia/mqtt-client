@@ -1,4 +1,4 @@
-netifaces
+ifaddr
 paho-mqtt
 requests
 pyserial
@@ -6,3 +6,6 @@ enocean
 Flask
 Werkzeug
 setuptools
+pytest
+psutil
+rpi-gpio-emu

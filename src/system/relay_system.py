@@ -8,50 +8,59 @@ import threading
 import time
 
 import requests
+from requests import ConnectionError
 
 from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, RELAY_USERNAME, RELAY_PASSWORD, STATE_UNKNOWN, \
-    TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY
+    TIMEOUT_UPDATE, TIMEOUT_UPDATE_SEND, CUBIE_RELAY, CUBIE_TYPE
 from system.base_system import BaseSystem
+
+DISCOVERY_MESSAGE = "DISCOVER_RELAIS_MODULE".encode()
+DESTINATION_ADDRESS = ('<broadcast>', 30303)
 
 
 class RelaySystem(BaseSystem):
     module_list = []
     subscription_list = []
     scan_thread = threading.Thread()
-    search_thread_event = threading.Event()
+    scan_thread_event = threading.Event()
+    discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    discovery_socket.settimeout(1)
 
     def __init__(self):
-        super().__init__()
         self.execution_mode = CUBIE_RELAY
+        super().__init__()
 
-    def action(self, device):
-        if not device['id'] in self.subscription_list:
-            logging.info("... ... subscribing to [%s] for commands" % device['id'])
-            self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
-                                       2)
-            self.subscription_list.append(device['id'])
+    def action(self, device: {}) -> bool:
+        if 'id' in device:
+            if not device['id'] in self.subscription_list:
+                logging.info("... ... subscribing to [%s] for commands" % device['id'])
+                self.mqtt_client.subscribe(
+                    f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command", 2)
+                self.subscription_list.append(device['id'])
 
-        for known_device in self.known_device_list:
-            if device['id'] == known_device['id']:
-                for relay in device['state']:
-                    # print(f"device[{device['state'][relay]}] - known_device[{known_device['state'][relay]}]")
-                    if not device['state'][relay] == known_device['state'][relay]:
-                        logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
-                            device['id'], relay, device['state'][relay]))
-                        self.mqtt_client.publish(
-                            f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                            device['state'][relay], True)
-                        known_device['state'][relay] = device['state'][relay]
-                return True
+            for known_device in self.config:
+                if device['id'] == known_device['id'] and 'state' in device:
+                    for relay in device['state']:
+                        if not device['state'][relay] == known_device['state'][relay]:
+                            logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
+                                device['id'], relay, device['state'][relay]))
+                            self.mqtt_client.publish(
+                                f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
+                                device['state'][relay], True)
+                            known_device['state'][relay] = device['state'][relay]
+                    return True
 
-        if self.learn_mode:
-            logging.info("... ... unknown device, announce [%s]" % device['id'])
-            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+            if self.core_config['learn_mode']:
+                logging.info("... ... unknown device, announce [%s]" % device['id'])
+                self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+        else:
+            logging.warning(f"... received action with wrong data [{device}]")
         return False
 
     def send(self, data):
         toggle = False
-        for known_device in self.known_device_list:
+        for known_device in self.config:
             if data['ip'] == known_device['id']:
                 if 'toggle' in known_device and int(data['id']) in known_device['toggle']:
                     toggle = True
@@ -62,16 +71,16 @@ class RelaySystem(BaseSystem):
     def update(self):
         data = {}
         if self.last_update < time.time() - TIMEOUT_UPDATE:
+            logging.info(f"... ... updating for all relay modules")
             relayboard_list = []
             send_data = False
-            # print("... update data for all modules")
             for module in self.module_list:
                 known_device = None
-                for temp_device in self.known_device_list:
+                for temp_device in self.config:
                     if module == temp_device['id']:
                         known_device = temp_device
 
-                relayboard = {'id': str(module), 'type': CUBIE_RELAY, 'client_id': self.client_id}
+                relayboard = {'id': str(module), CUBIE_TYPE: CUBIE_RELAY, 'client_id': self.client_id}
                 status_list = self._read_status(module)
                 relay_state_list = {}
                 relay_state_changed_list = {}
@@ -97,16 +106,17 @@ class RelaySystem(BaseSystem):
         return data
 
     def set_availability(self, state: bool):
-        for device in self.known_device_list:
+        for device in self.config:
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/online",
                                      str(state).lower())
 
-            for relay in device['state']:
-                self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                                         device['state'][relay], True)
+            if 'state' in device:
+                for relay, state in device['state'].items():
+                    self.mqtt_client.publish(
+                        f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}", state, True)
 
-    def init(self, ip_address):
-        super().init(ip_address)
+    def init(self):
+        super().init()
 
         logging.info("... starting scan thread")
         self.scan_thread = threading.Thread(target=self._run)
@@ -117,15 +127,19 @@ class RelaySystem(BaseSystem):
         logging.info('... set devices unavailable...')
         self.set_availability(False)
 
-        logging.info("... stopping scan thread...")
-        self.search_thread_event.set()
-        self.scan_thread.join()
+        if self.scan_thread.is_alive():
+            logging.info("... stopping scan thread...")
+            self.scan_thread_event.set()
+            self.scan_thread.join()
+
+        super().shutdown()
 
     def announce(self):
-        for device in self.known_device_list:
-            logging.info("... ... announce device [%s]" % device['id'])
+        logging.info("... ... announce message received, announcing devices...")
+        for device in self.config:
+            logging.info("... ... ... announce device [%s]" % device['id'])
             self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
-            logging.info("... ... subscribing to [%s] for commands" % device['id'])
+            logging.info("... ... ... ...subscribing to [%s] for commands" % device['id'])
             self.mqtt_client.subscribe(f"{CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/+/command",
                                        2)
             if not device['id'] in self.subscription_list:
@@ -133,17 +147,17 @@ class RelaySystem(BaseSystem):
 
         self.set_availability(True)
 
-    def save(self, new_device=None):
+    def save(self, device=None):
         should_save = False
-        if new_device is not None:
-            if new_device['type'] == CUBIE_RELAY and self.learn_mode:
+        if device is not None:
+            if device[CUBIE_TYPE] == CUBIE_RELAY and self.core_config['learn_mode']:
                 add = True
-                for known_device in self.known_device_list:
-                    if new_device['id'] == known_device['id']:
+                for known_device in self.config:
+                    if device['id'] == known_device['id']:
                         add = False
                         break
                 if add:
-                    self.known_device_list.append(new_device)
+                    self.config.append(device)
                     self.update()
                     should_save = True
         else:
@@ -155,36 +169,34 @@ class RelaySystem(BaseSystem):
     def load(self):
         super().load()
         self.module_list = []
-        for device in self.known_device_list:
+        for device in self.config:
             self.module_list.append(device['id'])
         self.update()
 
     def _run(self):
-        self.search_thread_event = threading.Event()
+        self.scan_thread_event = threading.Event()
 
-        msg = "DISCOVER_RELAIS_MODULE"
-        destination = ('<broadcast>', 30303)
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.settimeout(1)
-        s.sendto(msg.encode(), destination)
-        while not self.search_thread_event.is_set():
+        buf = []
+        while not self.scan_thread_event.is_set():
             try:
-                (buf, address) = s.recvfrom(30303)
                 if not len(buf):
-                    break
-                #      print("... received from %s: %s" %(address, buf))
+                    logging.debug("... ... sending discovery message for relay boards")
+                    self.discovery_socket.sendto(DISCOVERY_MESSAGE, DESTINATION_ADDRESS)
+                    self.scan_thread_event.wait(1)
+                (buf, address) = self.discovery_socket.recvfrom(30303)
+                logging.debug(f"... received from {address}: {buf}")
                 if "ETH008" in str(buf):
                     if not address[0] in self.module_list:
                         logging.info(f"... ... found new module[{address[0]}]")
                         self.module_list.append(address[0])
-                continue
-            except socket.timeout:
-                pass
+                        self.last_update = -1
+                        continue
+                self.scan_thread_event.wait(1)
+            except (socket.timeout, OSError):
+                buf = []
+                self.scan_thread_event.wait(TIMEOUT_UPDATE_SEND)
 
-            self.search_thread_event.wait(60)
-            s.sendto(msg.encode(), destination)
-
+        self.discovery_socket.close()
         return True
 
     def _read_status(self, ip):
@@ -196,7 +208,7 @@ class RelaySystem(BaseSystem):
             r = requests.get(url, auth=auth, timeout=1)
 
             content = r.text
-            #  print("... ... content: " + str(content))
+            logging.debug(f"... ... content:\n{content}")
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'true')
             for line in content.splitlines():
                 if "relay" in line:
@@ -208,13 +220,13 @@ class RelaySystem(BaseSystem):
                         logging.warning("... ... WARN: state [%s] unknown" % status)
 
         except ConnectionError:
-            logging.info(f"ERROR ... could not read status from relay board [{ip}]")
+            logging.error(f"could not read status from relay board [{ip}]")
+            self.last_update = -1
             self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'false')
         finally:
             return status_list
 
-    @staticmethod
-    def _set_status(ip, relay, state, toggle: bool = False):
+    def _set_status(self, ip, relay, state, toggle: bool = False):
         auth = (RELAY_USERNAME, RELAY_PASSWORD)
 
         url = "http://" + str(ip) + "/io.cgi?"
@@ -223,6 +235,8 @@ class RelaySystem(BaseSystem):
         if toggle:
             url += '=30'  # + str(int(toggle) * 10)
         try:
-            requests.get(url, auth=auth)
+            requests.get(url, auth=auth, timeout=1)
         except ConnectionError:
-            logging.info(f"ERROR ... could not set value on relay board [{ip}]")
+            logging.error(f"could not set value on relay board [{ip}]")
+            self.last_update = -1
+            self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online", 'false')

@@ -1,0 +1,6 @@
+[
+  {
+    "type": "serial",
+    "device": "/dev/ttyAMA0"
+  }
+]

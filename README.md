@@ -75,19 +75,18 @@ Please report them or send me a message.
 >> 2. Select 'Modify Run Configuration...'
 >> 3. Setup Service Run Configuration
 >>> * **Name:** service name you want to start [Core,EnOcean,GPIO,Sonar,Relay,Victron]
->>> * **Parameters:** the service name but you can add debug here for more log messages
->>> * **Working Directory:** root folder of the project (default will be the src folder, remove '/src'!)
+>>> * **Parameters:** the service name, you can add debug|verbose here for more log messages
 >> 4. Setup WebTool Configuration
 >>> * **Name:** WebTool
 >>> * **script:** ./venv/bin/flask
 >>> * **Parameters:** run
->>> * **Working Directory:** root folder of the project (same as Service Configuration)
+>>> * **Working Directory:** root folder of the project
 >>> * **Environment Variables:** FLASK_ENV=development;FLASK_RUN_PORT=8888;FLASK_RUN_HOST=0.0.0.0;FLASK_APP=./src/webtool/app.py
-> 4. Change default config file ('./snap/hooks/install')
+> 4. Change default config file ('./src/config/core.json')
 >> The core configuration contains connection data to your MQTT-Server and you need to change the
 > > parameters [host,username,password]
 > 5. Start the service and check log messages
->> journalctl -u cubiemedia-[enocean,gpio,sonar,relay,victron] -f
+>> Output will be found on console
 
 ## Other Linux (e.g. Raspberry Pi)
 

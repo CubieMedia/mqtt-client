@@ -1,17 +1,28 @@
-#!/usr/bin/env python3
-# -*- encoding: utf-8 -*-
 import copy
 import json
 import logging
 import subprocess
+from functools import lru_cache
+from json import JSONDecodeError
+from os.path import exists
 
-from common import COLOR_YELLOW, COLOR_DEFAULT, DEFAULT_CONFIGURATION_FILE, CUBIE_CORE
+import common
 
 USER_MESSAGE_SHOULD_BE_SHOWN = True
 
+CONFIG_DICT = {
+    common.CUBIE_CORE: common.DEFAULT_CONFIGURATION_FILE_CORE,
+    common.CUBIE_SERIAL: common.DEFAULT_CONFIGURATION_FILE_SERIAL,
+    common.CUBIE_GPIO: common.DEFAULT_CONFIGURATION_FILE_GPIO,
+    common.CUBIE_SONAR: common.DEFAULT_CONFIGURATION_FILE_SONAR,
+    common.CUBIE_RELAY: common.DEFAULT_CONFIGURATION_FILE_RELAY,
+    common.CUBIE_VICTRON: common.DEFAULT_CONFIGURATION_FILE_VICTRON,
+    common.CUBIE_ENOCEAN: common.DEFAULT_CONFIGURATION_FILE_ENOCEAN
+}
+
 
 def exit_gracefully(system, *args):
-    logging.info("... shutdown process")
+    logging.info("... shutdown mqtt client [" + str(args) + "]")
     system.RUN = False
 
     system.shutdown()
@@ -21,17 +32,18 @@ def exit_gracefully(system, *args):
 
 
 def execute_command(command: []) -> str:
-    return subprocess.check_output(command, stderr=subprocess.DEVNULL)
+    try:
+        result = subprocess.check_output(command, stderr=subprocess.STDOUT).decode()
 
-
-def read_lines_from_file(filename: str) -> list:
-    with open(filename) as f:
-        return [line for line in f]
-
-
-def save_lines_to_file(filename: str, config: list):
-    with open(filename, 'w') as f:
-        f.writelines(config)
+        try:
+            result_json = json.loads(result)
+            if len(result_json) == 0:
+                return "error: empty dict"
+        except JSONDecodeError:
+            pass
+        return result
+    except subprocess.CalledProcessError as e:
+        return "error: " + str(e.output)
 
 
 def get_variable_type_from_string(value: str):
@@ -41,91 +53,90 @@ def get_variable_type_from_string(value: str):
         else:
             try:
                 value = int(value)
-            except:
+            except ValueError:
                 pass
     return value
 
 
+def get_config_file_for(config_name: str) -> str:
+    return CONFIG_DICT.get(config_name, f"Missing Config File for [{config_name}]")
+
+
 def get_default_configuration_for(config_name: str) -> str:
-    logging.info(f'... get default configuration from "snap/hooks/install" for [{config_name}]')
-    config = '[]'
-    for line in read_lines_from_file(DEFAULT_CONFIGURATION_FILE):
-        if config_name in line:
-            config = line[str(line).index('=') + 2:-2]
+    logging.debug('... get default configuration from config file for [%s]', config_name)
+    config_file = get_config_file_for(config_name)
+
+    if not exists(config_file):
+        config_file = "../" + config_file
+        if not exists(config_file):
+            config_file = "../" + config_file
+            if not exists(config_file):
+                raise FileNotFoundError(f"could not find config file [{config_file}]")
+    with open(config_file, encoding='utf-8') as file:
+        config = json.load(file)
     return config
 
 
 def set_default_configuration(config_name: str, config: []):
-    config_read = read_lines_from_file(DEFAULT_CONFIGURATION_FILE)
-    config_write = []
-    if len(config_read) > 0:
-        for line in config_read:
-            if config_name in line:
-                line = line[0:str(line).index('=') + 2] + json.dumps(config) + "'\n"
-            config_write.append(line)
-        save_lines_to_file(DEFAULT_CONFIGURATION_FILE, config_write)
-    else:
-        logging.error("default config file seems empty")
+    logging.debug('... set default configuration to config file for [%s]', config_name)
+    config_file = get_config_file_for(config_name)
+
+    if not exists(config_file):
+        config_file = "../" + config_file
+        if not exists(config_file):
+            config_file = "../" + config_file
+            if not exists(config_file):
+                raise FileNotFoundError(("could not find config file [%s]", config_file))
+    with open(config_file, 'w', encoding='utf-8') as file:
+        json.dump(config, file, indent=2, sort_keys=True)
 
 
 def get_configuration(config_name: str) -> []:
-    global USER_MESSAGE_SHOULD_BE_SHOWN
-    value = None
-    try:
-        value = execute_command(["snapctl", "get", "-d", config_name]).strip()
-        if len(value) < 3:
-            value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name]).strip()
-    except:
-        try:
-            value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name]).strip()
-        except:
-            if USER_MESSAGE_SHOULD_BE_SHOWN:
-                logging.warning(
-                    f"seems to be a non snap environment, could not load config [{config_name}]\n"
-                    f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
-                USER_MESSAGE_SHOULD_BE_SHOWN = False
-    if not value or len(value) < 3:
-        value = get_default_configuration_for(config_name)
-    json_object = json.loads(value)
-    if config_name in json_object:
-        return json_object[config_name]
-    return json_object
+    value = execute_command(["snapctl", "get", "-d", config_name]).strip()
+    if 'error' in value:
+        value = execute_command(["snap", "get", "-d", "cubiemedia-mqtt-client", config_name])
+
+    if 'error' in value:
+        warn_once(
+            "%sseems to be a non snap environment, could not load config [%s]\n"
+            "Try to install Snap locally to create config or login to Ubuntu with [snap login]%s",
+            common.COLOR_YELLOW, config_name, common.COLOR_DEFAULT)
+        return get_default_configuration_for(config_name)
+    else:
+        return json.loads(value)
 
 
 def get_core_configuration(ip: str) -> {}:
-    core_configuration_list = get_configuration(CUBIE_CORE)
+    core_configuration_list = get_configuration(common.CUBIE_CORE)
     for core_config in core_configuration_list:
         if 'id' in core_config:
             if core_config['id'] == ip:
                 return core_config
         else:
             core_config['id'] = ip
-            set_configuration(CUBIE_CORE, core_configuration_list)
+            set_configuration(common.CUBIE_CORE, core_configuration_list)
             return core_config
 
     # no configuration found
     core_config = copy.copy(core_configuration_list[0]) if len(core_configuration_list) > 0 else {}
     core_config['id'] = ip
     core_configuration_list.append(core_config)
-    set_configuration(CUBIE_CORE, core_configuration_list)
+    set_configuration(common.CUBIE_CORE, core_configuration_list)
     return core_config
 
 
 def set_configuration(config_name: str, config: []):
-    global USER_MESSAGE_SHOULD_BE_SHOWN
-    try:
-        execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
-    except:
-        try:
-            execute_command(["snap", "set", "cubiemedia-mqtt-client", f"{config_name}={json.dumps(config)}"])
-        except:
-            if USER_MESSAGE_SHOULD_BE_SHOWN:
-                logging.warning(
-                    f"seems to be a non snap environment, could not save config [{config_name}]\n"
-                    f"{COLOR_YELLOW}Try to install Snap locally to create config or login to Ubuntu with [snap login]{COLOR_DEFAULT}")
-                USER_MESSAGE_SHOULD_BE_SHOWN = False
-            set_default_configuration(config_name, config)
-    return None
+    result = execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
+    if 'error' in result:
+        result = execute_command(
+            ["snap", "set", "cubiemedia-mqtt-client", f"{config_name}={json.dumps(config)}"])
+    if 'error' in result:
+        set_default_configuration(config_name, config)
+
+
+@lru_cache(10)
+def warn_once(msg: str, *args):
+    logging.warning(msg, *args)
 
 
 def install_package(package):

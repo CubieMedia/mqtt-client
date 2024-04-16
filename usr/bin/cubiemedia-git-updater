@@ -1,30 +1,40 @@
 #!/bin/bash
 
 # this script is only for none snap environment
-
-while :
-do
-  echo "Checking for updates..."
-  UPDATE=0
-  git remote update && git status -uno | grep -q 'Your branch is behind' && UPDATE=1
-
-  if [ $UPDATE = 1 ]
+restart_service () {
+  systemctl is-active --quiet cubiemedia-$1
+  RETURN=$?
+  if [ $RETURN -eq 0 ]
   then
-    echo "... update found ... "
-    # not cleaning because sudo is not nice
-    #echo "... clean repository ..."
-    #sudo git clean -f ./*/__pycache__
-    #sudo git clean -f ./*/*/__pycache__
-    echo "... stash changes ..."
-    git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash
-    echo "... pull changes ..."
-    git pull --rebase
-    echo "... unstash changes ..."
-    git stash pop
-    echo "... finished update successfully"
-  else
-    echo "... no updates found!"
+    systemctl restart cubiemedia-$1
   fi
+}
 
-  sleep 300
-done
+echo "Checking for updates..."
+UPDATE=0
+sudo -H -u pi bash -c 'git remote update && git status -uno | grep -q "Your branch is behind" && UPDATE=1'
+
+if [ $UPDATE = 1 ]
+then
+  echo "... update found ... "
+  echo "... clean repository ..."
+  git clean -f ./*/__pycache__
+  git clean -f ./*/*/__pycache__
+  echo "... stash changes ..."
+  sudo -H -u pi bash -c 'git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash'
+  echo "... pull changes ..."
+  sudo -H -u pi bash -c 'git pull --rebase'
+  echo "... unstash changes ..."
+  sudo -H -u pi bash -c 'git stash pop'
+  echo "... finished update, restarting services"
+  restart_service relay
+  restart_service enocean
+  restart_service victron
+  restart_service gpio
+  restart_service sonar
+  restart_service core
+  restart_service git-updater
+  restart_service webtool
+else
+  echo "... no updates found!"
+fi

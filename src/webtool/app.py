@@ -59,6 +59,8 @@ def update_application_parameter(application, parameter_id):
     mqtt_client.publish("cubiemedia/command", json.dumps(message))
     mqtt_client.disconnect()
 
+    if parameter_id == 'learn_mode':
+        return redirect(url_for('index'))
     return render_template('application.html', application=application, device_list=get_device_list(application))
 
 
@@ -137,7 +139,7 @@ def connect_mqtt_client():
     mqtt_user = config['username']
     mqtt_password = config['password']
     client_id = get_ip_address() + "-web_app-client"
-    mqtt_client = mqtt.Client(client_id=client_id, clean_session=True, userdata=None, transport="tcp")
+    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id, clean_session=True, userdata=None, transport="tcp")
     mqtt_client.username_pw_set(username=mqtt_user, password=mqtt_password)
     mqtt_client.connect(mqtt_server, 1883, 60)
 

@@ -5,10 +5,13 @@ CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
 CUBIE_SONAR = "sonar"
 CUBIE_VICTRON = "victron"
+CUBIE_SERIAL = "serial"
 CUBIE_MODE_LIST = [CUBIE_CORE, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_ENOCEAN, CUBIE_GPIO]
 
 CUBIE_RESET = "reset"
 CUBIE_RELOAD = "reload"
+CUBIE_TYPE = "type"
+CUBIE_DEVICE = "device"
 CUBIE_ANNOUNCE = "announce"
 CUBIEMEDIA = "cubiemedia"
 STATE_UNKNOWN = 'unknown'
@@ -18,7 +21,13 @@ ENOCEAN_PORT = "/dev/ttyAMA0"
 SONAR_PORT = "/dev/ttyS0"
 
 # files
-DEFAULT_CONFIGURATION_FILE = "./snap/hooks/install"
+DEFAULT_CONFIGURATION_FILE_CORE = "./src/config/core.json"
+DEFAULT_CONFIGURATION_FILE_ENOCEAN = "./src/config/enocean.json"
+DEFAULT_CONFIGURATION_FILE_GPIO = "./src/config/gpio.json"
+DEFAULT_CONFIGURATION_FILE_RELAY = "./src/config/relay.json"
+DEFAULT_CONFIGURATION_FILE_SERIAL = "./src/config/serial.json"
+DEFAULT_CONFIGURATION_FILE_SONAR = "./src/config/sonar.json"
+DEFAULT_CONFIGURATION_FILE_VICTRON = "./src/config/victron.json"
 
 # MQTT #
 QOS = 2
@@ -28,6 +37,10 @@ DEFAULT_MQTT_PASSWORD = "autoInstall"
 DEFAULT_LEARN_MODE = True
 DEFAULT_TOPIC_COMMAND = CUBIEMEDIA + "/command"
 DEFAULT_TOPIC_ANNOUNCE = CUBIEMEDIA + "/" + CUBIE_ANNOUNCE
+
+# Victron
+EXPORT_CORRECTION_FACTOR = 'export_correction_factor'
+IMPORT_CORRECTION_FACTOR = 'import_correction_factor'
 
 # Relayboard #
 RELAY_USERNAME = 'admin'
@@ -40,9 +53,6 @@ GPIO_PIN_TYPE_OUT = "out"
 # Timeouts #
 TIMEOUT_UPDATE = 180
 TIMEOUT_UPDATE_SEND = 30
-
-# Values
-DEFAULT_OFFSET = 5
 
 # Colors for Logging #
 COLOR_YELLOW = "\x1b[33;20m"

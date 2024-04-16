@@ -3,6 +3,6 @@
 
 """cubiemedia-mqtt-client.__main__: executed when bootstrap directory is called as script."""
 
-from .mqtt_client import main
+from mqtt_client import main
 
 main()
