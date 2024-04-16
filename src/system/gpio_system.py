@@ -70,7 +70,8 @@ class GPIOSystem(BaseSystem):
                 logging.warning("WARN: could not find valid function for device[%s] on update" % device)
                 continue
 
-            if value != device['value']:  # pylint: used-before-assignment
+            # pylint: disable=used-before-assignment
+            if value != device['value']:
                 logging.debug(f"... ... update GPIO [{device['id']}] with value [{value}]")
                 device['value'] = value
                 device['client_id'] = self.client_id
