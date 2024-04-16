@@ -44,6 +44,8 @@ def execute_command(command: []) -> str:
         return result
     except subprocess.CalledProcessError as e:
         return "error: " + str(e.output)
+    except FileNotFoundError as e:
+        return "error: " + str(e)
 
 
 def get_variable_type_from_string(value: str):
