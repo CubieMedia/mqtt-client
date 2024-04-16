@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-
+import ipaddress
 import logging
 import sys
 
@@ -23,9 +23,14 @@ def get_ip_address() -> str:
 
     if len(ip_list) > 0:
         for ip in ip_list:
-            if ip and not ip.startswith('169') and not ip.startswith('127'):
-                logging.debug("... found IP [%s]" % ip)
-                return ip
+            try:
+                if ip and ipaddress.ip_address(ip):
+                    # is ip address
+                    if not ip.startswith('169') and not ip.startswith('127'):
+                        logging.debug("... found IP [%s]" % ip)
+                        return ip
+            except ValueError:
+                pass
     else:
         logging.warning("... no device found that could have an IP Address...")
     return None
