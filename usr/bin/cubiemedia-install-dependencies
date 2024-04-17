@@ -8,9 +8,9 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # install needed python dependencies
-apt install -y python3-flask python3-paho-mqtt python3-netifaces python3-requests python3-pip
+apt install -y python3-pip
 rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED
-pip install enocean
+pip install /home/pi/mqtt-client/requirments.txt
 
 # install software services into none snap system
 cp /home/pi/mqtt-client/etc/systemd/system/cubiemedia-* /etc/systemd/system/
