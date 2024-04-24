@@ -86,7 +86,10 @@ class VictronSystem(BaseSystem):
         logging.debug("... ... send data[%s] from HA" % data)
         # {'ip': '192.168.25.24', 'id': 'charge', 'state': b'1'}
         if "id" in data and "state" in data:
-            service_value = True if data["state"].decode('UTF-8') == "1" else False
+            try:
+                service_value = True if data["state"].decode('UTF-8') == "1" else False
+            except (UnicodeDecodeError, AttributeError):
+                service_value = True if data["state"] == "1" else False
             if data["id"] == SERVICE_LIST[7]:
                 logging.info("... ... charging is [%s]" % service_value)
                 value = '{"value": %s}' % (80 if service_value else 0)
@@ -172,7 +175,7 @@ class VictronSystem(BaseSystem):
                     self.victron_mqtt_client.publish(("R/%s/keepalive" % self.config[0]["serial"]),
                                                      json.dumps(TOPIC_READ_LIST))
                     self.set_availability(True)
-                count = 30
+                    count = 30
             else:
                 count -= 1
             time.sleep(1)
