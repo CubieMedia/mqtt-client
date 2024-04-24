@@ -79,7 +79,7 @@ class GPIOSystem(BaseSystem):
 
         data['devices'] = device_list
 
-        if self.last_update < time.time() - TIMEOUT_UPDATE:
+        if self.last_update < time.time() - 5:
             self.set_availability(True)
             self.last_update = time.time()
         return data

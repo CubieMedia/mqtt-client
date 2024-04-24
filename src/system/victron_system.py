@@ -174,9 +174,10 @@ class VictronSystem(BaseSystem):
                 else:
                     self.victron_mqtt_client.publish(("R/%s/keepalive" % self.config[0]["serial"]),
                                                      json.dumps(TOPIC_READ_LIST))
-                    self.set_availability(True)
                     count = 30
             else:
+                if count % 5 == 0:
+                    self.set_availability(True)
                 count -= 1
             time.sleep(1)
 
