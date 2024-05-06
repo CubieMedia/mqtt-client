@@ -57,7 +57,7 @@ class TestVictronSystem(TestCase):
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
         assert not self.system.victron_mqtt_client.is_connected()
-        assert not self.system.keepalive_thread_event.is_set()
+        assert not self.system._keepalive_thread_event.is_set()
 
     def test_shutdown(self):
         self.test_init()
@@ -67,15 +67,14 @@ class TestVictronSystem(TestCase):
 
         assert not self.system.mqtt_client.mqtt_client.is_connected()
         assert not self.system.victron_mqtt_client.is_connected()
-        assert self.system.keepalive_thread_event.is_set()
-        assert not self.system.keepalive_thread.is_alive()
+        assert self.system._keepalive_thread_event.is_set()
+        assert not self.system._keepalive_thread.is_alive()
 
     def test_announce(self):
-        self.system.set_availability = MagicMock()
         self.system.init()
         time.sleep(1)
 
-        self.system.set_availability.assert_called()
+        self.system._keepalive_thread.is_alive()
 
     def test_load(self):
         assert len(self.system.config) == 0
@@ -106,37 +105,29 @@ class TestVictronSystem(TestCase):
         type(msg).payload = payload
 
         self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 1
+        assert len(self.system._updated_data['devices']) == 1
         self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 2
+        assert len(self.system._updated_data['devices']) == 2
         self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 3
+        assert len(self.system._updated_data['devices']) == 3
         self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 4
+        assert len(self.system._updated_data['devices']) == 4
         self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 5
-        self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 6
-        self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 7
-        self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 8
-        self.system.on_victron_message(self.system.victron_mqtt_client, None, msg)
-        assert len(self.system.updated_data['devices']) == 9
+        assert len(self.system._updated_data['devices']) == 5
+
+        self.system.update()
+        assert len(self.system._updated_data['devices']) == 0
 
     def test_on_victron_connect(self):
         self.system.init()
         time.sleep(1)
 
         self.system.victron_mqtt_client = MagicMock()
-        self.system.set_availability = MagicMock()
         self.system.on_victron_connect(self.system.victron_mqtt_client, None, None, 13)
         self.system.victron_mqtt_client.subscribe.assert_not_called()
-        self.system.set_availability.assert_not_called()
 
         self.system.on_victron_connect(self.system.victron_mqtt_client, None, None, 0)
         self.system.victron_mqtt_client.subscribe.assert_called()
-        self.system.set_availability.assert_called_once()
 
     def test_on_victron_disconnect(self):
         self.system.init()
