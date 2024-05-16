@@ -276,7 +276,7 @@ elif ATTR_MODEL_SONAR == device_type:
     else:
         logger.error("sonar device id is incorrect [%s]" % device_id)
 elif ATTR_MODEL_VICTRON == device_type:
-    device_name = f"Victron MQTT Gateway {device_id}"
+    device_name = f"Victron System {device_id}"
     service_list = device_state
     availability_topic = f"{CUBIE_TOPIC}/{device_type}/{string_id}/online"
 

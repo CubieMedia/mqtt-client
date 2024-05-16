@@ -8,3 +8,5 @@ Werkzeug
 setuptools
 pytest
 psutil
+pyyaml
+miflora
