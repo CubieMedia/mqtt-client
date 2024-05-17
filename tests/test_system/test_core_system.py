@@ -4,7 +4,7 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import CUBIE_CORE
+from common import CUBIE_MQTT
 from common.network import get_ip_address
 from common.python import get_configuration, get_default_configuration_for, set_default_configuration
 from system.core_system import CoreSystem
@@ -64,12 +64,12 @@ class TestCoreSystem(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_MQTT, cls.config_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

@@ -4,7 +4,7 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import CUBIE_CORE, CUBIE_GPIO
+from common import CUBIE_MQTT, CUBIE_GPIO
 from common.python import set_default_configuration, get_default_configuration_for
 from system.gpio_system import GPIOSystem
 from test_common import check_mqtt_server, MQTT_HOST_MOCK
@@ -124,20 +124,20 @@ class TestGPIOSystem(TestCase):
 
     def setUp(self):
         self.system = GPIOSystem()
-        self.system.get_mqtt_host = MQTT_HOST_MOCK
+        self.system.get_mqtt_server = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
         cls.gpio_backup = get_default_configuration_for(CUBIE_GPIO)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_MQTT, cls.config_backup)
         set_default_configuration(CUBIE_GPIO, cls.gpio_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()

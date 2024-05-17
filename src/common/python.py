@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import subprocess
@@ -7,11 +6,12 @@ from json import JSONDecodeError
 from os.path import exists
 
 import common
+from common import CUBIE_MQTT
 
 USER_MESSAGE_SHOULD_BE_SHOWN = True
 
 CONFIG_DICT = {
-    common.CUBIE_CORE: common.DEFAULT_CONFIGURATION_FILE_CORE,
+    common.CUBIE_MQTT: common.DEFAULT_CONFIGURATION_FILE_MQTT,
     common.CUBIE_SERIAL: common.DEFAULT_CONFIGURATION_FILE_SERIAL,
     common.CUBIE_GPIO: common.DEFAULT_CONFIGURATION_FILE_GPIO,
     common.CUBIE_SONAR: common.DEFAULT_CONFIGURATION_FILE_SONAR,
@@ -108,23 +108,11 @@ def get_configuration(config_name: str) -> []:
         return json.loads(value)
 
 
-def get_core_configuration(ip: str) -> {}:
-    core_configuration_list = get_configuration(common.CUBIE_CORE)
-    for core_config in core_configuration_list:
-        if 'id' in core_config:
-            if core_config['id'] == ip:
-                return core_config
-        else:
-            core_config['id'] = ip
-            set_configuration(common.CUBIE_CORE, core_configuration_list)
-            return core_config
-
-    # no configuration found
-    core_config = copy.copy(core_configuration_list[0]) if len(core_configuration_list) > 0 else {}
-    core_config['id'] = ip
-    core_configuration_list.append(core_config)
-    set_configuration(common.CUBIE_CORE, core_configuration_list)
-    return core_config
+def get_mqtt_configuration() -> {}:
+    config = get_configuration(CUBIE_MQTT)
+    if 'mqtt' not in config:
+        raise RuntimeError("could not load mqtt config")
+    return config['mqtt']
 
 
 def set_configuration(config_name: str, config: []):
@@ -143,3 +131,7 @@ def warn_once(msg: str, *args):
 
 def install_package(package):
     subprocess.check_call(["python3", "-m", "pip", "install", package])
+
+
+def system_reboot():
+    execute_command("sleep 3")

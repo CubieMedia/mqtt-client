@@ -1,5 +1,5 @@
 ifaddr
-paho-mqtt==2.0.0
+paho-mqtt>=2.0.0
 requests
 pyserial
 enocean
@@ -8,5 +8,4 @@ Werkzeug
 setuptools
 pytest
 psutil
-pyyaml
 miflora

@@ -43,25 +43,22 @@ def configure_logger():
 
 
 def get_system(execution_mode: str):
-    from system.core_system import CoreSystem
-    from system.enocean_system import EnoceanSystem
-    from system.gpio_system import GPIOSystem
-    from system.relay_system import RelaySystem
-    from system.sonar_system import SonarSystem
-    from system.victron_system import VictronSystem
 
     if execution_mode == common.CUBIE_GPIO:
+        from system.gpio_system import GPIOSystem
         return GPIOSystem()
     if execution_mode == common.CUBIE_ENOCEAN:
+        from system.enocean_system import EnoceanSystem
         return EnoceanSystem()
     if execution_mode == common.CUBIE_RELAY:
+        from system.relay_system import RelaySystem
         return RelaySystem()
     if execution_mode == common.CUBIE_SONAR:
+        from system.sonar_system import SonarSystem
         return SonarSystem()
     if execution_mode == common.CUBIE_VICTRON:
+        from system.victron_system import VictronSystem
         return VictronSystem()
-    if execution_mode == common.CUBIE_CORE:
-        return CoreSystem()
 
     raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 

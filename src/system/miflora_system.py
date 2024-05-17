@@ -157,7 +157,6 @@ class PlantGateway:
     def __init__(self, config_file_path: str = '~/.plantgw.yaml'):
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
         self.config = Configuration(config_file_path)  # type: Configuration
-        logging.info('PlantGateway version %s', __version__)
         logging.info('loaded config file from %s', config_file_path)
         self.mqtt_client = None
         self.connected = False  # type: bool

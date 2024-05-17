@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 from enocean.protocol.constants import RORG
 from enocean.protocol.packet import Packet
 
-from common import CUBIE_CORE, CUBIE_ENOCEAN
-from common.python import set_default_configuration, get_default_configuration_for, get_core_configuration
+from common import CUBIE_MQTT, CUBIE_ENOCEAN
+from common.python import set_default_configuration, get_default_configuration_for, get_mqtt_configuration
 from system.enocean_system import EnoceanSystem
 from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
@@ -103,7 +103,7 @@ class TestEnoceanSystem(TestCase):
         self.system.communicator = MagicMock()
         self.system.load = MagicMock()
         self.system.mqtt_client.publish = MagicMock()
-        self.system.core_config = get_core_configuration(self.system.ip_address)
+        self.system.mqtt_config = get_mqtt_configuration(self.system.ip_address)
         DEVICE_TEST_WITH_STATE['client_id'] = self.system.client_id
         self.system.save(DEVICE_TEST_WITH_STATE)
         self.system.init()
@@ -155,20 +155,20 @@ class TestEnoceanSystem(TestCase):
 
     def setUp(self):
         self.system = EnoceanSystem()
-        self.system.get_mqtt_host = MQTT_HOST_MOCK
+        self.system.get_mqtt_server = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
         cls.enocean_backup = get_default_configuration_for(CUBIE_ENOCEAN)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_MQTT, cls.config_backup)
         set_default_configuration(CUBIE_ENOCEAN, cls.enocean_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()

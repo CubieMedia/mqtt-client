@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from common import CUBIE_ANNOUNCE, CUBIE_RESET, CUBIE_RELOAD, CUBIE_CORE
+from common import CUBIE_ANNOUNCE, CUBIE_RESET, CUBIE_RELOAD, CUBIE_MQTT
 from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
 from test_common import check_mqtt_server, MQTT_HOST_MOCK
@@ -18,30 +18,30 @@ class TestCubieMediaMQTTClient(TestCase):
     system = None
 
     def test_connect_disconnect(self):
-        self.system.get_mqtt_host = MagicMock(return_value="192.168.11.7")
+        self.system.get_mqtt_server = MagicMock(return_value="192.168.11.7")
         with pytest.raises((TimeoutError, ConnectionRefusedError, OSError)):  # noqa
             self.system.init()
-        self.system.get_mqtt_host.assert_called_once()
+        self.system.get_mqtt_server.assert_called_once()
         assert not self.system.mqtt_client.mqtt_client.is_connected()
 
         self.system = BaseSystem()
-        self.system.get_mqtt_host = MQTT_HOST_MOCK
+        self.system.get_mqtt_server = MQTT_HOST_MOCK
         self.system.init()
 
-        self.system.get_mqtt_host.assert_called_once()
-        self.system.get_mqtt_host.reset_mock()
+        self.system.get_mqtt_server.assert_called_once()
+        self.system.get_mqtt_server.reset_mock()
         time.sleep(1)
         assert self.system.mqtt_client.mqtt_client.is_connected()
-        self.system.get_mqtt_host.assert_called_once()
+        self.system.get_mqtt_server.assert_called_once()
 
         self.system.mqtt_client.disconnect()
         time.sleep(1)
-        self.system.get_mqtt_host.assert_called_once()
+        self.system.get_mqtt_server.assert_called_once()
         assert not self.system.mqtt_client.mqtt_client.is_connected()
 
         self.system.mqtt_client.connect(self.system)
         time.sleep(1)
-        self.system.get_mqtt_host.assert_called()
+        self.system.get_mqtt_server.assert_called()
         assert self.system.mqtt_client.mqtt_client.is_connected()
 
     def test_publish(self):
@@ -120,7 +120,7 @@ class TestCubieMediaMQTTClient(TestCase):
 
     def setUp(self):
         self.system = BaseSystem()
-        self.system.get_mqtt_host = MQTT_HOST_MOCK
+        self.system.get_mqtt_server = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()
@@ -128,12 +128,12 @@ class TestCubieMediaMQTTClient(TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
-        cls.backup_config = get_default_configuration_for(CUBIE_CORE)
+        cls.backup_config = get_default_configuration_for(CUBIE_MQTT)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_CORE, cls.backup_config)
+        set_default_configuration(CUBIE_MQTT, cls.backup_config)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

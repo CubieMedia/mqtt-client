@@ -4,8 +4,8 @@ import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, \
-    CUBIE_CORE
+from common import MQTT_CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, \
+    CUBIE_MQTT
 from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
 from test_common import MQTT_HOST_MOCK, check_mqtt_server
@@ -28,19 +28,19 @@ class TestBaseSystem(TestCase):
         self.system.mqtt_client.publish = MagicMock()
         self.system.set_availability(True)
         self.system.mqtt_client.publish.assert_called_with(
-            f"{CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online", "true")
+            f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online", "true")
 
         self.system.set_availability(False)
         self.system.mqtt_client.publish.assert_called_with(
-            f"{CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online", "false")
+            f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online", "false")
 
     def test_load(self):
         self.system.load()
 
-        assert self.system.core_config['host'] == DEFAULT_MQTT_SERVER
-        assert self.system.core_config['username'] == DEFAULT_MQTT_USERNAME
-        assert self.system.core_config['password'] == DEFAULT_MQTT_PASSWORD
-        assert self.system.core_config['learn_mode'] == DEFAULT_LEARN_MODE
+        assert self.system.mqtt_config['host'] == DEFAULT_MQTT_SERVER
+        assert self.system.mqtt_config['username'] == DEFAULT_MQTT_USERNAME
+        assert self.system.mqtt_config['password'] == DEFAULT_MQTT_PASSWORD
+        assert self.system.mqtt_config['learn_mode'] == DEFAULT_LEARN_MODE
         assert self.system.config == []
 
     def test_save(self):
@@ -90,18 +90,18 @@ class TestBaseSystem(TestCase):
 
     def setUp(self):
         self.system = BaseSystem()
-        self.system.get_mqtt_host = MQTT_HOST_MOCK
+        self.system.get_mqtt_server = MQTT_HOST_MOCK
 
     def tearDown(self):
         self.system.shutdown()
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_CORE)
+        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_CORE, cls.config_backup)
+        set_default_configuration(CUBIE_MQTT, cls.config_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

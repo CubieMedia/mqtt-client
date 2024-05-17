@@ -46,7 +46,7 @@ class EnoceanSystem(BaseSystem):
                             if 'state' not in known_device or len(known_device['state']) == 0 or \
                                     (topic in known_device['state'] and device['state'][topic] != known_device['state'][
                                         topic]):
-                                channel_topic = f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                                channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                                 value = device['state'][topic]
                                 if value == 1:
                                     self._create_timer_for(channel_topic)
@@ -73,7 +73,7 @@ class EnoceanSystem(BaseSystem):
                     else:
                         logging.debug("... ... send message for [%s]" % device['id'])
                         self.mqtt_client.publish(
-                            f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}",
+                            f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}",
                             json.dumps(device['state']), True)
                     return True
 
@@ -117,7 +117,7 @@ class EnoceanSystem(BaseSystem):
     def set_availability(self, state: bool):
         for device in self.config:
             if device['client_id'] == self.client_id:
-                self.mqtt_client.publish(f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
+                self.mqtt_client.publish(f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
                                          str(state).lower())
 
     def init(self):
@@ -152,14 +152,14 @@ class EnoceanSystem(BaseSystem):
                 if 'state' in device:
                     for topic in device['state']:
                         if device['state'][topic] == 1:
-                            channel_topic = f"{common.CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
+                            channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                             self._create_timer_for(channel_topic, True)
         self.last_update = 0
 
     def save(self, device=None):
         if device and {'id', 'dbm'}.issubset(device.keys()):
             if (str(device[common.CUBIE_TYPE]).upper() == "RPS" or str(
-                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.core_config['learn_mode']:
+                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.mqtt_config['learn_mode']:
                 add = True
                 for known_device in self.config:
                     if str(device['id']).upper() == str(known_device['id']).upper():

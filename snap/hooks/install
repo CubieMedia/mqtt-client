@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-snapctl set core='`cat ../../src/config/core.json`'
+snapctl set core='`cat ../../src/config/mqtt.json`'
 
 snapctl set serial='`cat ../../src/config/serial.json`'
 

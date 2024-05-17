@@ -9,7 +9,7 @@ from serial import Serial, SerialException
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, CUBIE_DEVICE, CUBIE_SERIAL, \
     CUBIE_TYPE
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE
+from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE
 from common.python import get_configuration
 from system.base_system import BaseSystem
 
@@ -35,15 +35,17 @@ class SonarSystem(BaseSystem):
 
     def init(self):
         super().init()
-        self.update_interval = self.config[0]['update_interval'] if 'update_interval' in self.config[
-            0] else DEFAULT_UPDATE_INTERVAL
+        self.update_interval = self.config[0]['update_interval'] if 'update_interval' in \
+                                                                    self.config[
+                                                                        0] else DEFAULT_UPDATE_INTERVAL
         self.offset = self.config[0]['offset'] if 'offset' in self.config[0] else DEFAULT_OFFSET
         self.offset_trigger = self.config[0][
             'trigger_offset'] if 'trigger_offset' in self.config[0] else DEFAULT_TRIGGER_OFFSET
         self.offset_distance = self.config[0][
             'offset_distance'] if 'offset_distance' in self.config[0] else DEFAULT_DISTANCE_OFFSET
         self.maximal_distance = self.config[0][
-            'maximal_distance'] if 'maximal_distance' in self.config[0] else DEFAULT_MAXIMAL_DISTANCE
+            'maximal_distance'] if 'maximal_distance' in self.config[
+            0] else DEFAULT_MAXIMAL_DISTANCE
 
         serial_port = None
         try:
@@ -51,7 +53,8 @@ class SonarSystem(BaseSystem):
             serial_json = get_configuration(CUBIE_SERIAL)[0]
             if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
                 default_serial_port = serial_json[CUBIE_DEVICE]
-            serial_port = self.config[0][CUBIE_DEVICE] if CUBIE_DEVICE in self.config[0] else default_serial_port
+            serial_port = self.config[0][CUBIE_DEVICE] if CUBIE_DEVICE in self.config[
+                0] else default_serial_port
             self.communicator = Serial(serial_port, 9600)
             self.communicator.flush()
         except SerialException:
@@ -64,14 +67,17 @@ class SonarSystem(BaseSystem):
 
         super().shutdown()
 
-    def action(self, device: {}) -> bool:
+    def action(self, device: {}):
         logging.info("... ... action for [%s]" % device)
-        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
-                                 json.dumps(device['value']), True)
+        self.mqtt_client.publish(
+            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
+            json.dumps(device['value']), True)
         percent = round(
-            (self.maximal_distance - (device['value'])) / (self.maximal_distance - self.offset_distance) * 100)
-        self.mqtt_client.publish(f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
-                                 percent, True)
+            (self.maximal_distance - (device['value'])) / (
+                        self.maximal_distance - self.offset_distance) * 100)
+        self.mqtt_client.publish(
+            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
+            percent, True)
 
     def update(self):
         data = {}
@@ -88,12 +94,14 @@ class SonarSystem(BaseSystem):
                 if self.communicator.in_waiting > 0:
                     response = str(self.communicator.read(self.communicator.in_waiting))
                     if "Gap=" in response:
-                        distance = int(response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
+                        distance = int(
+                            response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
 
                         if not self.distance or abs(self.distance - distance) > self.offset_trigger:
                             if 200 <= distance - self.offset <= 8000:
                                 self.distance = distance
-                                device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR, 'value': self.distance}
+                                device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR,
+                                          'value': self.distance}
                                 device_list.append(device)
                             else:
                                 logging.warning(
@@ -115,7 +123,8 @@ class SonarSystem(BaseSystem):
                 if not already_exists:
                     device['id'] = self.ip_address
                 else:
-                    logging.warning(f'{COLOR_YELLOW}something ist wrong with your config (id matching){COLOR_DEFAULT}')
+                    logging.warning(
+                        f'{COLOR_YELLOW}something ist wrong with your config (id matching){COLOR_DEFAULT}')
                     break
             device['client_id'] = self.client_id
             logging.info("... ... announce sonar device [%s]" % device)

@@ -6,7 +6,7 @@ import logging
 
 from paho.mqtt import client as mqtt
 
-from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD, CUBIEMEDIA
+from common import CUBIE_ANNOUNCE, DEFAULT_TOPIC_COMMAND, CUBIE_RESET, QOS, CUBIE_RELOAD, MQTT_CUBIEMEDIA
 
 
 class CubieMediaMQTTClient:
@@ -25,7 +25,7 @@ class CubieMediaMQTTClient:
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
 
-        server = system.get_mqtt_host()
+        server = system.get_mqtt_server()
         logging.info(f"... connecting to MQTT-Service [{server}] as client [{self.client_id}]")
         self.mqtt_client.connect(server, 1883, 60)
         self.mqtt_client.loop_start()
@@ -90,23 +90,26 @@ class CubieMediaMQTTClient:
                 logging.warning(f"... could not decode message[{msg_payload}] with [{json_error}]")
 
     def on_connect(self, client, userdata, flags, rc):
-        logging.info(f"... connected to Server [{self.system.get_mqtt_host()}] as client [{self.client_id}]")
+        logging.info(f"... connected to Server [{self.system.get_mqtt_server()}] as client [{self.client_id}]")
         if rc == 0:
             logging.info(f"... ... subscribe to channel [{DEFAULT_TOPIC_COMMAND}]")
             self.mqtt_client.subscribe(DEFAULT_TOPIC_COMMAND, QOS)
-            mode_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/command"
+            mode_specific_command_topic = f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/command"
             logging.info(f"... ... subscribe to channel [{mode_specific_command_topic}]")
             self.mqtt_client.subscribe(mode_specific_command_topic, QOS)
-            device_specific_command_topic = f"{CUBIEMEDIA}/{self.system.execution_mode}/{str(self.system.ip_address).replace('.', '_')}/command"
+            device_specific_command_topic = f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{str(self.system.ip_address).replace('.', '_')}/command"
             logging.info(f"... ... subscribe to channel [{device_specific_command_topic}]")
             self.mqtt_client.subscribe(device_specific_command_topic, QOS)
+            reboot_command_topic = f"{MQTT_CUBIEMEDIA}/base/{self.system.string_ip}/reboot/command"
+            logging.info(f"... ... subscribe to channel [{reboot_command_topic}]")
+            self.mqtt_client.subscribe(reboot_command_topic, QOS)
             self.system.announce()
         else:
             logging.info("... bad connection please check login data")
 
     def on_disconnect(self, client, userdata, rc):
         if rc == 0:
-            logging.info(f"... ...disconnected from Service [{self.system.get_mqtt_host}] with result [{rc}]")
+            logging.info(f"... ...disconnected from Service [{self.system.get_mqtt_server}] with result [{rc}]")
         else:
             logging.warning(
-                f"... ... lost connection to Service [{self.system.get_mqtt_host}] with result [{rc}]\n{userdata}")
+                f"... ... lost connection to Service [{self.system.get_mqtt_server}] with result [{rc}]\n{userdata}")

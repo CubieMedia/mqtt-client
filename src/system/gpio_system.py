@@ -7,7 +7,7 @@ import os
 import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT, CUBIE_TYPE
-from common import CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
+from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE
 from system.base_system import BaseSystem
 
 try:
@@ -33,7 +33,7 @@ class GPIOSystem(BaseSystem):
     def action(self, device: {}) -> bool:
         if device and {'id', 'value'}.issubset(device.keys()):
             logging.info("... ... action for [%s]" % device)
-            topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{device['id']}"
+            topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{device['id']}"
             self.mqtt_client.publish(topic, json.dumps(device['value']))
             return True
         return False
@@ -89,7 +89,7 @@ class GPIOSystem(BaseSystem):
         if state:
             for gpio in self.config:
                 self.mqtt_client.publish(
-                    f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
+                    f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/{gpio['id']}",
                     str(gpio['value']).lower(), True)
 
     def init(self):
@@ -123,7 +123,7 @@ class GPIOSystem(BaseSystem):
                   'state': self.config}
         self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
 
-        topic = f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"
+        topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/+/command"
         logging.info("... ... subscribe to [%s] for gpio output commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
         self.set_availability(True)

@@ -1,0 +1,8 @@
+{
+  "mqtt": {
+    "server": "homeassistant",
+    "discovery_prefix": "homeassistant",
+    "password": "autoInstall",
+    "username": "mqtt"
+  }
+}

@@ -1,25 +1,34 @@
 import abc
+import json
 import logging
 import time
 
-from common import CUBIEMEDIA
+from common import MQTT_CUBIEMEDIA, MQTT_HOMEASSISTANT_PREFIX
 from common import TIMEOUT_UPDATE
+from common.homeassistant import MQTT_BUTTON, PAYLOAD_BUTTON, MQTT_NAME, MQTT_AVAILABILITY_TOPIC, \
+    MQTT_COMMAND_TOPIC, MQTT_UNIQUE_ID, \
+    MQTT_DEVICE, MQTT_DEVICE_IDS
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.network import get_ip_address
-from common.python import get_configuration, set_configuration, get_core_configuration
+from common.python import get_configuration, set_configuration, get_mqtt_configuration, \
+    system_reboot
+
+SERVICES = {"reboot": {"name": "Reboot System"}}
 
 
 class BaseSystem(abc.ABC):
     mqtt_client = None
     client_id = 'unknown'
     ip_address = None
+    string_ip = 'unset'
     last_update = time.time() - TIMEOUT_UPDATE
     config: [] = []
-    core_config: [] = []
+    mqtt_config: [] = []
     execution_mode = "Base"
 
     def __init__(self):
         self.ip_address = get_ip_address()
+        self.string_ip = self.ip_address.replace(".", "_")
         self.client_id = f"{self.ip_address}-{self.execution_mode}-client"
         self.mqtt_client = CubieMediaMQTTClient(self.client_id)
 
@@ -29,7 +38,8 @@ class BaseSystem(abc.ABC):
         self.mqtt_client.connect(self)
 
     def shutdown(self):
-        logging.info(f"... disconnect mqtt client [{self.client_id}] from [{self.get_mqtt_host()}]")
+        logging.info(
+            f"... disconnect mqtt client [{self.client_id}] from [{self.get_mqtt_server()}]")
         if self.mqtt_client:
             self.mqtt_client.disconnect()
 
@@ -43,21 +53,43 @@ class BaseSystem(abc.ABC):
 
         return data
 
-    def send(self, data: {}) -> bool:
-        raise NotImplementedError(f"sending data[{data}] is not implemented")
+    def send(self, data: {}):
+        if "id" in data and "state" in data:
+            if data["id"] in SERVICES:
+                logging.info("... ... reboot is [%s]", data['state'] == 'PRESS')
+                system_reboot()
+            else:
+                logging.warning(
+                    "unknown service in data while writing value to victron system [%s]" % data)
+        else:
+            logging.warning("missing id and/or state in data [%s] at base system" % data)
 
     def announce(self):
-        raise NotImplementedError("announce needs to be implemented for every system")
+        for service, attributes in SERVICES.items():
+            config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_BUTTON}/{self.string_ip}-{service}/config"
+            state_topic = f"{MQTT_CUBIEMEDIA}/base/{self.string_ip}/{service}"
+            unique_id = f"{self.string_ip}-base-{service}"
+            availability_topic = f"{MQTT_CUBIEMEDIA}/base/{self.string_ip}/online"
+
+            payload = PAYLOAD_BUTTON
+            payload[MQTT_NAME] = attributes['name']
+            payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
+            payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+            payload[MQTT_UNIQUE_ID] = unique_id
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = self.string_ip
+            payload[MQTT_DEVICE][MQTT_NAME] = f"CubieMedia Gateway ({self.ip_address})"
+
+            self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
 
     def set_availability(self, state: bool):
         self.mqtt_client.publish(
-            f"{CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/online",
+            f"{MQTT_CUBIEMEDIA}/base/{self.string_ip}/online",
             str(state).lower())
 
     def load(self):
         logging.info("... loading config")
 
-        self.core_config = get_core_configuration(self.ip_address)
+        self.mqtt_config = get_mqtt_configuration()
         if self.execution_mode != "Base":
             self.config = get_configuration(self.execution_mode)
 
@@ -65,7 +97,8 @@ class BaseSystem(abc.ABC):
         if device and 'client_id' not in device:
             device['client_id'] = self.client_id
         if device and 'id' in device:
-            self.config = [device if device['id'] == temp_device['id'] else temp_device for temp_device in self.config]
+            self.config = [device if device['id'] == temp_device['id'] else temp_device for
+                           temp_device in self.config]
             if device not in self.config:
                 self.config.append(device)
         if self.execution_mode != "Base":
@@ -90,9 +123,9 @@ class BaseSystem(abc.ABC):
         self.config = []
         self.save()
 
-    def get_mqtt_host(self):
-        return self.core_config['host']
+    def get_mqtt_server(self):
+        return self.mqtt_config['server']
 
     def get_mqtt_login(self):
-        return (self.core_config['username'],
-                self.core_config['password'])
+        return (self.mqtt_config['username'],
+                self.mqtt_config['password'])
