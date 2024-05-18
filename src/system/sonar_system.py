@@ -8,8 +8,11 @@ import time
 from serial import Serial, SerialException
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, CUBIE_DEVICE, CUBIE_SERIAL, \
-    CUBIE_TYPE
-from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE
+    CUBIE_TYPE, MQTT_HOMEASSISTANT_PREFIX
+from common import MQTT_CUBIEMEDIA
+from common.homeassistant import MQTT_NAME, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIT_OF_MEASUREMENT, \
+    MQTT_STATE_CLASS, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION, \
+    ATTR_MEASUREMENT, MQTT_SENSOR, MQTT_UNIT, MQTT_CONFIG_TOPIC, PAYLOAD_SENSOR
 from common.python import get_configuration
 from system.base_system import BaseSystem
 
@@ -18,6 +21,19 @@ DEFAULT_OFFSET = 0
 DEFAULT_TRIGGER_OFFSET = 5
 DEFAULT_DISTANCE_OFFSET = 500
 DEFAULT_MAXIMAL_DISTANCE = 8000
+
+SERVICES = {
+    "distance": {
+        MQTT_CONFIG_TOPIC: MQTT_SENSOR,
+        MQTT_UNIT: "cm",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT
+    },
+    "percent": {
+        MQTT_CONFIG_TOPIC: MQTT_SENSOR,
+        MQTT_UNIT: "%",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT
+    }
+}
 
 
 class SonarSystem(BaseSystem):
@@ -74,7 +90,7 @@ class SonarSystem(BaseSystem):
             json.dumps(device['value']), True)
         percent = round(
             (self.maximal_distance - (device['value'])) / (
-                        self.maximal_distance - self.offset_distance) * 100)
+                    self.maximal_distance - self.offset_distance) * 100)
         self.mqtt_client.publish(
             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
             percent, True)
@@ -113,6 +129,7 @@ class SonarSystem(BaseSystem):
         return data
 
     def announce(self):
+        super().announce()
         for device in self.config:
             if 'id' not in device:
                 already_exists = False
@@ -127,5 +144,28 @@ class SonarSystem(BaseSystem):
                         f'{COLOR_YELLOW}something ist wrong with your config (id matching){COLOR_DEFAULT}')
                     break
             device['client_id'] = self.client_id
-            logging.info("... ... announce sonar device [%s]" % device)
-            self.mqtt_client.publish(DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+            logging.info("... ... announce sonar device [%s]", device)
+
+            string_id = self.string_ip
+            device_name = f"Sonar Device ({self.ip_address})"
+
+            availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/online"
+
+            for service, attributes in SERVICES.items():
+                state_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/{service}"
+                service_name = f"{service.replace('_', ' ').title()}"
+                unique_id = f"{string_id}-{self.execution_mode}-{service}"
+                config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{attributes[MQTT_CONFIG_TOPIC]}/{string_id}-{service}/config"
+
+                payload = PAYLOAD_SENSOR
+                payload[MQTT_NAME] = service_name
+                payload[MQTT_STATE_TOPIC] = state_topic
+                payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+                payload[MQTT_STATE_CLASS] = attributes[MQTT_STATE_CLASS]
+                payload[MQTT_UNIT_OF_MEASUREMENT] = attributes[MQTT_UNIT]
+                payload[MQTT_UNIQUE_ID] = unique_id
+                payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = f"{self.execution_mode}-{self.string_ip}"
+                payload[MQTT_DEVICE][MQTT_NAME] = device_name
+                payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
+
+                self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)

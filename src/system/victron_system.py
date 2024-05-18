@@ -209,13 +209,12 @@ class VictronSystem(BaseSystem):
         logging.info(f"... ... subscribe to channel [{service_specific_command_topic}]")
         self.mqtt_client.subscribe(service_specific_command_topic, QOS)
 
-        logging.info("... ... announce victron_system with all actors and sensors [%s]" %
-                     self.victron_system["id"])
+        logging.info("... ... announce victron_system with all actors and sensors [%s]", self.victron_system)
         availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/online"
 
         for service, attributes in SERVICES.items():
             state_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/{service}"
-            service_name = f"{service.capitalize().replace('_', ' ')}"
+            service_name = f"{service.replace('_', ' ').title()}"
             unique_id = f"{string_id}-{self.execution_mode}-{service}"
             config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{attributes[MQTT_CONFIG_TOPIC]}/{string_id}-{service}/config"
 
@@ -232,10 +231,9 @@ class VictronSystem(BaseSystem):
             payload[MQTT_STATE_TOPIC] = state_topic
             payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
             payload[MQTT_UNIQUE_ID] = unique_id
-            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = self.string_ip
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = f"{self.execution_mode}-{self.string_ip}"
             payload[MQTT_DEVICE][MQTT_NAME] = device_name
-            payload[MQTT_DEVICE][
-                MQTT_DEVICE_DESCRIPTION] = f"via Victron Gateway ({self.ip_address})"
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
             self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
 

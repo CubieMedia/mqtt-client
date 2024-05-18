@@ -7,7 +7,7 @@ from common import MQTT_CUBIEMEDIA, MQTT_HOMEASSISTANT_PREFIX
 from common import TIMEOUT_UPDATE
 from common.homeassistant import MQTT_BUTTON, PAYLOAD_BUTTON, MQTT_NAME, MQTT_AVAILABILITY_TOPIC, \
     MQTT_COMMAND_TOPIC, MQTT_UNIQUE_ID, \
-    MQTT_DEVICE, MQTT_DEVICE_IDS
+    MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_mqtt_configuration, \
@@ -77,7 +77,8 @@ class BaseSystem(abc.ABC):
             payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
             payload[MQTT_UNIQUE_ID] = unique_id
             payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = self.string_ip
-            payload[MQTT_DEVICE][MQTT_NAME] = f"CubieMedia Gateway ({self.ip_address})"
+            payload[MQTT_DEVICE][MQTT_NAME] = f"Gateway ({self.ip_address})"
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"MQTT - Gateway ({self.ip_address})"
 
             self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
 
