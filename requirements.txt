@@ -1,5 +1,5 @@
 ifaddr
-paho-mqtt>=2.0.0
+paho-mqtt
 requests
 pyserial
 enocean
@@ -9,3 +9,5 @@ setuptools
 pytest
 psutil
 miflora
+bluepy
+btlewrap

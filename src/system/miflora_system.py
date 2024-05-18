@@ -1,304 +1,162 @@
-from enum import Enum
-import os
-import logging
 import json
+import logging
 import time
-from datetime import datetime
-from typing import List, Optional
-import yaml
-import paho.mqtt.client as mqtt
-from miflora.miflora_poller import MiFloraPoller, MI_BATTERY, MI_LIGHT, MI_CONDUCTIVITY, MI_MOISTURE, MI_TEMPERATURE
+
+from btlewrap import BluetoothBackendException
 from btlewrap.bluepy import BluepyBackend
+from miflora.miflora_poller import MiFloraPoller, MI_BATTERY, MI_LIGHT, MI_CONDUCTIVITY, \
+    MI_MOISTURE, MI_TEMPERATURE
 
+from common import MQTT_CUBIEMEDIA, CUBIE_MIFLORA, MQTT_HOMEASSISTANT_PREFIX
+from common.homeassistant import MQTT_BATTERY, MQTT_TEMPERATURE, MQTT_BRIGHTNESS, MQTT_MOISTURE, \
+    MQTT_CONDUCTIVITY, MQTT_UNIT, MQTT_STATE_CLASS, MQTT_DEVICE_CLASS, \
+    ATTR_MEASUREMENT, MQTT_SENSOR, PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT_OF_MEASUREMENT, MQTT_NAME, \
+    MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, \
+    MQTT_DEVICE_DESCRIPTION
+from system.base_system import BaseSystem
 
-class MQTTAttributes(Enum):
-    """Attributes sent in the json dict."""
-    BATTERY = 'battery'
-    TEMPERATURE = 'temperature'
-    BRIGHTNESS = 'brightness'
-    MOISTURE = 'moisture'
-    CONDUCTIVITY = 'conductivity'
-    TIMESTAMP = 'timestamp'
+MI_TOPIC = "mi_topic"
 
-
-# unit of measurement for the different attributes
-UNIT_OF_MEASUREMENT = {
-    MQTTAttributes.BATTERY:      '%',
-    MQTTAttributes.TEMPERATURE:  '°C',
-    MQTTAttributes.BRIGHTNESS:   'lux',
-    MQTTAttributes.MOISTURE:     '%',
-    MQTTAttributes.CONDUCTIVITY: 'µS/cm',
-    MQTTAttributes.TIMESTAMP:     's',
+SERVICES = {
+    MQTT_BATTERY: {
+        MI_TOPIC: MI_BATTERY,
+        MQTT_UNIT: "%",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT,
+        MQTT_DEVICE_CLASS: MQTT_BATTERY
+    },
+    MQTT_TEMPERATURE: {
+        MI_TOPIC: MI_TEMPERATURE,
+        MQTT_UNIT: "°C",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT,
+        MQTT_DEVICE_CLASS: MQTT_TEMPERATURE
+    },
+    MQTT_BRIGHTNESS: {
+        MI_TOPIC: MI_LIGHT,
+        MQTT_UNIT: "lx",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT,
+        MQTT_DEVICE_CLASS: 'illuminance'
+    },
+    MQTT_MOISTURE: {
+        MI_TOPIC: MI_MOISTURE,
+        MQTT_UNIT: "%",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT,
+        MQTT_DEVICE_CLASS: None
+    },
+    MQTT_CONDUCTIVITY: {
+        MI_TOPIC: MI_CONDUCTIVITY,
+        MQTT_UNIT: "µS/cm",
+        MQTT_STATE_CLASS: ATTR_MEASUREMENT,
+        MQTT_DEVICE_CLASS: None
+    }
 }
 
 
-# home assistant device classes for the different attributes
-DEVICE_CLASS = {
-    MQTTAttributes.BATTERY:      'battery',
-    MQTTAttributes.TEMPERATURE:  'temperature',
-    MQTTAttributes.BRIGHTNESS:   'illuminance',
-    MQTTAttributes.MOISTURE:     None,
-    MQTTAttributes.CONDUCTIVITY: None,
-    MQTTAttributes.TIMESTAMP:    'timestamp',
-}
+class MiFloraSystem(BaseSystem):
+    update_interval = 3600
+    last_update = None
 
+    def __init__(self):
+        self.execution_mode = CUBIE_MIFLORA
+        super().__init__()
 
-# pylint: disable-msg=too-many-instance-attributes
-class Configuration:
-    """Stores the program configuration."""
+    def init(self):
+        super().init()
+        self.last_update = time.time() - self.update_interval + 10
 
-    def __init__(self, config_file_path):
-        with open(config_file_path, 'r') as config_file:
-            config = yaml.load(config_file, Loader=yaml.FullLoader)
+    def shutdown(self):
+        logging.info('... set devices unavailable...')
+        self.set_availability(False)
 
-        self._configure_logging(config)
+        super().shutdown()
 
-        self.interface = 0
-        if 'interface' in config:
-            self.interface = config['interface']
+    def action(self, plant: {}):
+        logging.info("... ... action for plant [%s]" % plant)
+        for key, value in plant['values'].items():
+            self.mqtt_client.publish(
+                f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{plant['name'].lower().replace(' ', '_')}/{key}",
+                value, True)
+        self.set_availability(True)
 
-        self.mqtt_port = 8883  # type: int
-        self.mqtt_user = None  # type: Optional[str]
-        self.mqtt_password = None  # type: Optional[str]
-        self.mqtt_ca_cert = None  # type: Optional[str]
-        self.mqtt_client_id = None  # type: Optional[str]
-        self.mqtt_trailing_slash = True  # type:bool
-        self.mqtt_timestamp_format = None  # type: Optional[str]
-        self.mqtt_discovery_prefix = None  # type: Optional[str]
-        self.sensors = []  # type: List[SensorConfig]
+    def update(self):
+        data = {}
 
-        if 'port' in config['mqtt']:
-            self.mqtt_port = config['mqtt']['port']
+        device_list = []
+        if self.last_update < time.time() - self.update_interval:
+            self.last_update = time.time()
 
-        if 'user' in config['mqtt']:
-            self.mqtt_user = config['mqtt']['user']
+            logging.info('... ... scanning for bluetooth devices')
+            try:
+                BluepyBackend.scan_for_devices(5)
+            except BluetoothBackendException:
+                logging.warning("could not scan, maybe a permission problem")
+                logging.warning(
+                    "sudo setcap 'cap_net_raw,cap_net_admin+eip' [YOUR_PYTHON_VENV]/site-packages/bluepy/bluepy-helper")
 
-        if 'password' in config['mqtt']:
-            self.mqtt_password = config['mqtt']['password']
+            # get data from devices
+            for device in self.config:
+                mac = device['mac']
+                name = device['name'] if 'name' in device else mac
+                poller = MiFloraPoller(mac, BluepyBackend)
 
-        if 'ca_cert' in config['mqtt']:
-            self.mqtt_ca_cert = config['mqtt']['ca_cert']
-
-        if 'client_id' in config['mqtt']:
-            self.mqtt_client_id = config['mqtt']['client_id']
-
-        if 'trailing_slash' in config['mqtt'] and not config['mqtt']['trailing_slash']:
-            self.mqtt_trailing_slash = False
-
-        if 'timestamp_format' in config['mqtt']:
-            self.mqtt_timestamp_format = config['mqtt']['timestamp_format']
-
-        self.mqtt_server = config['mqtt']['server']
-        self.mqtt_prefix = config['mqtt']['prefix']
-
-        for sensor_config in config['sensors']:
-            fail_silent = 'fail_silent' in sensor_config
-            self.sensors.append(SensorConfig(sensor_config['mac'], sensor_config['alias'], fail_silent))
-
-        if 'discovery_prefix' in config['mqtt']:
-            self.mqtt_discovery_prefix = config['mqtt']['discovery_prefix']
-
-    @staticmethod
-    def _configure_logging(config):
-        timeform = '%a, %d %b %Y %H:%M:%S'
-        logform = '%(asctime)s %(levelname)-8s %(message)s'
-        loglevel = logging.INFO
-        if 'debug' in config:
-            loglevel = logging.DEBUG
-
-        if 'logfile' in config:
-            logfile = os.path.abspath(os.path.expanduser(config['logfile']))
-            logging.basicConfig(filename=logfile, level=loglevel, datefmt=timeform, format=logform)
-        else:
-            logging.basicConfig(level=loglevel, datefmt=timeform, format=logform)
-
-
-class SensorConfig:
-    """Stores the configuration of a sensor."""
-
-    def __init__(self, mac: str, alias: str = None, fail_silent: bool = False):
-        if mac is None:
-            msg = 'mac of sensor must not be None'
-            logging.error(msg)
-            raise Exception('mac of sensor must not be None')
-        self.mac = mac
-        self.alias = alias
-        self.fail_silent = fail_silent
-
-    def get_topic(self) -> str:
-        """Get the topic name for the sensor."""
-        if self.alias is not None:
-            return self.alias
-        return self.mac
-
-    def __str__(self) -> str:
-        if self.alias:
-            result = self.alias
-        else:
-            result = self.mac
-        if self.fail_silent:
-            result += ' (fail silent)'
-        return result
-
-    @property
-    def short_mac(self):
-        """Get the sensor mac without ':' in it."""
-        return self.mac.replace(':', '')
-
-    @staticmethod
-    def get_name_string(sensor_list) -> str:
-        """Convert a list of sensor objects to a nice string."""
-        return ', '.join([str(sensor) for sensor in sensor_list])
-
-
-class PlantGateway:
-    """Main class of the module."""
-
-    def __init__(self, config_file_path: str = '~/.plantgw.yaml'):
-        config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
-        self.config = Configuration(config_file_path)  # type: Configuration
-        logging.info('loaded config file from %s', config_file_path)
-        self.mqtt_client = None
-        self.connected = False  # type: bool
-
-    def start_client(self):
-        """Start the mqtt client."""
-        if not self.connected:
-            self._start_client()
-
-    def stop_client(self):
-        """Stop the mqtt client."""
-        if self.connected:
-            self.mqtt_client.disconnect()
-            self.connected = False
-        self.mqtt_client.loop_stop()
-        logging.info('Disconnected MQTT connection')
-
-    def _start_client(self):
-        self.mqtt_client = mqtt.Client(self.config.mqtt_client_id)
-        if self.config.mqtt_user is not None:
-            self.mqtt_client.username_pw_set(self.config.mqtt_user, self.config.mqtt_password)
-        if self.config.mqtt_ca_cert is not None:
-            self.mqtt_client.tls_set(self.config.mqtt_ca_cert, cert_reqs=mqtt.ssl.CERT_REQUIRED)
-
-        def _on_connect(client, _, flags, return_code):
-            self.connected = True
-            logging.info("MQTT connection returned result: %s", mqtt.connack_string(return_code))
-        self.mqtt_client.on_connect = _on_connect
-
-        self.mqtt_client.connect(self.config.mqtt_server, self.config.mqtt_port, 60)
-        self.mqtt_client.loop_start()
-
-    def _publish(self, sensor_config: SensorConfig, poller: MiFloraPoller):
-        self.start_client()
-        state_topic = self._get_state_topic(sensor_config)
-
-        data = {
-            MQTTAttributes.BATTERY.value:      poller.parameter_value(MI_BATTERY),
-            MQTTAttributes.TEMPERATURE.value:  '{0:.1f}'.format(poller.parameter_value(MI_TEMPERATURE)),
-            MQTTAttributes.BRIGHTNESS.value:   poller.parameter_value(MI_LIGHT),
-            MQTTAttributes.MOISTURE.value:     poller.parameter_value(MI_MOISTURE),
-            MQTTAttributes.CONDUCTIVITY.value: poller.parameter_value(MI_CONDUCTIVITY),
-            MQTTAttributes.TIMESTAMP.value:    datetime.now().isoformat(),
-        }
-        for key, value in data.items():
-            logging.debug("%s: %s", key, value)
-        if self.config.mqtt_timestamp_format is not None:
-            data['timestamp'] = datetime.now().strftime(self.config.mqtt_timestamp_format)
-        json_payload = json.dumps(data)
-        self.mqtt_client.publish(state_topic, json_payload, qos=1, retain=True)
-        logging.info('sent data to topic %s', state_topic)
-
-    def _get_state_topic(self, sensor_config: SensorConfig) -> str:
-        prefix_fmt = '{}/{}'
-        if self.config.mqtt_trailing_slash:
-            prefix_fmt += '/'
-        prefix = prefix_fmt.format(self.config.mqtt_prefix,
-                                   sensor_config.get_topic())
-        return prefix
-
-    def process_mac(self, sensor_config: SensorConfig):
-        """Get data from one Sensor."""
-        logging.info('Getting data from sensor %s', sensor_config.get_topic())
-        poller = MiFloraPoller(sensor_config.mac, BluepyBackend)
-        self.announce_sensor(sensor_config)
-        self._publish(sensor_config, poller)
-
-    def process_all(self):
-        """Get data from all sensors."""
-        next_list = self.config.sensors
-        timeout = 1  # initial timeout in seconds
-        max_retry = 6  # number of retries
-        retry_count = 0
-
-        while retry_count < max_retry and next_list:
-            # if this is not the first try: wait some time before trying again
-            if retry_count > 0:
-                logging.info('try %d of %d: could not process sensor(s) %s. Waiting %d sec for next try',
-                             retry_count, max_retry, SensorConfig.get_name_string(next_list), timeout)
-                time.sleep(timeout)
-                timeout *= 2  # exponential backoff-time
-
-            current_list = next_list
-            retry_count += 1
-            next_list = []
-            for sensor in current_list:
+                # get data
+                logging.info('... ... getting data for sensor %s', mac)
+                plant = {'mac': mac, 'name': name, 'values': {}}
                 try:
-                    self.process_mac(sensor)
-                # pylint: disable=bare-except, broad-except
-                except Exception as exception:
-                    next_list.append(sensor)  # if it failed, we'll try again in the next round
-                    msg = "could not read data from {} ({}) with reason: {}".format(
-                        sensor.mac, sensor.alias, str(exception))
-                    if sensor.fail_silent:
-                        logging.error(msg)
-                        logging.warning('fail_silent is set for sensor %s, so not raising an exception.', sensor.alias)
-                    else:
-                        logging.exception(msg)
-                        print(msg)
+                    for service, attributes in SERVICES.items():
+                        value = poller.parameter_value(attributes[MI_TOPIC])
+                        logging.debug(f"... ... ... received {service} with value [{value}]")
+                        plant['values'][service] = value
+                    device_list.append(plant)
+                except BluetoothBackendException:
+                    logging.warning(f"failed connection with Bluetooth Device [{mac}]")
+        else:
+            pass  # no update time, nothing to do
 
-        # return sensors that could not be processed after max_retry
-        return next_list
+        data['devices'] = device_list
+        return data
 
-    def announce_sensor(self, sensor_config: SensorConfig):
-        """Announce the sensor via Home Assistant MQTT Discovery.
+    def announce(self):
+        super().announce()
 
-           see https://www.home-assistant.io/docs/mqtt/discovery/
-        """
-        if self.config.mqtt_discovery_prefix is None:
-            return
-        self.start_client()
-        device_name = 'plant_{}'.format(sensor_config.short_mac)
-        for attribute in MQTTAttributes:
-            topic = '{}/sensor/{}_{}/config'.format(self.config.mqtt_discovery_prefix, device_name, attribute.value)
-            payload = {
-                'state_topic':         self._get_state_topic(sensor_config),
-                'unit_of_measurement': UNIT_OF_MEASUREMENT[attribute],
-                'value_template':      '{{value_json.'+attribute.value+'}}',
-            }
-            if sensor_config.alias is not None:
-                payload['name'] = '{}_{}'.format(sensor_config.alias, attribute.value)
+        for plant in self.config:
+            if 'mac' not in plant:
+                logging.warning("config entry has no mac, ignoring!")
+                continue
+            mac = plant['mac']
+            plant_name = str(plant['name'] if 'name' in plant else mac)
+            string_id = plant_name.lower().replace(' ', '_')
+            if string_id != mac:
+                plant_name += f" ({plant['mac']})"
 
-            if DEVICE_CLASS[attribute] is not None:
-                payload['device_class'] = DEVICE_CLASS[attribute]
+            logging.info("... ... announce plant [%s]", plant_name)
+            availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/online"
 
-            json_payload = json.dumps(payload)
-            self.mqtt_client.publish(topic, json_payload, qos=1, retain=False)
-            logging.info('sent sensor config to topic %s', topic)
+            for service, attributes in SERVICES.items():
+                state_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/{service}"
+                service_name = f"{service.capitalize().replace('_', ' ')}"
+                unique_id = f"{string_id}-{self.execution_mode}-{service}"
+                config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_SENSOR}/{string_id}-{service}/config"
 
+                payload = PAYLOAD_SPECIAL_SENSOR
+                payload[MQTT_UNIT_OF_MEASUREMENT] = attributes[MQTT_UNIT]
+                payload[MQTT_STATE_CLASS] = attributes[MQTT_STATE_CLASS]
+                payload[MQTT_DEVICE_CLASS] = attributes[MQTT_DEVICE_CLASS]
+                payload[MQTT_NAME] = service_name
+                payload[MQTT_STATE_TOPIC] = state_topic
+                payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+                payload[MQTT_UNIQUE_ID] = unique_id
+                payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = f"{self.execution_mode}-{mac.replace(':', '')}"
+                payload[MQTT_DEVICE][MQTT_NAME] = plant_name
+                payload[MQTT_DEVICE][
+                    MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
-def main():
-    pg = PlantGateway()
-    failed_sensors = pg.process_all()
-    if len(failed_sensors) > 0:
-        print('Could not get data from {}sensor(s): {}.'.format(
-            len(failed_sensors),
-            SensorConfig.get_name_string(failed_sensors)))
-    pg.stop_client()
-    # only count the sensors that are NOT fail silent
-    num_failed = len([s for s in failed_sensors if not s.fail_silent])
-    sys.exit(num_failed)
+                self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
+        self.set_availability(True)
 
-
-if __name__ == '__main__':
-    main()
+    def set_availability(self, state: bool):
+        super().set_availability(state)
+        logging.debug("... ... set availability [%s]", state)
+        for plant in self.config:
+            string_id = plant['name'].lower().replace(' ', '_') if 'name' in plant else plant['mac']
+            availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/online"
+            self.mqtt_client.publish(availability_topic, str(state).lower())

@@ -77,8 +77,8 @@ class BaseSystem(abc.ABC):
             payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
             payload[MQTT_UNIQUE_ID] = unique_id
             payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = self.string_ip
-            payload[MQTT_DEVICE][MQTT_NAME] = f"Gateway ({self.ip_address})"
-            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"MQTT - Gateway ({self.ip_address})"
+            payload[MQTT_DEVICE][MQTT_NAME] = f"MQTT - Gateway ({self.ip_address})"
+            payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"Gateway ({self.ip_address})"
 
             self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
 
