@@ -236,6 +236,7 @@ class VictronSystem(BaseSystem):
             payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
             self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
+        self.set_availability(True)
 
     def load(self):
         super().load()

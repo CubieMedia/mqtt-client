@@ -60,9 +60,9 @@ class TestRelaySystem(TestCase):
         self.system.last_update = -1
         data = self.system.update()
         if 'devices' in data:
-            assert len(data['devices']) == len(self.system.module_list)
+            assert len(data['devices']) == len(self.system.relay_board_list)
         else:
-            assert len(self.system.module_list) == 0, f"module list [{self.system.module_list}] is not empty!"
+            assert len(self.system.relay_board_list) == 0, f"module list [{self.system.relay_board_list}] is not empty!"
 
     def test_set_availability(self):
         self.system.mqtt_client.publish = MagicMock()

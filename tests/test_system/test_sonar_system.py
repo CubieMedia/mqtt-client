@@ -29,7 +29,7 @@ class TestSonarSystem(TestCase):
         assert self.system.offset_trigger == DEFAULT_TRIGGER_OFFSET
         assert self.system.maximal_distance != DEFAULT_MAXIMAL_DISTANCE
         assert self.system.maximal_distance == self.system.config[0]['maximal_distance']
-        assert self.system.offset_distance == DEFAULT_DISTANCE_OFFSET
+        assert self.system.distance_offset == DEFAULT_DISTANCE_OFFSET
 
     def test_shutdown(self):
         self.test_init()

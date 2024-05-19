@@ -4,14 +4,14 @@ import logging
 import time
 
 from common import MQTT_CUBIEMEDIA, MQTT_HOMEASSISTANT_PREFIX
-from common import TIMEOUT_UPDATE
+from common import TIMEOUT_UPDATE_SCANNING
 from common.homeassistant import MQTT_BUTTON, PAYLOAD_BUTTON, MQTT_NAME, MQTT_AVAILABILITY_TOPIC, \
     MQTT_COMMAND_TOPIC, MQTT_UNIQUE_ID, \
     MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION
 from common.mqtt_client_wrapper import CubieMediaMQTTClient
 from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_mqtt_configuration, \
-    system_reboot
+    system_reboot, get_system_configuration
 
 SERVICES = {"reboot": {"name": "Reboot System"}}
 
@@ -21,9 +21,10 @@ class BaseSystem(abc.ABC):
     client_id = 'unknown'
     ip_address = None
     string_ip = 'unset'
-    last_update = time.time() - TIMEOUT_UPDATE
+    last_update = time.time() - TIMEOUT_UPDATE_SCANNING
     config: [] = []
-    mqtt_config: [] = []
+    mqtt_config: {} = {}
+    system_config: [] = []
     execution_mode = "Base"
 
     def __init__(self):
@@ -91,6 +92,7 @@ class BaseSystem(abc.ABC):
         logging.info("... loading config")
 
         self.mqtt_config = get_mqtt_configuration()
+        self.system_config = get_system_configuration()
         if self.execution_mode != "Base":
             self.config = get_configuration(self.execution_mode)
 

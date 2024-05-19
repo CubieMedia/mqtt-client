@@ -116,6 +116,13 @@ def get_mqtt_configuration() -> {}:
     return config['mqtt']
 
 
+def get_system_configuration() -> {}:
+    config = get_configuration(CUBIE_MQTT)
+    if 'system' not in config:
+        raise RuntimeError("could not load system config")
+    return config['system']
+
+
 def set_configuration(config_name: str, config: []):
     result = execute_command(["snapctl", "set", f"{config_name}={json.dumps(config)}"])
     if 'error' in result:

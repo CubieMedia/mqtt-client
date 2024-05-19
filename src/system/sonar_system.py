@@ -3,6 +3,7 @@
 
 import json
 import logging
+import random
 import time
 
 from serial import Serial, SerialException
@@ -10,7 +11,8 @@ from serial import Serial, SerialException
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_SONAR, SONAR_PORT, CUBIE_DEVICE, CUBIE_SERIAL, \
     CUBIE_TYPE, MQTT_HOMEASSISTANT_PREFIX
 from common import MQTT_CUBIEMEDIA
-from common.homeassistant import MQTT_NAME, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIT_OF_MEASUREMENT, \
+from common.homeassistant import MQTT_NAME, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, \
+    MQTT_UNIT_OF_MEASUREMENT, \
     MQTT_STATE_CLASS, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION, \
     ATTR_MEASUREMENT, MQTT_SENSOR, MQTT_UNIT, MQTT_CONFIG_TOPIC, PAYLOAD_SENSOR
 from common.python import get_configuration
@@ -25,7 +27,7 @@ DEFAULT_MAXIMAL_DISTANCE = 8000
 SERVICES = {
     "distance": {
         MQTT_CONFIG_TOPIC: MQTT_SENSOR,
-        MQTT_UNIT: "cm",
+        MQTT_UNIT: "mm",
         MQTT_STATE_CLASS: ATTR_MEASUREMENT
     },
     "percent": {
@@ -42,8 +44,8 @@ class SonarSystem(BaseSystem):
     update_interval = None
     offset = None
     offset_trigger = 5
-    maximal_distance = 8000
-    offset_distance = 500
+    maximal_distance = DEFAULT_MAXIMAL_DISTANCE
+    distance_offset = DEFAULT_DISTANCE_OFFSET
 
     def __init__(self):
         self.execution_mode = CUBIE_SONAR
@@ -57,7 +59,7 @@ class SonarSystem(BaseSystem):
         self.offset = self.config[0]['offset'] if 'offset' in self.config[0] else DEFAULT_OFFSET
         self.offset_trigger = self.config[0][
             'trigger_offset'] if 'trigger_offset' in self.config[0] else DEFAULT_TRIGGER_OFFSET
-        self.offset_distance = self.config[0][
+        self.distance_offset = self.config[0][
             'offset_distance'] if 'offset_distance' in self.config[0] else DEFAULT_DISTANCE_OFFSET
         self.maximal_distance = self.config[0][
             'maximal_distance'] if 'maximal_distance' in self.config[
@@ -86,21 +88,21 @@ class SonarSystem(BaseSystem):
     def action(self, device: {}):
         logging.info("... ... action for [%s]" % device)
         self.mqtt_client.publish(
-            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/distance",
+            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.string_ip}/distance",
             json.dumps(device['value']), True)
         percent = round(
             (self.maximal_distance - (device['value'])) / (
-                    self.maximal_distance - self.offset_distance) * 100)
+                    self.maximal_distance - self.distance_offset) * 100)
         self.mqtt_client.publish(
-            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.ip_address.replace('.', '_')}/percent",
+            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.string_ip}/percent",
             percent, True)
+        self.set_availability(True)
 
     def update(self):
         data = {}
 
         device_list = []
         if self.last_update < time.time() - self.update_interval:
-            self.set_availability(True)
             self.last_update = time.time()
 
             if self.communicator:
@@ -124,6 +126,11 @@ class SonarSystem(BaseSystem):
                                     f"Distance [{distance}] is out of range, object too close or cable disconnected")
                     else:
                         logging.warning(f"Could not find [Gap] in response[{response}]")
+            else:
+                logging.warning("no communicator found, creating random values")
+                device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR,
+                          'value': random.randint(self.distance_offset, self.maximal_distance)}
+                device_list.append(device)
 
         data['devices'] = device_list
         return data
@@ -169,3 +176,9 @@ class SonarSystem(BaseSystem):
                 payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
                 self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
+
+    def set_availability(self, state: bool):
+        super().set_availability(state)
+        logging.debug("... ... set availability [%s]", state)
+        availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.string_ip}/online"
+        self.mqtt_client.publish(availability_topic, str(state).lower())
