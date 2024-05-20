@@ -1,7 +1,7 @@
 CUBIEMEDIA = "CubieMedia"
 
 # wording #
-CUBIE_MQTT = "mqtt"
+CUBIE_SYSTEM = "system"
 CUBIE_GPIO = "gpio"
 CUBIE_ENOCEAN = "enocean"
 CUBIE_RELAY = "relay"
@@ -9,7 +9,7 @@ CUBIE_SONAR = "sonar"
 CUBIE_VICTRON = "victron"
 CUBIE_MIFLORA = "miflora"
 CUBIE_SERIAL = "serial"
-CUBIE_MODE_LIST = [CUBIE_MQTT, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_ENOCEAN, CUBIE_GPIO, CUBIE_MIFLORA]
+CUBIE_MODE_LIST = [CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_ENOCEAN, CUBIE_GPIO, CUBIE_MIFLORA]
 
 CUBIE_RESET = "reset"
 CUBIE_RELOAD = "reload"
@@ -27,7 +27,7 @@ ENOCEAN_PORT = "/dev/ttyAMA0"
 SONAR_PORT = "/dev/ttyS0"
 
 # files
-DEFAULT_CONFIGURATION_FILE_MQTT = "./src/config/cubiemedia.json"
+DEFAULT_CONFIGURATION_FILE_SYSTEM = "./src/config/cubiemedia.json"
 DEFAULT_CONFIGURATION_FILE_ENOCEAN = "./src/config/enocean.json"
 DEFAULT_CONFIGURATION_FILE_GPIO = "./src/config/gpio.json"
 DEFAULT_CONFIGURATION_FILE_RELAY = "./src/config/relay.json"

@@ -4,7 +4,7 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import CUBIE_MQTT, CUBIE_SONAR
+from common import CUBIE_SYSTEM, CUBIE_SONAR
 from common.python import set_default_configuration, get_default_configuration_for
 from system.sonar_system import SonarSystem, DEFAULT_UPDATE_INTERVAL, DEFAULT_OFFSET, DEFAULT_TRIGGER_OFFSET, \
     DEFAULT_MAXIMAL_DISTANCE, DEFAULT_DISTANCE_OFFSET
@@ -106,13 +106,13 @@ class TestSonarSystem(TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
-        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
+        cls.config_backup = get_default_configuration_for(CUBIE_SYSTEM)
         cls.sonar_backup = get_default_configuration_for(CUBIE_SONAR)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_MQTT, cls.config_backup)
+        set_default_configuration(CUBIE_SYSTEM, cls.config_backup)
         set_default_configuration(CUBIE_SONAR, cls.sonar_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()

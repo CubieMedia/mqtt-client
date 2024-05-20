@@ -4,7 +4,7 @@ import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import CUBIE_MQTT, CUBIE_RELAY
+from common import CUBIE_SYSTEM, CUBIE_RELAY
 from common.python import set_default_configuration, get_default_configuration_for
 from system.relay_system import RelaySystem
 from test_common import check_mqtt_server, MQTT_HOST_MOCK
@@ -113,13 +113,13 @@ class TestRelaySystem(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
+        cls.config_backup = get_default_configuration_for(CUBIE_SYSTEM)
         cls.relay_backup = get_default_configuration_for(CUBIE_RELAY)
         cls.mqtt_server_process = check_mqtt_server()
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_MQTT, cls.config_backup)
+        set_default_configuration(CUBIE_SYSTEM, cls.config_backup)
         set_default_configuration(CUBIE_RELAY, cls.relay_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()

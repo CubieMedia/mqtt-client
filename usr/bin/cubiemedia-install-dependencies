@@ -14,7 +14,3 @@ pip install -r /home/pi/mqtt-client/requirements.txt
 
 # install software services into none snap system
 cp /home/pi/mqtt-client/etc/systemd/system/cubiemedia-* /etc/systemd/system/
-
-# default enable core and webtool
-systemctl enable cubiemedia-webtool.service --now
-systemctl enable cubiemedia-core.service --now

@@ -5,7 +5,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from common import MQTT_CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, \
-    CUBIE_MQTT
+    CUBIE_SYSTEM
 from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
 from test_common import MQTT_HOST_MOCK, check_mqtt_server
@@ -97,11 +97,11 @@ class TestBaseSystem(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.config_backup = get_default_configuration_for(CUBIE_MQTT)
+        cls.config_backup = get_default_configuration_for(CUBIE_SYSTEM)
 
     @classmethod
     def tearDownClass(cls):
-        set_default_configuration(CUBIE_MQTT, cls.config_backup)
+        set_default_configuration(CUBIE_SYSTEM, cls.config_backup)
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()

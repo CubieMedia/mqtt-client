@@ -31,7 +31,7 @@ then
   restart_service victron
   restart_service gpio
   restart_service sonar
-  restart_service core
+  restart_service miflora
   restart_service git-updater
   restart_service webtool
 else

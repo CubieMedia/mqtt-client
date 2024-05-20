@@ -6,12 +6,12 @@ from json import JSONDecodeError
 from os.path import exists
 
 import common
-from common import CUBIE_MQTT
+from common import CUBIE_SYSTEM
 
 USER_MESSAGE_SHOULD_BE_SHOWN = True
 
 CONFIG_DICT = {
-    common.CUBIE_MQTT: common.DEFAULT_CONFIGURATION_FILE_MQTT,
+    common.CUBIE_SYSTEM: common.DEFAULT_CONFIGURATION_FILE_SYSTEM,
     common.CUBIE_SERIAL: common.DEFAULT_CONFIGURATION_FILE_SERIAL,
     common.CUBIE_GPIO: common.DEFAULT_CONFIGURATION_FILE_GPIO,
     common.CUBIE_SONAR: common.DEFAULT_CONFIGURATION_FILE_SONAR,
@@ -110,14 +110,14 @@ def get_configuration(config_name: str) -> []:
 
 
 def get_mqtt_configuration() -> {}:
-    config = get_configuration(CUBIE_MQTT)
+    config = get_configuration(CUBIE_SYSTEM)
     if 'mqtt' not in config:
         raise RuntimeError("could not load mqtt config")
     return config['mqtt']
 
 
 def get_system_configuration() -> {}:
-    config = get_configuration(CUBIE_MQTT)
+    config = get_configuration(CUBIE_SYSTEM)
     if 'system' not in config:
         raise RuntimeError("could not load system config")
     return config['system']
