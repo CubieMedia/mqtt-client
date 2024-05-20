@@ -27,7 +27,7 @@ ENOCEAN_PORT = "/dev/ttyAMA0"
 SONAR_PORT = "/dev/ttyS0"
 
 # files
-DEFAULT_CONFIGURATION_FILE_MQTT = "./src/config/mqtt.json"
+DEFAULT_CONFIGURATION_FILE_MQTT = "./src/config/cubiemedia.json"
 DEFAULT_CONFIGURATION_FILE_ENOCEAN = "./src/config/enocean.json"
 DEFAULT_CONFIGURATION_FILE_GPIO = "./src/config/gpio.json"
 DEFAULT_CONFIGURATION_FILE_RELAY = "./src/config/relay.json"

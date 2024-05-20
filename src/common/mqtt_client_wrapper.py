@@ -97,12 +97,9 @@ class CubieMediaMQTTClient:
             mode_specific_command_topic = f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/command"
             logging.info(f"... ... subscribe to channel [{mode_specific_command_topic}]")
             self.mqtt_client.subscribe(mode_specific_command_topic, QOS)
-            device_specific_command_topic = f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{str(self.system.ip_address).replace('.', '_')}/command"
+            device_specific_command_topic = f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.string_ip}/command"
             logging.info(f"... ... subscribe to channel [{device_specific_command_topic}]")
             self.mqtt_client.subscribe(device_specific_command_topic, QOS)
-            reboot_command_topic = f"{MQTT_CUBIEMEDIA}/base/{self.system.string_ip}/reboot/command"
-            logging.info(f"... ... subscribe to channel [{reboot_command_topic}]")
-            self.mqtt_client.subscribe(reboot_command_topic, QOS)
             self.system.announce()
         else:
             logging.info("... bad connection please check login data")

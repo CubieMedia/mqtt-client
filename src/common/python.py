@@ -139,7 +139,3 @@ def warn_once(msg: str, *args):
 
 def install_package(package):
     subprocess.check_call(["python3", "-m", "pip", "install", package])
-
-
-def system_reboot():
-    execute_command("sleep 3")

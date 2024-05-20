@@ -13,6 +13,9 @@ from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
 import common
+from common import MQTT_HOMEASSISTANT_PREFIX, MQTT_CUBIEMEDIA
+from common.homeassistant import MQTT_BINARY_SENSOR, PAYLOAD_SENSOR, MQTT_NAME, MQTT_STATE_TOPIC, \
+    MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION
 from common.python import get_configuration
 from system.base_system import BaseSystem
 
@@ -115,10 +118,12 @@ class EnoceanSystem(BaseSystem):
         return {}
 
     def set_availability(self, state: bool):
+        super().set_availability(state)
         for device in self.config:
             if device['client_id'] == self.client_id:
-                self.mqtt_client.publish(f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
-                                         str(state).lower())
+                self.mqtt_client.publish(
+                    f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/online",
+                    str(state).lower())
 
     def init(self):
         super().init()
@@ -143,23 +148,59 @@ class EnoceanSystem(BaseSystem):
             time.sleep(1)
 
     def announce(self):
+        super().announce()
         for device in self.config:
-            if device['client_id'] == self.client_id:
-                logging.info("... ... announce device [%s]" % device['id'])
+            # {"client_id": "10.10.20.31-enocean-client", "dbm": -51, "id": "fefc1be1",
+            # "state": {"a1": 0, "a2": 0, "b1": 0, "b2": 0}, "type": "RPS"}
+
+            if {'id', 'state', 'client_id'}.issubset(device.keys()) and device['client_id'] == self.client_id:
+                device_id = device['id']
+                logging.info("... ... announce device [%s]" % device_id)
                 temp_device = device.copy()
                 del temp_device['state']
                 self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(temp_device))
-                if 'state' in device:
-                    for topic in device['state']:
-                        if device['state'][topic] == 1:
-                            channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
-                            self._create_timer_for(channel_topic, True)
-        self.last_update = 0
+
+                for sensor, value in device['state'].items():
+                    device_name = f"EnOcean Switch {device_id}"
+                    sensor_name = f"Sensor {sensor.title()}"
+                    unique_id = f"enocean-{device_id}-{sensor}-input"
+                    config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_BINARY_SENSOR}/{device_id}-{sensor}/config"
+                    state_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device_id}/{sensor}"
+                    availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device_id}/online"
+
+                    payload = PAYLOAD_SENSOR
+                    payload[MQTT_NAME] = sensor_name
+                    payload[MQTT_STATE_TOPIC] = state_topic
+                    payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+                    payload[MQTT_UNIQUE_ID] = unique_id
+                    payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+                    payload[MQTT_DEVICE][MQTT_NAME] = device_name
+                    payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
+
+                    self.mqtt_client.publish(config_topic, json.dumps(payload))
+
+                    # also create long push sensor for all normal sensors
+                    config_topic_long_push = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_BINARY_SENSOR}/{device_id}-{sensor}-longpush/config"
+                    payload = PAYLOAD_SENSOR
+                    payload[MQTT_NAME] = sensor_name + "-longpush"
+                    payload[MQTT_STATE_TOPIC] = state_topic + "/longpush"
+                    payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
+                    payload[MQTT_UNIQUE_ID] = unique_id + "_longpush"
+                    payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
+                    payload[MQTT_DEVICE][MQTT_NAME] = device_name
+                    payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
+
+                    self.mqtt_client.publish(config_topic_long_push, json.dumps(payload))
+                    if value == 1:
+                        channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{device_id}/{sensor}"
+                        self._create_timer_for(channel_topic, True)
+            else:
+                logging.debug(f"wrong data or device not managed by this gateway [{device}]")
 
     def save(self, device=None):
         if device and {'id', 'dbm'}.issubset(device.keys()):
             if (str(device[common.CUBIE_TYPE]).upper() == "RPS" or str(
-                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.mqtt_config['learn_mode']:
+                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.system_config['devices_can_be_added']:
                 add = True
                 for known_device in self.config:
                     if str(device['id']).upper() == str(known_device['id']).upper():

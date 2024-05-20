@@ -14,7 +14,7 @@ from common import MQTT_CUBIEMEDIA, CUBIE_VICTRON, QOS, EXPORT_CORRECTION_FACTOR
 from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, \
     MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIT_OF_MEASUREMENT, MQTT_STATE_CLASS, \
     MQTT_DEVICE_CLASS, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION, \
-    ATTR_BINARY_SENSOR, PAYLOAD_ACTOR, MQTT_BATTERY, MQTT_POWER, \
+    MQTT_BINARY_SENSOR, PAYLOAD_ACTOR, MQTT_BATTERY, MQTT_POWER, \
     ATTR_MEASUREMENT, ATTR_ENERGY, MQTT_SENSOR, MQTT_SWITCH, \
     PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT, MQTT_CONFIG_TOPIC, VICTRON_MQTT_TOPIC
 from system.base_system import BaseSystem
@@ -68,7 +68,7 @@ SERVICES = {
         MQTT_DEVICE_CLASS: ATTR_ENERGY
     },
     "grid_lost_alarm": {
-        MQTT_CONFIG_TOPIC: ATTR_BINARY_SENSOR,
+        MQTT_CONFIG_TOPIC: MQTT_BINARY_SENSOR,
         VICTRON_MQTT_TOPIC: "vebus/276/Alarms/GridLost",
     },
     "allow_charge": {
@@ -155,10 +155,12 @@ class VictronSystem(BaseSystem):
                 self.victron_mqtt_client.publish(
                     VICTRON_WRITE_TOPIC.format(self.victron_system['serial']) + SERVICES[service][
                         VICTRON_MQTT_TOPIC], value)
+                return True
             else:
-                super().send(data)
+                return super().send(data)
         else:
             logging.warning("missing id and/or state in data [%s]" % data)
+        return False
 
     def update(self):
         data = self._updated_data

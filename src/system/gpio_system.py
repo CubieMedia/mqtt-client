@@ -11,7 +11,7 @@ from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GP
 from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE_SCANNING
 from common.homeassistant import PAYLOAD_ACTOR, MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, \
     MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_DESCRIPTION, MQTT_DEVICE_IDS, \
-    PAYLOAD_SENSOR, ATTR_BINARY_SENSOR, MQTT_LIGHT
+    PAYLOAD_SENSOR, MQTT_BINARY_SENSOR, MQTT_LIGHT
 from system.base_system import BaseSystem
 
 try:
@@ -48,7 +48,7 @@ class GPIOSystem(BaseSystem):
             self.gpio_control.output(int(data['id']),
                                      GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
             return True
-        return False
+        return super().send(data)
 
     def save(self, device=None):
         if not device:
@@ -148,7 +148,7 @@ class GPIOSystem(BaseSystem):
             elif gpio_type == GPIO_PIN_TYPE_IN:
                 gpio_name = f"Input {gpio_id}"
                 unique_id = f"{self.string_ip}-in-{gpio_id}"
-                config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{ATTR_BINARY_SENSOR}/{self.string_ip}-{gpio_id}/config"
+                config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_BINARY_SENSOR}/{self.string_ip}-{gpio_id}/config"
 
                 payload = PAYLOAD_SENSOR
                 payload[MQTT_NAME] = gpio_name

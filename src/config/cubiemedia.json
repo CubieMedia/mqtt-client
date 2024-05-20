@@ -4,5 +4,8 @@
     "discovery_prefix": "homeassistant",
     "password": "autoInstall",
     "username": "mqtt"
+  },
+  "system": {
+    "devices_can_be_added": true
   }
 }

@@ -53,7 +53,7 @@ class RelaySystem(BaseSystem):
             logging.warning(f"... received action with wrong data [{device}]")
         return False
 
-    def send(self, data):
+    def send(self, data) -> bool:
         toggle = False
         for known_device in self.config:
             if data['ip'] == known_device['id']:
@@ -62,8 +62,10 @@ class RelaySystem(BaseSystem):
                     toggle = True
                 logging.debug("... ... send data[%s] from HA with toggle[%s]" % (data, toggle))
                 self._set_status(data['ip'], data['id'], data['state'], toggle)
+                self.last_update = -1 if toggle else 0
+                return True
 
-        self.last_update = -1 if toggle else 0
+        return super().send(data)
 
     def update(self):
         data = {}
