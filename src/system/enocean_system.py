@@ -13,7 +13,7 @@ from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
 import common
-from common import MQTT_HOMEASSISTANT_PREFIX, MQTT_CUBIEMEDIA
+from common import MQTT_HOMEASSISTANT_PREFIX, MQTT_CUBIEMEDIA, CUBIE_SERIAL, CUBIE_DEVICE, CUBIE_TYPE, ENOCEAN_PORT
 from common.homeassistant import MQTT_BINARY_SENSOR, PAYLOAD_SENSOR, MQTT_NAME, MQTT_STATE_TOPIC, \
     MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION
 from common.python import get_configuration
@@ -357,9 +357,11 @@ class EnoceanSystem(BaseSystem):
 
     def _open_communicator(self):
         try:
-            serial_json = get_configuration(common.CUBIE_SERIAL)[0]
-            if serial_json[common.CUBIE_TYPE] == common.CUBIE_SERIAL and common.CUBIE_DEVICE in serial_json:
-                self.communicator = SerialCommunicator(common.ENOCEAN_PORT)
+            serial_json = get_configuration(CUBIE_SERIAL)[0]
+            if {CUBIE_TYPE, CUBIE_DEVICE}.issubset(serial_json.keys()) and serial_json[CUBIE_TYPE] == CUBIE_SERIAL:
+                self.communicator = SerialCommunicator(serial_json[CUBIE_DEVICE])
+            else:
+                self.communicator = SerialCommunicator(ENOCEAN_PORT)
         except SerialException:
             if "arm" in platform.machine():
                 logging.warning(

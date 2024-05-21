@@ -53,26 +53,27 @@ class SonarSystem(BaseSystem):
 
     def init(self):
         super().init()
-        self.update_interval = self.config[0]['update_interval'] if 'update_interval' in \
-                                                                    self.config[
-                                                                        0] else DEFAULT_UPDATE_INTERVAL
-        self.offset = self.config[0]['offset'] if 'offset' in self.config[0] else DEFAULT_OFFSET
-        self.offset_trigger = self.config[0][
-            'trigger_offset'] if 'trigger_offset' in self.config[0] else DEFAULT_TRIGGER_OFFSET
-        self.distance_offset = self.config[0][
-            'offset_distance'] if 'offset_distance' in self.config[0] else DEFAULT_DISTANCE_OFFSET
-        self.maximal_distance = self.config[0][
-            'maximal_distance'] if 'maximal_distance' in self.config[
-            0] else DEFAULT_MAXIMAL_DISTANCE
+        sonar_device = self.config[0]
+        serial_config = get_configuration(CUBIE_SERIAL)[0]
+
+        self.update_interval = sonar_device['update_interval'] if 'update_interval' in \
+                                                                  sonar_device else DEFAULT_UPDATE_INTERVAL
+        self.offset = sonar_device['offset'] if 'offset' in sonar_device else DEFAULT_OFFSET
+        self.offset_trigger = sonar_device[
+            'trigger_offset'] if 'trigger_offset' in sonar_device else DEFAULT_TRIGGER_OFFSET
+        self.distance_offset = sonar_device[
+            'offset_distance'] if 'offset_distance' in sonar_device else DEFAULT_DISTANCE_OFFSET
+        self.maximal_distance = sonar_device[
+            'maximal_distance'] if 'maximal_distance' in sonar_device else DEFAULT_MAXIMAL_DISTANCE
 
         serial_port = None
         try:
-            default_serial_port = SONAR_PORT
-            serial_json = get_configuration(CUBIE_SERIAL)[0]
-            if serial_json[CUBIE_TYPE] == CUBIE_SERIAL and CUBIE_DEVICE in serial_json:
-                default_serial_port = serial_json[CUBIE_DEVICE]
-            serial_port = self.config[0][CUBIE_DEVICE] if CUBIE_DEVICE in self.config[
-                0] else default_serial_port
+            if {CUBIE_TYPE, CUBIE_DEVICE}.issubset(sonar_device.keys()) and sonar_device[CUBIE_TYPE] == CUBIE_SONAR:
+                serial_port = sonar_device[CUBIE_DEVICE]
+            elif {CUBIE_TYPE, CUBIE_DEVICE}.issubset(serial_config.keys()) and serial_config[CUBIE_TYPE] == CUBIE_SERIAL:
+                serial_port = serial_config[CUBIE_DEVICE]
+            else:
+                serial_port = SONAR_PORT
             self.communicator = Serial(serial_port, 9600)
             self.communicator.flush()
         except SerialException:

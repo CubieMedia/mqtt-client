@@ -24,7 +24,7 @@ VERSION = "0.7.0"
 
 # devices #
 ENOCEAN_PORT = "/dev/ttyAMA0"
-SONAR_PORT = "/dev/ttyS0"
+SONAR_PORT = "/dev/serial0"
 
 # files
 DEFAULT_CONFIGURATION_FILE_SYSTEM = "./src/config/cubiemedia.json"
