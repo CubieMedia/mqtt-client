@@ -1,5 +1,5 @@
 ifaddr
-paho-mqtt
+paho-mqtt>=2.1.0
 requests
 pyserial
 enocean

@@ -35,8 +35,9 @@ MQTT_SENSOR = "sensor"
 MQTT_BUTTON = "button"
 MQTT_SWITCH = "switch"
 MQTT_BINARY_SENSOR = "binary_sensor"
-ATTR_ENERGY = "energy"
-ATTR_MEASUREMENT = "measurement"
+MQTT_ENERGY = "energy"
+MQTT_MEASUREMENT = "measurement"
+MQTT_TOTAL_INCREASING = "total_increasing"
 VICTRON_MQTT_TOPIC = "victron_mqtt_topic"
 
 PAYLOAD_ACTOR = {
