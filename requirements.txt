@@ -11,3 +11,4 @@ psutil
 miflora
 bluepy
 btlewrap
+crc8

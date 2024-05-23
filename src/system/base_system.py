@@ -35,7 +35,7 @@ class BaseSystem(abc.ABC):
     client_id = 'unknown'
     ip_address = None
     string_ip = 'unset'
-    last_update = time.time() - TIMEOUT_UPDATE_SCANNING
+    last_update = 0
     config: [] = []
     mqtt_config: {} = {}
     system_config: [] = []
@@ -77,7 +77,7 @@ class BaseSystem(abc.ABC):
                 action(self)
                 return True
             else:
-                logging.warning("unknown service in data while writing value to victron system [%s]" % data)
+                logging.warning("unknown service in data while writing value to system [%s]", data)
         else:
             logging.warning("missing id and/or state in data [%s] at base system" % data)
         return False

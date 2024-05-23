@@ -30,8 +30,6 @@ class RelaySystem(BaseSystem):
     scan_thread = threading.Thread()
     scan_thread_event = threading.Event()
     discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    discovery_socket.settimeout(1)
 
     def __init__(self):
         self.execution_mode = CUBIE_RELAY
@@ -122,6 +120,9 @@ class RelaySystem(BaseSystem):
 
     def init(self):
         super().init()
+
+        self.discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.discovery_socket.settimeout(1)
 
         logging.info("... starting scan thread")
         self.scan_thread = threading.Thread(target=self._run)

@@ -62,6 +62,9 @@ def get_system(execution_mode: str):
     if execution_mode == common.CUBIE_MIFLORA:
         from system.miflora_system import MiFloraSystem
         return MiFloraSystem()
+    if execution_mode == common.CUBIE_BALBOA:
+        from system.balboa_system import BalboaSystem
+        return BalboaSystem()
 
     raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 

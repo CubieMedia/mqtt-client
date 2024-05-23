@@ -20,10 +20,6 @@ from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, \
 from system.base_system import BaseSystem
 
 
-def _correct_value(payload, factor) -> float:
-    return round(float(payload) * factor, 2)
-
-
 SERVICES = {
     "battery_power": {
         MQTT_CONFIG_TOPIC: MQTT_SENSOR,
