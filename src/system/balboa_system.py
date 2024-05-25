@@ -175,7 +175,6 @@ class BalboaSystem(BaseSystem):
                 if new_state == 'auto':
                     known_device['state']['auto'] = True
                     self.last_update = 0
-                    return True
                 elif known_device['state']['auto']:
                     known_device['state']['auto'] = False
                     self.last_update = 0

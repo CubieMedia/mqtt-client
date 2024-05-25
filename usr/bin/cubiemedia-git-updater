@@ -17,8 +17,8 @@ if [[ $STATUS == *"Your branch is behind"* ]]
 then
   echo "... update found ... "
   echo "... clean repository ..."
-  git clean -f ./*/__pycache__
-  git clean -f ./*/*/__pycache__
+  sudo -H -u pi bash -c 'git clean -f ./*/__pycache__'
+  sudo -H -u pi bash -c 'git clean -f ./*/*/__pycache__'
   echo "... stash changes ..."
   sudo -H -u pi bash -c 'git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash'
   echo "... pull changes ..."
