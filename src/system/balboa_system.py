@@ -13,8 +13,8 @@ from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC
     MQTT_UNIQUE_ID, \
     MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION, PAYLOAD_SENSOR, MQTT_TEMPERATURE, \
     MQTT_UNIT, MQTT_STATE_CLASS, MQTT_DEVICE_CLASS, MQTT_MEASUREMENT, MQTT_SWITCH, MQTT_LIGHT, MQTT_CONFIG_TOPIC, \
-    MQTT_BINARY_SENSOR, MQTT_SENSOR, PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT_OF_MEASUREMENT, PAYLOAD_ACTOR, \
-    MQTT_SUGGESTED_DISPLAY_PRECISION
+    MQTT_BINARY_SENSOR, MQTT_SENSOR, PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT_OF_MEASUREMENT, PAYLOAD_SWITCH_ACTOR, \
+    MQTT_SUGGESTED_DISPLAY_PRECISION, MQTT_CLIMATE, PAYLOAD_SPA_ACTOR
 from system.base_system import BaseSystem
 
 BALBOA_READ_BYTE = "balboa_read_byte"
@@ -31,16 +31,14 @@ def is_light_enable(value) -> int:
 
 
 def is_jets_enable(value) -> int:
-    logging.warning(f"jets[{value}]")
     return 1 if value & 0x03 == 2 else 0
 
 
 def is_blower_enable(value) -> int:
-    logging.warning(f"blower[{value}]")
-    return 1 if value & 0x12 == 2 else 0
+    return 1 if value & 0x0c != 0 else 0
 
 
-def is_heating_enable(value) -> int:
+def is_heating_enable(value) -> str:
     return 1 if value & 0x30 != 0 else 0
 
 
@@ -48,8 +46,8 @@ def is_circulation_pump_enable(value) -> int:
     return 1 if value & 0x02 != 0 else 0
 
 
-def get_operation_mode(value) -> int:
-    return 1 if (value & 0x04 != 0) else 0
+def get_operation_mode(value) -> str:
+    return 'heat' if (value & 0x04 != 0) else 'off'
 
 
 def correct_value(value) -> float:
@@ -59,11 +57,15 @@ def correct_value(value) -> float:
 def send_toggle_message(value):
     # 0x04 - pump 1
     # 0x05 - pump 2
+    # 0x0c - blower
     # 0x11 - light 1
     # 0x51 - heating mode
     # 0x50 - operation mode
-    logging.warning(f"toggle[{value}]")
     return b'\x0a\xbf\x11', bytes([value]) + b'\x00'
+
+
+def send_temp_value(value):
+    return b'\x0a\xbf\x20', bytes([value])
 
 
 SERVICES = {
@@ -84,7 +86,7 @@ SERVICES = {
     "blower": {
         MQTT_CONFIG_TOPIC: MQTT_SWITCH,
         BALBOA_READ_BYTE: 13,
-        BALBOA_WRITE_VALUE: 0x05,
+        BALBOA_WRITE_VALUE: 0x0c,
         BALBOA_READ_FORMULA: is_blower_enable,
         BALBOA_WRITE_FORMULA: send_toggle_message
     },
@@ -98,14 +100,14 @@ SERVICES = {
         BALBOA_READ_BYTE: 10,
         BALBOA_READ_FORMULA: is_heating_enable,
     },
-    "performance_mode": {
-        MQTT_CONFIG_TOPIC: MQTT_SWITCH,
+    "temperature_control": {
+        MQTT_CONFIG_TOPIC: MQTT_CLIMATE,
         BALBOA_READ_BYTE: 10,
         BALBOA_WRITE_VALUE: 0x50,
         BALBOA_READ_FORMULA: get_operation_mode,
         BALBOA_WRITE_FORMULA: send_toggle_message,
     },
-    "temperature": {
+    "current_temperature": {
         MQTT_CONFIG_TOPIC: MQTT_SENSOR,
         BALBOA_READ_BYTE: 2,
         MQTT_UNIT: "°C",
@@ -121,7 +123,8 @@ SERVICES = {
         MQTT_SUGGESTED_DISPLAY_PRECISION: 1,
         MQTT_STATE_CLASS: MQTT_MEASUREMENT,
         MQTT_DEVICE_CLASS: MQTT_TEMPERATURE,
-        BALBOA_READ_FORMULA: correct_value
+        BALBOA_READ_FORMULA: correct_value,
+        BALBOA_WRITE_FORMULA: send_temp_value,
     }
 }
 
@@ -142,41 +145,64 @@ class BalboaSystem(BaseSystem):
         super().__init__()
 
     def action(self, device: {}) -> bool:
-        if all(attribute in device for attribute in ['id', 'state']):
+        if {'id', 'state'}.issubset(device):
             for known_device in self.config:
                 if device['id'] == known_device['id']:
                     for service, value in device['state'].items():
-                        logging.debug(f"... ... action for Spa [{device['id']}] with service [{service}] -> [{value}]")
+                        if service == 'temperature_control' and known_device['state']['auto']:
+                            value = 'auto'
+                        logging.info(
+                            f"... ... action for Spa [{device['id']}] with service [{service}] -> [{value}]")
                         self.mqtt_client.publish(
                             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{service}",
                             value, True)
-                        known_device['state'][service] = value
+                    self.save()
                 return True
-
         else:
             logging.warning(f"... received action with wrong data [{device}]")
         return False
 
     def send(self, data) -> bool:
         if {'ip', 'id', 'state'}.issubset(data) and data['id'] in SERVICES:
-            attributes = SERVICES[data['id']]
-            if {BALBOA_WRITE_FORMULA, BALBOA_WRITE_VALUE}.issubset(attributes):
-                msg_type, payload = attributes[BALBOA_WRITE_FORMULA](attributes[BALBOA_WRITE_VALUE])
-                length = 5 + len(payload)
-                checksum = compute_checksum(bytes([length]), msg_type + payload)
-                prefix = b'\x7e'
-                message = prefix + bytes([length]) + msg_type + payload + bytes([checksum]) + prefix
+            service = data['id']
+            attributes = SERVICES[service]
+            new_state = data['state']
+            known_device = None
+            for temp_device in self.config:
+                if data['ip'] == temp_device['id']:
+                    known_device = temp_device
+            if service == "temperature_control":
+                if new_state == 'auto':
+                    known_device['state']['auto'] = True
+                    self.last_update = 0
+                    return True
+                elif known_device['state']['auto']:
+                    known_device['state']['auto'] = False
+            old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
+            logging.info(f"... ... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
+            if new_state != old_state:
+                if BALBOA_WRITE_FORMULA in attributes:
+                    if BALBOA_WRITE_VALUE in attributes:
+                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](attributes[BALBOA_WRITE_VALUE])
+                    else:
+                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](int(float(data['state']) * 2))
+                    length = 5 + len(payload)
+                    checksum = compute_checksum(bytes([length]), msg_type + payload)
+                    prefix = b'\x7e'
+                    message = prefix + bytes([length]) + msg_type + payload + bytes([checksum]) + prefix
 
-                self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                try:
-                    self._spa_socket.connect((data['ip'], 4257))
-                    self._spa_socket.send(message)
-                except Exception:
-                    logging.error(f"could not send message to spa [{data}]")
-                self._spa_socket.close()
-                self.last_update = 0
+                    self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    try:
+                        self._spa_socket.connect((data['ip'], 4257))
+                        self._spa_socket.send(message)
+                    except Exception:
+                        logging.error(f"could not send message to spa [{data}]")
+                    self._spa_socket.close()
+                    self.last_update = 0
+                else:
+                    logging.warning(f"could not write value for data [{data}], no write schema defined")
             else:
-                logging.warning(f"could not write value for data [{data}], no write schema defined")
+                logging.debug(f"state did not change or 'auto' mode [{data}], not sending data")
             return True
 
         return super().send(data)
@@ -206,18 +232,20 @@ class BalboaSystem(BaseSystem):
                     chunk = self._spa_socket.recv(length)
 
                     if chunk and chunk[0:3] == b'\xff\xaf\x13':
-                        self._handle_status_update(chunk[3:])
-
-                    if chunk and chunk[0:3] == b'\xff\xaf\x13':
                         response = chunk[3:]
                         service_json = {}
-                        logging.warning(response)
                         for service, attributes in SERVICES.items():
-                            service_json[service] = attributes[BALBOA_READ_FORMULA](
-                                response[attributes[BALBOA_READ_BYTE]])
+                            formula = attributes[BALBOA_READ_FORMULA]
+                            data_byte = response[attributes[BALBOA_READ_BYTE]]
+                            value = formula(data_byte)
+                            if (service not in known_device['state'] or value != known_device['state'][service]
+                                    or service == 'temperature_control'):
+                                service_json[service] = value
+                                known_device['state'][service] = value
                         spa_json['state'] = service_json
 
                     self.set_availability(True)
+                    self.save()
 
                     data['devices'] = [spa_json]
                 except Exception as e:
@@ -228,6 +256,7 @@ class BalboaSystem(BaseSystem):
                 self._spa_socket.close()
             else:
                 self.save(spa_json)
+                self.announce()
 
             self._index_of_current_spa += 1
             if self._index_of_current_spa >= len(self._spa_list):
@@ -236,7 +265,7 @@ class BalboaSystem(BaseSystem):
 
             if self._all_spas_scanned:
                 if self.last_update < 0:
-                    self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.3)
+                    self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.99)
                 else:
                     self.last_update = time.time()
 
@@ -250,13 +279,12 @@ class BalboaSystem(BaseSystem):
                 str(state).lower())
 
     def init(self):
-        self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.95)
+        self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.98)
         super().init()
 
         socket.setdefaulttimeout(3)
         self._discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self._discovery_socket.settimeout(3)
-        #        self._spa_socket.settimeout(3)
 
         logging.info("... starting scan thread")
         self._scan_thread = threading.Thread(target=self._run)
@@ -282,7 +310,7 @@ class BalboaSystem(BaseSystem):
 
     def save(self, device=None):
         should_save = False
-        if device is not None:
+        if device:
             if device[CUBIE_TYPE] == CUBIE_BALBOA and self.system_config['devices_can_be_added']:
                 add = True
                 for known_device in self.config:
@@ -356,8 +384,11 @@ class BalboaSystem(BaseSystem):
                 payload[MQTT_DEVICE_CLASS] = attributes[MQTT_DEVICE_CLASS]
             elif attributes[MQTT_CONFIG_TOPIC] == MQTT_BINARY_SENSOR:
                 payload = PAYLOAD_SENSOR
+            elif attributes[MQTT_CONFIG_TOPIC] == MQTT_CLIMATE:
+                payload = PAYLOAD_SPA_ACTOR
+                payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
             else:
-                payload = PAYLOAD_ACTOR
+                payload = PAYLOAD_SWITCH_ACTOR
                 payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
 
             payload[MQTT_NAME] = service.replace('_', ' ').title()
@@ -371,6 +402,7 @@ class BalboaSystem(BaseSystem):
             self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
         self.set_availability(True)
 
+    # unused still needed for documentation
     def _handle_status_update(self, byte_array):
         if 0x50 >= byte_array[2] >= 0x14:
             self._current_temp = byte_array[2]

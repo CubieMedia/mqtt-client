@@ -14,7 +14,7 @@ from common import MQTT_CUBIEMEDIA, RELAY_USERNAME, RELAY_PASSWORD, \
     STATE_UNKNOWN, \
     TIMEOUT_UPDATE_SCANNING, TIMEOUT_UPDATE_RELAY, CUBIE_RELAY, CUBIE_TYPE, QOS, \
     MQTT_HOMEASSISTANT_PREFIX
-from common.homeassistant import MQTT_LIGHT, PAYLOAD_ACTOR, \
+from common.homeassistant import MQTT_LIGHT, PAYLOAD_SWITCH_ACTOR, \
     MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, \
     MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION
 from system.base_system import BaseSystem
@@ -264,7 +264,7 @@ class RelaySystem(BaseSystem):
             unique_id = f"{string_id}-light-{relay_id}"
             config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_LIGHT}/{string_id}-{relay_id}/config"
 
-            payload = PAYLOAD_ACTOR
+            payload = PAYLOAD_SWITCH_ACTOR
             payload[MQTT_NAME] = relay_name
             payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
             payload[MQTT_STATE_TOPIC] = state_topic

@@ -31,6 +31,7 @@ MQTT_CONDUCTIVITY = 'conductivity'
 MQTT_POWER = "power"
 MQTT_UNIT = "unit"
 MQTT_LIGHT = "light"
+MQTT_CLIMATE = "climate"
 MQTT_SENSOR = "sensor"
 MQTT_BUTTON = "button"
 MQTT_SWITCH = "switch"
@@ -40,7 +41,39 @@ MQTT_MEASUREMENT = "measurement"
 MQTT_TOTAL_INCREASING = "total_increasing"
 VICTRON_MQTT_TOPIC = "victron_mqtt_topic"
 
-PAYLOAD_ACTOR = {
+PAYLOAD_SPA_ACTOR = {
+    MQTT_NAME: "SERVICE_NAME",
+    MQTT_COMMAND_TOPIC: "STATE_TOPIC/command",
+    MQTT_STATE_TOPIC: "STATE_TOPIC",
+    MQTT_AVAILABILITY_TOPIC: "AVAILABILITY_TOPIC",
+    MQTT_PAYLOAD_AVAILABLE: "true",
+    MQTT_PAYLOAD_NOT_AVAILABLE: "false",
+    MQTT_UNIQUE_ID: "UNIQUE_ID",
+    "action_topic": "cubiemedia/balboa/10_10_23_20/heating",
+    "action_template": "{%if value==0%}off{%else%}heating{%endif%}",
+    "mode_command_topic": "cubiemedia/balboa/10_10_23_20/temperature_control/command",
+    "mode_state_topic": "cubiemedia/balboa/10_10_23_20/temperature_control",
+    "current_temperature_topic": "cubiemedia/balboa/10_10_23_20/current_temperature",
+    "temperature_state_topic": "cubiemedia/balboa/10_10_23_20/target_temperature",
+    "temperature_command_topic": "cubiemedia/balboa/10_10_23_20/target_temperature/command",
+    "temp_step": 0.5,
+    "max_temp": 40,
+    "min_temp": 10,
+    "modes": [
+        "heat",
+        "auto",
+        "off"
+    ],
+    MQTT_QOS: "0",
+    MQTT_DEVICE: {
+        MQTT_DEVICE_IDS: ["DEVICE_ID"],
+        MQTT_NAME: "DEVICE_NAME",
+        MQTT_DEVICE_DESCRIPTION: "DEVICE_DESCRIPTION",
+        MQTT_SOFTWARE_VERSION: VERSION,
+        MQTT_MANUFACTURER: CUBIEMEDIA
+    }
+}
+PAYLOAD_SWITCH_ACTOR = {
     MQTT_NAME: "SERVICE_NAME",
     MQTT_COMMAND_TOPIC: "STATE_TOPIC/command",
     MQTT_STATE_TOPIC: "STATE_TOPIC",

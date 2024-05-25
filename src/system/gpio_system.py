@@ -9,7 +9,7 @@ import time
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT, \
     CUBIE_TYPE, MQTT_HOMEASSISTANT_PREFIX
 from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE_SCANNING
-from common.homeassistant import PAYLOAD_ACTOR, MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, \
+from common.homeassistant import PAYLOAD_SWITCH_ACTOR, MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, \
     MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_DESCRIPTION, MQTT_DEVICE_IDS, \
     PAYLOAD_SENSOR, MQTT_BINARY_SENSOR, MQTT_LIGHT
 from system.base_system import BaseSystem
@@ -135,7 +135,7 @@ class GPIOSystem(BaseSystem):
                 unique_id = f"{self.string_ip}-out-{gpio_id}"
                 config_topic = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_LIGHT}/{self.string_ip}-{gpio_id}/config"
 
-                payload = PAYLOAD_ACTOR
+                payload = PAYLOAD_SWITCH_ACTOR
                 payload[MQTT_NAME] = gpio_name
                 payload[MQTT_COMMAND_TOPIC] = state_topic + "/command"
                 payload[MQTT_STATE_TOPIC] = state_topic
