@@ -178,6 +178,7 @@ class BalboaSystem(BaseSystem):
                     return True
                 elif known_device['state']['auto']:
                     known_device['state']['auto'] = False
+                    self.last_update = 0
             old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
             logging.info(f"... ... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
             if new_state != old_state:
