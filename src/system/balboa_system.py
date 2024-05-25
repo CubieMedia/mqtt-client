@@ -246,7 +246,6 @@ class BalboaSystem(BaseSystem):
                         spa_json['state'] = service_json
 
                     self.set_availability(True)
-                    self.save()
 
                     data['devices'] = [spa_json]
                 except Exception as e:
