@@ -179,7 +179,7 @@ class BalboaSystem(BaseSystem):
                     known_device['state']['auto'] = False
                     self.last_update = 0
             old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
-            logging.info(f"... ... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
+            logging.info(f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
             if new_state != old_state:
                 if BALBOA_WRITE_FORMULA in attributes:
                     if BALBOA_WRITE_VALUE in attributes:
@@ -212,7 +212,7 @@ class BalboaSystem(BaseSystem):
 
         if self.last_update < time.time() - TIMEOUT_UPDATE_SPA and len(self._spa_list) > 0:
             spa_ip = self._spa_list[self._index_of_current_spa]
-            logging.info(f"... ... updating spa [{spa_ip}]")
+            logging.info(f"... updating spa [{spa_ip}]")
             known_device = None
             for temp_device in self.config:
                 if spa_ip == temp_device['id']:

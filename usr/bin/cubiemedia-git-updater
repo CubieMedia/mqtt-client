@@ -25,7 +25,9 @@ then
   sudo -H -u pi bash -c 'git pull --ff-only'
   echo "... unstash changes ..."
   sudo -H -u pi bash -c 'git stash pop'
-  echo "... finished update, restarting services"
+  echo "... installing dependencies ..."
+  ./usr/bin/cubiemedia-install-dependencies
+  echo "... restarting services ..."
   restart_service relay
   restart_service enocean
   restart_service victron
@@ -35,6 +37,7 @@ then
   restart_service balboa
   restart_service git-updater
   restart_service webtool
+  echo "finished update!"
 else
-  echo "... no updates found!"
+  echo "no updates found!"
 fi

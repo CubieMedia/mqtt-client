@@ -8,26 +8,28 @@ import paho.mqtt.client as mqtt
 from flask import Flask, url_for, render_template, request, send_from_directory
 from werkzeug.utils import redirect
 
-from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_CORE
+from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_BALBOA, CUBIE_MIFLORA
 from common.network import get_ip_address
-from common.python import get_configuration, execute_command, get_core_configuration, get_variable_type_from_string
+from common.python import get_configuration, execute_command, get_variable_type_from_string, get_mqtt_configuration
 from mqtt_client import configure_logger
 
 app = Flask(__name__)
 configure_logger()
 service_list = [
-    {"id": CUBIE_CORE, "name": "Cubie Core", "icon": "demo.png",
-     "description": "Core Service for general configuration and communication"},
-    {"id": CUBIE_GPIO, "name": "Cubie-GPIO", "icon": "gpio.png",
-     "description": "Control GPIO Pins on your device (eg. Raspberry Pi)"},
     {"id": CUBIE_ENOCEAN, "name": "Cubie-EnOcean", "icon": "enocean.png",
      "description": "With an EnOcean Hat on your Raspberry you can communicate with EnOcean Devices"},
+    {"id": CUBIE_GPIO, "name": "Cubie-GPIO", "icon": "gpio.png",
+     "description": "Control GPIO Pins on your device (eg. Raspberry Pi)"},
     {"id": CUBIE_RELAY, "name": "Cubie-Relay", "icon": "relay.png",
      "description": "Find and control ETH008 Relay Boards"},
-    {"id": CUBIE_SONAR, "name": "Cubie-Sonar", "icon": "sonar.png",
-     "description": "Read values from Sonar Device connected to your GPIO Pins"},
     {"id": CUBIE_VICTRON, "name": "Cubie-Victron", "icon": "victron.png",
-     "description": "Connect your Victron Energy System with this Gateway"}
+     "description": "Connect your Victron Energy System with this Gateway"},
+    {"id": CUBIE_BALBOA, "name": "Cubie Balboa", "icon": "balboa.png",
+     "description": "Find and control Balboa Spa Service"},
+    {"id": CUBIE_MIFLORA, "name": "Cubie MiFlora", "icon": "miflora.png",
+     "description": "Communicate with MiFlora Plant Sensors"},
+    {"id": CUBIE_SONAR, "name": "Cubie-Sonar", "icon": "sonar.png",
+     "description": "Read values from Sonar Device connected to your GPIO Pins"}
 ]
 
 
@@ -134,7 +136,7 @@ def delete_item(application, items):
 
 
 def connect_mqtt_client():
-    config = get_core_configuration(get_ip_address())
+    config = get_mqtt_configuration()
     mqtt_server = config['host']
     mqtt_user = config['username']
     mqtt_password = config['password']
@@ -211,7 +213,7 @@ def favicon():
 @app.route('/')
 def index():
     application_list = get_running_applications()
-    core_configuration = get_core_configuration(get_ip_address())
+    core_configuration = get_mqtt_configuration()
     learn_mode = core_configuration['learn_mode']
     server = core_configuration['host']
     user = core_configuration['username']
