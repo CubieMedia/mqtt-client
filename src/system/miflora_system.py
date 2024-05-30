@@ -75,7 +75,6 @@ class MiFloraSystem(BaseSystem):
             self.mqtt_client.publish(
                 f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{plant['name'].lower().replace(' ', '_')}/{key}",
                 value, True)
-        self.set_availability(True)
 
     def update(self):
         data = {}
@@ -109,6 +108,7 @@ class MiFloraSystem(BaseSystem):
                     device_list.append(plant)
                 except BluetoothBackendException:
                     logging.warning(f"failed connection with Bluetooth Device [{mac}]")
+            self.set_availability(True)
         else:
             pass  # no update time, nothing to do
 
@@ -151,7 +151,6 @@ class MiFloraSystem(BaseSystem):
                     MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
                 self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
-        self.set_availability(True)
 
     def set_availability(self, state: bool):
         super().set_availability(state)

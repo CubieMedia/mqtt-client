@@ -25,6 +25,9 @@ BALBOA_WRITE_FORMULA = "balboa_write_formula"
 DISCOVERY_MESSAGE = "DISCOVER_RELAIS_MODULE".encode()
 DESTINATION_ADDRESS = ('<broadcast>', 30303)
 
+TEMPERATURE_RANGE_MAX = 40
+TEMPERATURE_RANGE_MIN = 10
+
 
 def is_light_enable(value) -> int:
     return 1 if value & 0x03 != 0 else 0
@@ -38,7 +41,7 @@ def is_blower_enable(value) -> int:
     return 1 if value & 0x0c != 0 else 0
 
 
-def is_heating_enable(value) -> str:
+def is_heating_enable(value) -> int:
     return 1 if value & 0x30 != 0 else 0
 
 
@@ -50,8 +53,12 @@ def get_operation_mode(value) -> str:
     return 'heat' if (value & 0x04 != 0) else 'off'
 
 
-def correct_value(value) -> float:
-    return float(value) / 2
+def correct_value(value):
+    temperature = float(value) / 2
+    if TEMPERATURE_RANGE_MIN <= temperature <= TEMPERATURE_RANGE_MAX:
+        return temperature
+    logging.warning(f"temperature value [{temperature}] out of range")
+    return None
 
 
 def send_toggle_message(value):
@@ -238,6 +245,8 @@ class BalboaSystem(BaseSystem):
                             formula = attributes[BALBOA_READ_FORMULA]
                             data_byte = response[attributes[BALBOA_READ_BYTE]]
                             value = formula(data_byte)
+                            if value is None:
+                                value = known_device['state'][service]
                             if (service not in known_device['state'] or value != known_device['state'][service]
                                     or service == 'temperature_control'):
                                 service_json[service] = value
@@ -245,6 +254,7 @@ class BalboaSystem(BaseSystem):
                         spa_json['state'] = service_json
 
                     self.set_availability(True)
+                    self._error_message_shown = False
 
                     data['devices'] = [spa_json]
                 except Exception as e:
@@ -305,7 +315,6 @@ class BalboaSystem(BaseSystem):
         super().announce()
         for device in self.config:
             self._announce_device(device)
-        self.set_availability(True)
 
     def save(self, device=None):
         should_save = False
@@ -399,7 +408,6 @@ class BalboaSystem(BaseSystem):
             payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
             self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
-        self.set_availability(True)
 
     # unused still needed for documentation
     def _handle_status_update(self, byte_array):
