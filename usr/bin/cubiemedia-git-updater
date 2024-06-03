@@ -16,15 +16,8 @@ STATUS=$(sudo -H -u pi bash -c 'git remote update && git status -uno')
 if [[ $STATUS == *"Your branch is behind"* ]]
 then
   echo "... update found ... "
-  echo "... clean repository ..."
-  sudo -H -u pi bash -c 'git clean -f ./*/__pycache__'
-  sudo -H -u pi bash -c 'git clean -f ./*/*/__pycache__'
-  echo "... stash changes ..."
-  sudo -H -u pi bash -c 'git -c user.name="CubieMedia" -c user.email="info@cubiemedia.de" stash'
-  echo "... pull changes ..."
+  echo "... pull changes (ff-only)..."
   sudo -H -u pi bash -c 'git pull --ff-only'
-  echo "... unstash changes ..."
-  sudo -H -u pi bash -c 'git stash pop'
   echo "... installing dependencies ..."
   ./usr/bin/cubiemedia-install-dependencies
   echo "... restarting services ..."

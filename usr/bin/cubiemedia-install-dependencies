@@ -10,7 +10,7 @@ fi
 # install needed python dependencies
 apt install -y python3-pip libglib2.0-dev
 rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED
-pip install -r /home/pi/mqtt-client/requirements.txt
+sudo -H -u pi bash -c 'pip install -r /home/pi/mqtt-client/requirements.txt'
 
 # install software services into none snap system
 cp /home/pi/mqtt-client/etc/systemd/system/cubiemedia-* /etc/systemd/system/
