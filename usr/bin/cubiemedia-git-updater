@@ -18,10 +18,10 @@ if [[ $STATUS == *"Your branch is behind"* ]]
 then
   echo "... update found ... "
   echo "... pull changes (ff-only)..."
-  PULL_STATUS=$(sudo -H -u pi bash -c 'git pull --ff-only')
+  PULL_STATUS=$(sudo -H -u pi bash -c 'git pull --ff-only 2>&1')
   if [[ $PULL_STATUS == *"Abort"* || $PULL_STATUS == *"error"* ]]
   then
-    echo "ERROR: pulling changes with fast forward failed, manual interaction needed"
+    echo $PULL_STATUS
   else
     echo "... installing dependencies ..."
     ./usr/bin/cubiemedia-install-dependencies
