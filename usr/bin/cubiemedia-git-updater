@@ -6,6 +6,7 @@ restart_service () {
   RETURN=$?
   if [ $RETURN -eq 0 ]
   then
+    echo "... ... restart cubiemedia-$1"
     systemctl restart cubiemedia-$1
   fi
 }
