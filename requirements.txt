@@ -9,6 +9,5 @@ setuptools
 pytest
 psutil
 miflora
-bluepy
-btlewrap
+bleak
 crc8

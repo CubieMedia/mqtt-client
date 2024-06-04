@@ -117,11 +117,10 @@ class MiFloraSystem(BaseSystem):
                     device = devices[device_mac]
                     device['id'] = device_mac
                     self.save(devices[device_mac])
-                else:
-                    self.set_availability(True)
             data['devices'] = device_list
         else:
-            pass  # no update time, nothing to do
+            if time.time() - self.last_update % 180 == 0:
+                self.set_availability(True)
 
         return data
 
