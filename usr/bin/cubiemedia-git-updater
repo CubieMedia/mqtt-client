@@ -18,20 +18,26 @@ if [[ $STATUS == *"Your branch is behind"* ]]
 then
   echo "... update found ... "
   echo "... pull changes (ff-only)..."
-  sudo -H -u pi bash -c 'git pull --ff-only'
-  echo "... installing dependencies ..."
-  ./usr/bin/cubiemedia-install-dependencies
-  echo "... restarting services ..."
-  restart_service relay
-  restart_service enocean
-  restart_service victron
-  restart_service gpio
-  restart_service sonar
-  restart_service miflora
-  restart_service balboa
-  restart_service git-updater
-  restart_service webtool
-  echo "finished update!"
+  PULL_STATUS=$(sudo -H -u pi bash -c 'git pull --ff-only')
+  if [[ $PULL_STATUS == *"Abort"* || $PULL_STATUS == *"error"* ]]
+  then
+    echo "ERROR: pulling changes with fast forward failed, manual interaction needed"
+  else
+    echo "... installing dependencies ..."
+    ./usr/bin/cubiemedia-install-dependencies
+    echo "... restarting services ..."
+    systemctl daemon-reload
+    restart_service relay
+    restart_service enocean
+    restart_service victron
+    restart_service gpio
+    restart_service sonar
+    restart_service miflora
+    restart_service balboa
+    restart_service git-updater
+    restart_service webtool
+    echo "finished update!"
+  fi
 else
   echo "no updates found!"
 fi
