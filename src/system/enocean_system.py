@@ -107,7 +107,7 @@ class EnoceanSystem(BaseSystem):
                 else:
                     logging.error(f"packet type ({packet.packet_type}) not supported")
 
-                if self.last_update < time.time() - common.TIMEOUT_UPDATE_SCANNING:
+                if self.last_update < time.time() - common.TIMEOUT_UPDATE_AVAILABILITY:
                     self.set_availability(True)
                     self.last_update = time.time()
                 return data

@@ -12,7 +12,7 @@ from requests import ConnectionError
 
 from common import MQTT_CUBIEMEDIA, RELAY_USERNAME, RELAY_PASSWORD, \
     STATE_UNKNOWN, \
-    TIMEOUT_UPDATE_SCANNING, TIMEOUT_UPDATE_RELAY, CUBIE_RELAY, CUBIE_TYPE, QOS, \
+    TIMEOUT_UPDATE_AVAILABILITY, TIMEOUT_UPDATE_RELAY, CUBIE_RELAY, CUBIE_TYPE, QOS, \
     MQTT_HOMEASSISTANT_PREFIX
 from common.homeassistant import MQTT_LIGHT, PAYLOAD_SWITCH_ACTOR, \
     MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, \
@@ -194,7 +194,7 @@ class RelaySystem(BaseSystem):
                 self.scan_thread_event.wait(1)
             except (socket.timeout, OSError):
                 buf = []
-                self.scan_thread_event.wait(TIMEOUT_UPDATE_SCANNING)
+                self.scan_thread_event.wait(TIMEOUT_UPDATE_AVAILABILITY)
 
         self.discovery_socket.close()
         return True

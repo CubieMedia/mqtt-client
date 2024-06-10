@@ -8,7 +8,8 @@ from bleak import BleakScanner, BLEDevice, AdvertisementData, BleakClient, Bleak
 from miflora.miflora_poller import MI_BATTERY, MI_LIGHT, MI_CONDUCTIVITY, \
     MI_MOISTURE, MI_TEMPERATURE
 
-from common import MQTT_CUBIEMEDIA, CUBIE_MIFLORA, MQTT_HOMEASSISTANT_PREFIX, TIMEOUT_UPDATE_MIFLORA
+from common import MQTT_CUBIEMEDIA, CUBIE_MIFLORA, MQTT_HOMEASSISTANT_PREFIX, TIMEOUT_UPDATE_MIFLORA, \
+    TIMEOUT_UPDATE_AVAILABILITY
 from common.homeassistant import MQTT_BATTERY, MQTT_TEMPERATURE, MQTT_BRIGHTNESS, MQTT_MOISTURE, \
     MQTT_CONDUCTIVITY, MQTT_UNIT, MQTT_STATE_CLASS, MQTT_DEVICE_CLASS, \
     MQTT_MEASUREMENT, MQTT_SENSOR, PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT_OF_MEASUREMENT, MQTT_NAME, \
@@ -121,7 +122,7 @@ class MiFloraSystem(BaseSystem):
                     self.set_availability(True)
             data['devices'] = device_list
         else:
-            if time.time() - self.last_update % 180 == 0:
+            if time.time() - self.last_update % TIMEOUT_UPDATE_AVAILABILITY == 0:
                 self.set_availability(True)
 
         return data
