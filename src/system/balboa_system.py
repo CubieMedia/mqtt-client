@@ -7,7 +7,7 @@ import socket
 import threading
 import time
 
-from common import MQTT_CUBIEMEDIA, TIMEOUT_UPDATE_SCANNING, CUBIE_TYPE, QOS, \
+from common import MQTT_CUBIEMEDIA, TIMEOUT_UPDATE_AVAILABILITY, CUBIE_TYPE, QOS, \
     MQTT_HOMEASSISTANT_PREFIX, CUBIE_BALBOA, TIMEOUT_UPDATE_SPA
 from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, \
     MQTT_UNIQUE_ID, \
@@ -364,7 +364,7 @@ class BalboaSystem(BaseSystem):
                 self._scan_thread_event.wait(1)
             except (socket.timeout, OSError):
                 buf = []
-                self._scan_thread_event.wait(TIMEOUT_UPDATE_SCANNING)
+                self._scan_thread_event.wait(TIMEOUT_UPDATE_AVAILABILITY)
 
         self._discovery_socket.close()
         return True

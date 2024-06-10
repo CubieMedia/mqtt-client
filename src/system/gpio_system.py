@@ -8,7 +8,7 @@ import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT, \
     CUBIE_TYPE, MQTT_HOMEASSISTANT_PREFIX
-from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE_SCANNING
+from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE_AVAILABILITY
 from common.homeassistant import PAYLOAD_SWITCH_ACTOR, MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, \
     MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_DESCRIPTION, MQTT_DEVICE_IDS, \
     PAYLOAD_SENSOR, MQTT_BINARY_SENSOR, MQTT_LIGHT
@@ -85,13 +85,14 @@ class GPIOSystem(BaseSystem):
 
         data['devices'] = device_list
 
-        if self.last_update < time.time() - 5:
+        if self.last_update < time.time() - TIMEOUT_UPDATE_AVAILABILITY:
             self.set_availability(True)
             self.last_update = time.time()
         return data
 
     def set_availability(self, state: bool):
         super().set_availability(state)
+        logging.debug("... ... set availability [%s]", state)
         availability_topic = f"{MQTT_CUBIEMEDIA}/gpio/{self.string_ip}/online"
         self.mqtt_client.publish(availability_topic, str(state).lower())
 
