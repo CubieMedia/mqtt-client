@@ -1,36 +1,42 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-
+import argparse
 import logging
 import signal
 import sys
 import time
 import warnings
+from argparse import ArgumentParser
 from functools import partial
 
 import common
 from common.python import exit_gracefully
 
 
-def get_execution_mode() -> str:
-    for arg in sys.argv:
-        arg = arg.lower()
-        if arg in common.CUBIE_MODE_LIST:
-            return arg
+def create_parser() -> ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=f"MQTT-Client for following devices {common.CUBIE_MODE_LIST}")
 
-    raise RuntimeError(f"Please give Mode [{common.CUBIE_MODE_LIST}] for script")
+    parser.add_argument(
+        "mode",
+        choices=common.CUBIE_MODE_LIST,
+        help=f"Possible values {common.CUBIE_MODE_LIST}",
+    )
+
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="sets the log level to debug",
+    )
+    return parser
 
 
-def is_verbose() -> bool:
-    for arg in sys.argv:
-        if 'verbose' in arg or 'debug' in arg:
-            return True
-
-    return False
+def get_arguments():
+    parser = create_parser()
+    return parser.parse_args()
 
 
-def configure_logger():
-    debug = is_verbose()
+def configure_logger(debug: bool):
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
                         format='%(asctime)s - %(levelname)-8s - %(message)s')
 
@@ -43,7 +49,6 @@ def configure_logger():
 
 
 def get_system(execution_mode: str):
-
     if execution_mode == common.CUBIE_GPIO:
         from system.gpio_system import GPIOSystem
         return GPIOSystem()
@@ -69,14 +74,13 @@ def get_system(execution_mode: str):
     raise RuntimeError(f"could not find system for mode[{execution_mode}]")
 
 
-def main():
+def main(arguments):
     try:
-        configure_logger()
-        mode = get_execution_mode()
+        configure_logger(arguments.debug)
 
-        logging.info("Starting Cubie MQTT Client with mode [%s]", mode)
+        logging.info("Starting Cubie MQTT Client with mode [%s]", arguments.mode)
 
-        system = get_system(mode)
+        system = get_system(arguments.mode)
         system.init()
 
         # noinspection PyTypeChecker
@@ -101,16 +105,17 @@ def main():
         if "Try running as root!" in str(exception):
             logging.error("%sPlease connect plugs [gpio-memory-control |"
                           " serial-port]%s", common.COLOR_RED, common.COLOR_DEFAULT)
-        if is_verbose():
+        if arguments.debug:
             raise exception
 
 
 if __name__ == '__main__':
+    args = get_arguments()
     try:
-        sys.exit(main())
+        sys.exit(main(args))
     except RuntimeError as e:
         logging.error(e)
-        if is_verbose():
+        if args.debug:
             raise e
 
     sys.exit(0)

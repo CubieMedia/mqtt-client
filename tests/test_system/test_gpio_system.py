@@ -88,11 +88,11 @@ class TestGPIOSystem(TestCase):
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
-        self.system.mqtt_client.publish.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
         self.system.mqtt_client.reset_mock()
         self.system.set_availability(True)
 
-        assert len(self.system.mqtt_client.publish.mock_calls) == 9
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
 
     def test_init(self):
         self.system.gpio_control = MagicMock()

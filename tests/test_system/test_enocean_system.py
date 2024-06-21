@@ -90,20 +90,20 @@ class TestEnoceanSystem(TestCase):
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
-        self.system.mqtt_client.publish.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
 
         self.system.delete(DEVICE_TEST)
         self.system.save(DEVICE_TEST_WITH_STATE)
         self.system.mqtt_client.reset_mock()
         self.system.set_availability(True)
 
-        self.system.mqtt_client.publish.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
 
     def test_init(self):
         self.system.communicator = MagicMock()
         self.system.load = MagicMock()
         self.system.mqtt_client.publish = MagicMock()
-        self.system.mqtt_config = get_mqtt_configuration(self.system.ip_address)
+        self.system.mqtt_config = get_mqtt_configuration()
         DEVICE_TEST_WITH_STATE['client_id'] = self.system.client_id
         self.system.save(DEVICE_TEST_WITH_STATE)
         self.system.init()
@@ -111,7 +111,7 @@ class TestEnoceanSystem(TestCase):
 
         assert self.system.mqtt_client.mqtt_client.is_connected()
         self.system.communicator.start.assert_called_once()
-        assert len(self.system.mqtt_client.publish.mock_calls) == 2
+        assert len(self.system.mqtt_client.publish.mock_calls) == 4
         self.system.delete(DEVICE_TEST_WITH_STATE)
 
     def test_shutdown(self):

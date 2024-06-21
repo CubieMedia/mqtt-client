@@ -29,7 +29,7 @@ class RelaySystem(BaseSystem):
     index_of_current_relay_board = 0
     scan_thread = threading.Thread()
     scan_thread_event = threading.Event()
-    discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    discovery_socket = None
 
     def __init__(self):
         self.execution_mode = CUBIE_RELAY
@@ -45,7 +45,7 @@ class RelaySystem(BaseSystem):
                         self.mqtt_client.publish(
                             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
                             device['state'][relay], True)
-                        known_device['state'][int(relay) - 1] = device['state'][relay]
+                        known_device['state'][relay] = device['state'][relay]
                     return True
         else:
             logging.warning(f"... received action with wrong data [{device}]")
@@ -121,6 +121,7 @@ class RelaySystem(BaseSystem):
     def init(self):
         super().init()
 
+        self.discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.discovery_socket.settimeout(1)
 

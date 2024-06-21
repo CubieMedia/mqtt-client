@@ -4,8 +4,9 @@ from unittest import TestCase
 from unittest.mock import MagicMock, PropertyMock
 
 from common import CUBIE_SYSTEM, CUBIE_VICTRON
+from common.homeassistant import VICTRON_MQTT_TOPIC
 from common.python import set_default_configuration, get_default_configuration_for
-from system.victron_system import VICTRON_MQTT_TOPICS, VictronSystem, SERVICES, VICTRON_WRITE_TOPIC
+from system.victron_system import VictronSystem, SERVICES, VICTRON_WRITE_TOPIC
 from test_common import check_mqtt_server, MQTT_HOST_MOCK
 
 SERVICE_PAYLOAD = [377, 33, 0, 0, 0, 0, False, 1, 1]
@@ -42,9 +43,8 @@ class TestVictronSystem(TestCase):
                 "state": str(SERVICE_PAYLOAD[SERVICES.index(topic)]).encode('UTF-8')}
         self.system.send(data)
         self.system.victron_mqtt_client.publish.assert_called_with(
-            VICTRON_WRITE_TOPIC.format(self.system.victron_system['serial']) + VICTRON_MQTT_TOPICS[
-                SERVICES.index(topic)],
-            SERVICE_RESPONSE[SERVICES.index(topic)])
+            VICTRON_WRITE_TOPIC.format(self.system.victron_system['serial']) + SERVICES[topic][
+                VICTRON_MQTT_TOPIC], SERVICE_RESPONSE[SERVICES.index(topic)])
 
         self.system.victron_mqtt_client.publish = MagicMock()
         topic = SERVICES[8]
@@ -52,9 +52,8 @@ class TestVictronSystem(TestCase):
                 "state": str(SERVICE_PAYLOAD[SERVICES.index(topic)]).encode('UTF-8')}
         self.system.send(data)
         self.system.victron_mqtt_client.publish.assert_called_with(
-            VICTRON_WRITE_TOPIC.format(self.system.victron_system['serial']) + VICTRON_MQTT_TOPICS[
-                SERVICES.index(topic)],
-            SERVICE_RESPONSE[SERVICES.index(topic)])
+            VICTRON_WRITE_TOPIC.format(self.system.victron_system['serial']) + SERVICES[topic][
+                VICTRON_MQTT_TOPIC], SERVICE_RESPONSE[SERVICES.index(topic)])
 
     def test_init(self):
         self.system.init()
@@ -103,7 +102,7 @@ class TestVictronSystem(TestCase):
         time.sleep(1)
 
         msg = MagicMock()
-        topic = PropertyMock(side_effect=VICTRON_MQTT_TOPICS)
+        topic = PropertyMock(side_effect=SERVICES.keys())
         payload = PropertyMock(side_effect=VICTRON_MESSAGE)
 
         type(msg).topic = topic

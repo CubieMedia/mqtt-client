@@ -13,7 +13,8 @@ from enocean.protocol.constants import PACKET, RORG
 from serial import SerialException
 
 import common
-from common import MQTT_HOMEASSISTANT_PREFIX, MQTT_CUBIEMEDIA, CUBIE_SERIAL, CUBIE_DEVICE, CUBIE_TYPE, ENOCEAN_PORT
+from common import MQTT_HOMEASSISTANT_PREFIX, MQTT_CUBIEMEDIA, CUBIE_SERIAL, CUBIE_DEVICE, \
+    CUBIE_TYPE, ENOCEAN_PORT, DEVICES_CAN_BE_ADDED
 from common.homeassistant import MQTT_BINARY_SENSOR, PAYLOAD_SENSOR, MQTT_NAME, MQTT_STATE_TOPIC, \
     MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION
 from common.python import get_configuration
@@ -39,23 +40,27 @@ class EnoceanSystem(BaseSystem):
                     if known_device['client_id'] != self.client_id:
                         if device['dbm'] > known_device['dbm']:
                             device['client_id'] = self.client_id
-                            logging.info("... ... device with better connection, announce [%s]" % device)
-                            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+                            logging.info(
+                                "... ... device with better connection, announce [%s]" % device)
+                            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE,
+                                                     json.dumps(device))
                             return False
                         logging.debug("... ... device is not managed by this gateway [%s]" % device)
                         return True
                     if str(device[common.CUBIE_TYPE]).upper() == "RPS":
                         for topic in device['state']:
                             if 'state' not in known_device or len(known_device['state']) == 0 or \
-                                    (topic in known_device['state'] and device['state'][topic] != known_device['state'][
-                                        topic]):
+                                    (topic in known_device['state'] and device['state'][topic] !=
+                                     known_device['state'][
+                                         topic]):
                                 channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                                 value = device['state'][topic]
                                 if value == 1:
                                     self._create_timer_for(channel_topic)
                                 else:
                                     logging.info("... ... action for [%s]" % channel_topic)
-                                    if channel_topic in self.timers and self.timers[channel_topic] is not True:
+                                    if channel_topic in self.timers and self.timers[
+                                        channel_topic] is not True:
                                         self.mqtt_client.publish(channel_topic, 1)
                                         timer = self.timers[channel_topic]
                                         timer.cancel()
@@ -66,7 +71,8 @@ class EnoceanSystem(BaseSystem):
                                     else:
                                         if channel_topic in self.timers:
                                             del self.timers[channel_topic]
-                                        self.mqtt_client.publish(channel_topic + "/longpush", 0, True)
+                                        self.mqtt_client.publish(channel_topic + "/longpush", 0,
+                                                                 True)
                                 should_save = True
                         known_device['state'] = device['state']
                         if device['dbm'] > known_device['dbm']:
@@ -153,7 +159,8 @@ class EnoceanSystem(BaseSystem):
             # {"client_id": "10.10.20.31-enocean-client", "dbm": -51, "id": "fefc1be1",
             # "state": {"a1": 0, "a2": 0, "b1": 0, "b2": 0}, "type": "RPS"}
 
-            if {'id', 'state', 'client_id'}.issubset(device.keys()) and device['client_id'] == self.client_id:
+            if {'id', 'state', 'client_id'}.issubset(device.keys()) and device[
+                'client_id'] == self.client_id:
                 device_id = device['id']
                 logging.info("... ... announce device [%s]" % device_id)
                 temp_device = device.copy()
@@ -175,7 +182,8 @@ class EnoceanSystem(BaseSystem):
                     payload[MQTT_UNIQUE_ID] = unique_id
                     payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
                     payload[MQTT_DEVICE][MQTT_NAME] = device_name
-                    payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
+                    payload[MQTT_DEVICE][
+                        MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
                     self.mqtt_client.publish(config_topic, json.dumps(payload))
 
@@ -188,7 +196,8 @@ class EnoceanSystem(BaseSystem):
                     payload[MQTT_UNIQUE_ID] = unique_id + "_longpush"
                     payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device_id
                     payload[MQTT_DEVICE][MQTT_NAME] = device_name
-                    payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
+                    payload[MQTT_DEVICE][
+                        MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
                     self.mqtt_client.publish(config_topic_long_push, json.dumps(payload))
                     if value == 1:
@@ -198,9 +207,11 @@ class EnoceanSystem(BaseSystem):
                 logging.debug(f"wrong data or device not managed by this gateway [{device}]")
 
     def save(self, device=None):
-        if device and {'id', 'dbm'}.issubset(device.keys()):
+        if device and {'id', 'dbm', 'type'}.issubset(device.keys()):
             if (str(device[common.CUBIE_TYPE]).upper() == "RPS" or str(
-                    device[common.CUBIE_TYPE]).upper() == "TEMP") and self.system_config['devices_can_be_added']:
+                    device[common.CUBIE_TYPE]).upper() == "TEMP") and (
+                    DEVICES_CAN_BE_ADDED in self.system_config and self.system_config[
+                     'devices_can_be_added']):
                 add = True
                 for known_device in self.config:
                     if str(device['id']).upper() == str(known_device['id']).upper():
@@ -343,13 +354,15 @@ class EnoceanSystem(BaseSystem):
 
         if device is not None and 'channel_config' in device:
             channel_config = device['channel_config']
-            logging.info(f"... ... ... found config[{channel_config}] for device[{device_id}] and button[{button}]")
+            logging.info(
+                f"... ... ... found config[{channel_config}] for device[{device_id}] and button[{button}]")
             if button[0] in channel_config:
                 device_topic = channel_config[button[0]]
                 if 'dimmer' in device_topic:
                     value = 5 if button[1] == '1' else 95
                     while channel_topic in self.timers:
-                        self.mqtt_client.publish(device_topic, '{"turn": "on","brightness": ' + str(value), True)
+                        self.mqtt_client.publish(device_topic,
+                                                 '{"turn": "on","brightness": ' + str(value), True)
                         value += 10 if button[1] == '1' else -10
                         time.sleep(0.5)
                 else:
@@ -358,7 +371,8 @@ class EnoceanSystem(BaseSystem):
     def _open_communicator(self):
         try:
             serial_json = get_configuration(CUBIE_SERIAL)[0]
-            if {CUBIE_TYPE, CUBIE_DEVICE}.issubset(serial_json.keys()) and serial_json[CUBIE_TYPE] == CUBIE_SERIAL:
+            if {CUBIE_TYPE, CUBIE_DEVICE}.issubset(serial_json.keys()) and serial_json[
+                CUBIE_TYPE] == CUBIE_SERIAL:
                 self.communicator = SerialCommunicator(serial_json[CUBIE_DEVICE])
             else:
                 self.communicator = SerialCommunicator(ENOCEAN_PORT)

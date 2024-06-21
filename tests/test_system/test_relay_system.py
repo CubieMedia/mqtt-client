@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 from common import CUBIE_SYSTEM, CUBIE_RELAY
 from common.python import set_default_configuration, get_default_configuration_for
 from system.relay_system import RelaySystem
-from test_common import check_mqtt_server, MQTT_HOST_MOCK
+from test_common import check_mqtt_server, MQTT_HOST_MOCK, MQTT_LOGIN_MOCK
 
-DEVICE_TEST = {"id": "Test", "type": "relay"}
+DEVICE_TEST = {"id": "Test", "type": "relay", "state": {1: 0, 2: 0}}
 DATA_TEST = {"ip": "Test", "type": "relay", "id": 3, "state": "1"}
 
 
@@ -20,27 +20,18 @@ class TestRelaySystem(TestCase):
     system = None
 
     def test_action(self):
-        self.system.init()
-        time.sleep(1)
-
         self.system.mqtt_client.subscribe = MagicMock()
         self.system.mqtt_client.publish = MagicMock()
-        self.system.action(DEVICE_TEST)
-        time.sleep(1)
+        assert not self.system.action(DEVICE_TEST)
+        self.system.mqtt_client.subscribe.assert_not_called()
+        self.system.mqtt_client.publish.assert_not_called()
 
-        self.system.mqtt_client.subscribe.assert_called_once()
-        self.system.mqtt_client.publish.assert_called_once()
-        assert DEVICE_TEST['id'] in self.system.subscription_list
-        assert len(self.system.subscription_list) == 1
+        self.system.config.append(DEVICE_TEST)
 
-        self.system.mqtt_client.publish.reset_mock()
-        self.system.action(DEVICE_TEST)
-        time.sleep(1)
+        assert self.system.action(DEVICE_TEST)
 
-        self.system.mqtt_client.subscribe.assert_called_once()
-        self.system.mqtt_client.publish.assert_called_once()
-        assert DEVICE_TEST['id'] in self.system.subscription_list
-        assert len(self.system.subscription_list) == 1
+        self.system.mqtt_client.subscribe.assert_not_called()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
 
     def test_send(self):
         self.system.init()
@@ -62,7 +53,8 @@ class TestRelaySystem(TestCase):
         if 'devices' in data:
             assert len(data['devices']) == len(self.system.relay_board_list)
         else:
-            assert len(self.system.relay_board_list) == 0, f"module list [{self.system.relay_board_list}] is not empty!"
+            assert len(
+                self.system.relay_board_list) == 0, f"module list [{self.system.relay_board_list}] is not empty!"
 
     def test_set_availability(self):
         self.system.mqtt_client.publish = MagicMock()
@@ -107,6 +99,7 @@ class TestRelaySystem(TestCase):
     def setUp(self):
         self.system = RelaySystem()
         self.system.get_mqtt_server = MQTT_HOST_MOCK
+        self.system.get_mqtt_login = MQTT_LOGIN_MOCK
 
     def tearDown(self):
         self.system.shutdown()

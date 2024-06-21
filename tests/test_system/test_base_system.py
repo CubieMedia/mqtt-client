@@ -1,14 +1,12 @@
-import subprocess
 import time
-import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from common import MQTT_CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD, DEFAULT_LEARN_MODE, \
-    CUBIE_SYSTEM
+from common import MQTT_CUBIEMEDIA, DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, \
+    DEFAULT_MQTT_PASSWORD, CUBIE_SYSTEM
 from common.python import get_default_configuration_for, set_default_configuration
 from system.base_system import BaseSystem
-from test_common import MQTT_HOST_MOCK, check_mqtt_server
+from test_common import MQTT_HOST_MOCK, check_mqtt_server, MQTT_LOGIN_MOCK
 
 DEVICE_TEST = {"id": "Test"}
 DEVICE_TEST2 = {"id": "Test2"}
@@ -28,19 +26,20 @@ class TestBaseSystem(TestCase):
         self.system.mqtt_client.publish = MagicMock()
         self.system.set_availability(True)
         self.system.mqtt_client.publish.assert_called_with(
-            f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online", "true")
+            f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online",
+            "true")
 
         self.system.set_availability(False)
         self.system.mqtt_client.publish.assert_called_with(
-            f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online", "false")
+            f"{MQTT_CUBIEMEDIA}/{self.system.execution_mode}/{self.system.ip_address.replace('.', '_')}/online",
+            "false")
 
     def test_load(self):
         self.system.load()
 
-        assert self.system.mqtt_config['host'] == DEFAULT_MQTT_SERVER
-        assert self.system.mqtt_config['username'] == DEFAULT_MQTT_USERNAME
-        assert self.system.mqtt_config['password'] == DEFAULT_MQTT_PASSWORD
-        assert self.system.mqtt_config['learn_mode'] == DEFAULT_LEARN_MODE
+        assert self.system.get_mqtt_server() == DEFAULT_MQTT_SERVER
+        assert self.system.get_mqtt_login()[0] == DEFAULT_MQTT_USERNAME
+        assert self.system.get_mqtt_login()[1] == DEFAULT_MQTT_PASSWORD
         assert self.system.config == []
 
     def test_save(self):
@@ -91,6 +90,7 @@ class TestBaseSystem(TestCase):
     def setUp(self):
         self.system = BaseSystem()
         self.system.get_mqtt_server = MQTT_HOST_MOCK
+        self.system.get_mqtt_login = MQTT_LOGIN_MOCK
 
     def tearDown(self):
         self.system.shutdown()
@@ -105,4 +105,3 @@ class TestBaseSystem(TestCase):
         if cls.mqtt_server_process:
             cls.mqtt_server_process.terminate()
             cls.mqtt_server_process.communicate()
-

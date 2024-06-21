@@ -68,9 +68,11 @@ class SonarSystem(BaseSystem):
 
         serial_port = None
         try:
-            if {CUBIE_TYPE, CUBIE_DEVICE}.issubset(sonar_device.keys()) and sonar_device[CUBIE_TYPE] == CUBIE_SONAR:
+            if {CUBIE_TYPE, CUBIE_DEVICE}.issubset(sonar_device.keys()) and sonar_device[
+                CUBIE_TYPE] == CUBIE_SONAR:
                 serial_port = sonar_device[CUBIE_DEVICE]
-            elif {CUBIE_TYPE, CUBIE_DEVICE}.issubset(serial_config.keys()) and serial_config[CUBIE_TYPE] == CUBIE_SERIAL:
+            elif {CUBIE_TYPE, CUBIE_DEVICE}.issubset(serial_config.keys()) and serial_config[
+                CUBIE_TYPE] == CUBIE_SERIAL:
                 serial_port = serial_config[CUBIE_DEVICE]
             else:
                 serial_port = SONAR_PORT

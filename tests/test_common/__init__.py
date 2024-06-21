@@ -5,8 +5,11 @@ from unittest.mock import MagicMock
 
 import psutil
 
-# if you use authentication on your local mosquitto server change this accordingly (Host,Username,Password)
-MQTT_HOST_MOCK = MagicMock(return_value="localhost")
+from common import DEFAULT_MQTT_SERVER, DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD
+
+# if you use authentication on your local mosquitto server change this accordingly
+MQTT_HOST_MOCK = MagicMock(return_value=DEFAULT_MQTT_SERVER)
+MQTT_LOGIN_MOCK = MagicMock(return_value=(DEFAULT_MQTT_USERNAME, DEFAULT_MQTT_PASSWORD))
 
 
 def check_mqtt_server():

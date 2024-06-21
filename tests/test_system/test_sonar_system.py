@@ -50,15 +50,16 @@ class TestSonarSystem(TestCase):
     def test_update(self):
         self.system.init()
         time.sleep(1)
-        self.system.set_availability = MagicMock()
+        self.system.mqtt_client.publish = MagicMock()
         self.system.communicator = MagicMock()
         self.system.communicator.in_waiting = 15
 
         self.system.communicator.read = MagicMock(side_effect=["Gap=333mm"])
         temp_distance = self.system.distance
-        self.system.update()
+        data = self.system.update()
         assert self.system.distance != temp_distance
-        self.system.set_availability.assert_called_once()
+        self.system.action(data['devices'][0])
+        assert len(self.system.mqtt_client.publish.mock_calls) == 4
 
         self.system.last_update = time.time() - 1000
 
@@ -66,27 +67,27 @@ class TestSonarSystem(TestCase):
         temp_distance = self.system.distance
         self.system.update()
         assert self.system.distance != temp_distance
-        self.system.set_availability.assert_called_with(True)
+        assert len(self.system.mqtt_client.publish.mock_calls) == 4
 
         self.system.last_update = time.time() - 1000
         self.system.communicator.read = MagicMock(side_effect=["Gap=87mm"])
         temp_distance = self.system.distance
         self.system.update()
         assert self.system.distance == temp_distance
-        self.system.set_availability.assert_called_with(True)
+        assert len(self.system.mqtt_client.publish.mock_calls) == 4
 
         self.system.communicator.read = MagicMock(side_effect=["Gap=411mm"])
         temp_distance = self.system.distance
         self.system.update()
         assert self.system.distance == temp_distance
-        self.system.set_availability.assert_called_with(True)
+        assert len(self.system.mqtt_client.publish.mock_calls) == 4
 
         self.system.last_update = time.time() - 1000
         self.system.communicator.read = MagicMock(side_effect=["Gap=411mm"])
         temp_distance = self.system.distance
         self.system.update()
         assert self.system.distance != temp_distance
-        self.system.set_availability.assert_called_with(True)
+        assert len(self.system.mqtt_client.publish.mock_calls) == 4
 
     def test_announce(self):
         self.system.init()
@@ -94,7 +95,7 @@ class TestSonarSystem(TestCase):
 
         self.system.mqtt_client = MagicMock()
         self.system.announce()
-        self.system.mqtt_client.publish.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 3
 
     def setUp(self):
         self.system = SonarSystem()

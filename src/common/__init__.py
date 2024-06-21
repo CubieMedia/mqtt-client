@@ -20,6 +20,8 @@ CUBIE_ANNOUNCE = "announce"
 MQTT_CUBIEMEDIA = "cubiemedia"
 STATE_UNKNOWN = 'unknown'
 
+DEVICES_CAN_BE_ADDED = 'devices_can_be_added'
+
 # numbers
 VERSION = "0.7.0"
 
@@ -28,7 +30,7 @@ ENOCEAN_PORT = "/dev/ttyAMA0"
 SONAR_PORT = "/dev/serial0"
 
 # files
-DEFAULT_CONFIGURATION_FILE_SYSTEM = "./src/config/cubiemedia.json"
+DEFAULT_CONFIGURATION_FILE_CUBIEMEDIA = "./src/config/cubiemedia.json"
 DEFAULT_CONFIGURATION_FILE_ENOCEAN = "./src/config/enocean.json"
 DEFAULT_CONFIGURATION_FILE_GPIO = "./src/config/gpio.json"
 DEFAULT_CONFIGURATION_FILE_RELAY = "./src/config/relay.json"

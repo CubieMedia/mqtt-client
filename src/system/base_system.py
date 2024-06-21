@@ -11,6 +11,8 @@ from common.network import get_ip_address
 from common.python import get_configuration, set_configuration, get_mqtt_configuration, get_system_configuration, \
     execute_command
 
+EXECUTION_MODE_BASE = "base"
+
 
 def system_reboot(system):
     logging.info(f"... system reboot has been executed for [{system.ip_address}]")
@@ -37,7 +39,7 @@ class BaseSystem(abc.ABC):
     config: [] = []
     mqtt_config: {} = {}
     system_config: [] = []
-    execution_mode = "Base"
+    execution_mode = EXECUTION_MODE_BASE
 
     def __init__(self):
         self.ip_address = get_ip_address()
@@ -113,7 +115,7 @@ class BaseSystem(abc.ABC):
 
         self.mqtt_config = get_mqtt_configuration()
         self.system_config = get_system_configuration()
-        if self.execution_mode != "Base":
+        if self.execution_mode != "base":
             self.config = get_configuration(self.execution_mode)
 
     def save(self, device=None):
@@ -124,7 +126,7 @@ class BaseSystem(abc.ABC):
                            temp_device in self.config]
             if device not in self.config:
                 self.config.append(device)
-        if self.execution_mode != "Base":
+        if self.execution_mode != EXECUTION_MODE_BASE:
             set_configuration(self.execution_mode, self.config)
 
     def delete(self, device):
