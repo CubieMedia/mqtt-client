@@ -16,7 +16,7 @@ from common.homeassistant import MQTT_BATTERY, MQTT_TEMPERATURE, MQTT_BRIGHTNESS
     MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_IDS, \
     MQTT_DEVICE_DESCRIPTION
 from common.miflora import XIAOMI_FLOWER_CARE_DISCOVERY, XIAOMI_DEVICE_MODE_CHANGE, \
-    XIAOMI_REAL_TIME_DATA_UUID
+    XIAOMI_REAL_TIME_DATA_UUID, XIAOMI_FLOWER_CARE_BATTERY_LEVEL
 from system.base_system import BaseSystem
 
 MI_TOPIC = "mi_topic"
@@ -211,19 +211,21 @@ async def _run(service_list, callback, thread_event):
 
 async def _read(device):
     def _notification_handler(characteristic: BleakGATTCharacteristic, data: bytearray):
-        """Simple notification handler which prints the data received."""
         temp, light, moisture, conductivity = _handle_data(data)
         logging.info(
             f"... ... data received - Temp: {temp}, Light: {light}, Moisture: {moisture}, Conductivity: {conductivity}")
-        devices[device]['state'] = {"temperature": temp, "brightness": light, "moisture": moisture,
-                                    "conductivity": conductivity}
+        devices[device]['state'] = devices[device]['state'] | {"temperature": temp, "brightness": light,
+                                                               "moisture": moisture,
+                                                               "conductivity": conductivity}
 
     try:
         async with BleakClient(device) as client:
             logging.debug(f"... ... connected to {client.address}")
-            await client.write_gatt_char(XIAOMI_DEVICE_MODE_CHANGE, bytearray([0xa0, 0x1f]))
-
             await client.start_notify(XIAOMI_REAL_TIME_DATA_UUID, _notification_handler)
+
+            devices[device]['state'][MQTT_BATTERY] = await client.read_gatt_char(XIAOMI_FLOWER_CARE_BATTERY_LEVEL)
+
+            await client.write_gatt_char(XIAOMI_DEVICE_MODE_CHANGE, bytearray([0xa0, 0x1f]))
             await asyncio.sleep(2.0)
             await client.stop_notify(XIAOMI_REAL_TIME_DATA_UUID)
     except:

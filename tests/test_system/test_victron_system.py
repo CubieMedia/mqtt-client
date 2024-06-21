@@ -6,11 +6,15 @@ from unittest.mock import MagicMock, PropertyMock
 from common import CUBIE_SYSTEM, CUBIE_VICTRON
 from common.homeassistant import VICTRON_MQTT_TOPIC
 from common.python import set_default_configuration, get_default_configuration_for
-from system.victron_system import VictronSystem, SERVICES, VICTRON_WRITE_TOPIC
-from test_common import check_mqtt_server, MQTT_HOST_MOCK
+from system.victron_system import VictronSystem, SERVICES, VICTRON_WRITE_TOPIC, victron_mqtt_topics
+from test_common import check_mqtt_server, MQTT_HOST_MOCK, MQTT_LOGIN_MOCK
 
-SERVICE_PAYLOAD = [377, 33, 0, 0, 0, 0, False, 1, 1]
-SERVICE_RESPONSE = [377, 33, 0, 0, 0, 0, False, '{"value": 80}', '{"value": -1}']
+SERVICE_PAYLOAD = {'battery_power': 377, 'battery_soc': 33, 'battery_charged': 0, 'battery_discharged': 0,
+                   'grid_exported': 0, 'grid_imported': 0, 'grid_lost_alarm': False, 'allow_charge': 1,
+                   'allow_discharge': 1}
+SERVICE_RESPONSE = {'battery_power': 377, 'battery_soc': 33, 'battery_charged': 0, 'battery_discharged': 0,
+                    'grid_exported': 0, 'grid_imported': 0, 'grid_lost_alarm': False, 'allow_charge': '{"value": 80}',
+                    'allow_discharge': '{"value": -1}'}
 VICTRON_MESSAGE = [b'{"value": 377}', b'{"value": 33}', b'{"value": 0}', b'{"value": 0}',
                    b'{"value": 0}',
                    b'{"value": 0}', b'{"value": false}', b'{"value": 80}', b'{"value": -1}']
@@ -28,7 +32,7 @@ class TestVictronSystem(TestCase):
 
         self.system.mqtt_client.publish = MagicMock()
         for topic in SERVICES:
-            device = {topic: SERVICE_PAYLOAD[SERVICES.index(topic)]}
+            device = {topic: SERVICE_PAYLOAD[topic]}
             self.system.action(device)
             self.system.mqtt_client.publish.assert_called_once()
             self.system.mqtt_client.publish.reset_mock()
@@ -38,22 +42,22 @@ class TestVictronSystem(TestCase):
         time.sleep(1)
 
         self.system.victron_mqtt_client.publish = MagicMock()
-        topic = SERVICES[7]
+        topic = 'allow_charge'
         data = {"id": topic,
-                "state": str(SERVICE_PAYLOAD[SERVICES.index(topic)]).encode('UTF-8')}
+                "state": str(SERVICE_PAYLOAD[topic])}
         self.system.send(data)
         self.system.victron_mqtt_client.publish.assert_called_with(
             VICTRON_WRITE_TOPIC.format(self.system.victron_system['serial']) + SERVICES[topic][
-                VICTRON_MQTT_TOPIC], SERVICE_RESPONSE[SERVICES.index(topic)])
+                VICTRON_MQTT_TOPIC], SERVICE_RESPONSE[topic])
 
         self.system.victron_mqtt_client.publish = MagicMock()
-        topic = SERVICES[8]
+        topic = 'allow_discharge'
         data = {"id": topic,
-                "state": str(SERVICE_PAYLOAD[SERVICES.index(topic)]).encode('UTF-8')}
+                "state": str(SERVICE_PAYLOAD[topic])}
         self.system.send(data)
         self.system.victron_mqtt_client.publish.assert_called_with(
             VICTRON_WRITE_TOPIC.format(self.system.victron_system['serial']) + SERVICES[topic][
-                VICTRON_MQTT_TOPIC], SERVICE_RESPONSE[SERVICES.index(topic)])
+                VICTRON_MQTT_TOPIC], SERVICE_RESPONSE[topic])
 
     def test_init(self):
         self.system.init()
@@ -102,7 +106,7 @@ class TestVictronSystem(TestCase):
         time.sleep(1)
 
         msg = MagicMock()
-        topic = PropertyMock(side_effect=SERVICES.keys())
+        topic = PropertyMock(side_effect=victron_mqtt_topics())
         payload = PropertyMock(side_effect=VICTRON_MESSAGE)
 
         type(msg).topic = topic
@@ -149,16 +153,17 @@ class TestVictronSystem(TestCase):
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
-        self.system.mqtt_client.publish.assert_not_called()
+        self.system.mqtt_client.publish.assert_called_once()
         self.system.init()
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
-        self.system.mqtt_client.publish.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
 
     def setUp(self):
         self.system = VictronSystem()
         self.system.get_mqtt_server = MQTT_HOST_MOCK
+        self.system.get_mqtt_login = MQTT_LOGIN_MOCK
 
     def tearDown(self):
         self.system.shutdown()

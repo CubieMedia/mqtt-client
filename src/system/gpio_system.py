@@ -44,10 +44,14 @@ class GPIOSystem(BaseSystem):
 
     def send(self, data: {}) -> bool:
         if data and {'id', 'state'}.issubset(data.keys()):
-            logging.info("... ... send data[%s] from HA" % data)
-            self.gpio_control.output(int(data['id']),
-                                     GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
-            return True
+            try:
+                logging.info("... ... send data[%s] from HA" % data)
+                self.gpio_control.output(int(data['id']),
+                                         GPIO.LOW if int(data['state']) == 1 else GPIO.HIGH)
+                return True
+            except RuntimeError as e:
+                logging.warning(e)
+                return False
         return super().send(data)
 
     def save(self, device=None):

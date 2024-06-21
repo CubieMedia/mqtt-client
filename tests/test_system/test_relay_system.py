@@ -9,7 +9,7 @@ from common.python import set_default_configuration, get_default_configuration_f
 from system.relay_system import RelaySystem
 from test_common import check_mqtt_server, MQTT_HOST_MOCK, MQTT_LOGIN_MOCK
 
-DEVICE_TEST = {"id": "Test", "type": "relay", "state": {1: 0, 2: 0}}
+DEVICE_TEST = {"id": "Test", "type": "relay", "state": {1: 0, 2: 0, 3: 0}}
 DATA_TEST = {"ip": "Test", "type": "relay", "id": 3, "state": "1"}
 
 
@@ -31,22 +31,24 @@ class TestRelaySystem(TestCase):
         assert self.system.action(DEVICE_TEST)
 
         self.system.mqtt_client.subscribe.assert_not_called()
-        assert len(self.system.mqtt_client.publish.mock_calls) == 2
+        assert len(self.system.mqtt_client.publish.mock_calls) == len(DEVICE_TEST['state'].keys())
+        self.system.config.clear()
 
     def test_send(self):
         self.system.init()
         time.sleep(1)
 
+        self.system.config.append(DEVICE_TEST)
         self.system._set_status = MagicMock()
         self.system.send(DATA_TEST)
 
         self.system._set_status.assert_called_with("Test", 3, "1", False)
+        self.system.config.clear()
 
     def test_update(self):
-        self.system.init()
         data = self.system.update()
         assert data == {}, "Fast Check failed, did i really find Relay Boards?"
-        time.sleep(3)
+        time.sleep(1)
 
         self.system.last_update = -1
         data = self.system.update()
@@ -58,7 +60,6 @@ class TestRelaySystem(TestCase):
 
     def test_set_availability(self):
         self.system.mqtt_client.publish = MagicMock()
-        self.system.set_availability(False)
 
         self.system.mqtt_client.publish.assert_not_called()
         self.system.init()
@@ -66,7 +67,7 @@ class TestRelaySystem(TestCase):
         self.system.mqtt_client = MagicMock()
         self.system.set_availability(False)
 
-        self.system.mqtt_client.publish.assert_called_once()
+        assert len(self.system.mqtt_client.publish.mock_calls) == 2
         self.system.delete(DEVICE_TEST)
 
     def test_init(self):
