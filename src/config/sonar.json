@@ -1,5 +1,6 @@
 [
   {
+    "id": "Default",
     "device": "/dev/serial0",
     "maximal_distance": 4800,
     "offset": 0,

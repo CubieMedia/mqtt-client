@@ -25,13 +25,13 @@
         </td>
         <td>
             <div>
-                <form action="/update/core/learn_mode" method="POST">
-                    {% if learn_mode == True %}
+                <form action="/update/core/devices_can_be_added" method="POST">
+                    {% if devices_can_be_added == True %}
                     <input type="image" src="{{url_for('static', filename='lock_open.png')}}" title="New Devices will be automatically added (Click to switch)" width="150" >
                     {% else %}
                     <input type="image" src="{{url_for('static', filename='lock_closed.png')}}" title="New Devices are blocked (Click to switch)" width="150" >
                     {% endif %}
-                    <input hidden="hidden" name="learn_mode" value={{ True if learn_mode == False else False }}>
+                    <input hidden="hidden" name="devices_can_be_added" value={{ True if devices_can_be_added == False else False }}>
                 </form>
             </div>
         </td>
@@ -47,11 +47,16 @@
         </td>
         <td style="text-align: center;">
             {% if item.running %}
+            <a href="{{ url_for('application_stop', application=item.id) }}">
+                <img src="{{url_for('static', filename='stop.png')}}" width="30" title="Stop">
+            </a>
             <a href="{{ url_for('show_application', application=item.id) }}">
-                <img src="{{url_for('static', filename='start.png')}}" width="30" title="Running">
+                <img src="{{url_for('static', filename='edit.png')}}" width="30" title="Edit">
             </a>
             {% else %}
-            <img src="{{url_for('static', filename='stop.png')}}" width="30" title="Stopped">
+            <a href="{{ url_for('application_start', application=item.id) }}">
+                <img src="{{url_for('static', filename='start.png')}}" width="30" title="Start">
+            </a>
             {% endif %}
         </td>
     </tr>

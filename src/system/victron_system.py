@@ -268,6 +268,7 @@ class VictronSystem(BaseSystem):
             self.victron_mqtt_client.connect(self.victron_system["id"], 1883, 60)
             self.victron_mqtt_client.loop_start()
         except (ConnectionError, TimeoutError, OSError):
+            time.sleep(5)
             pass
 
     def on_victron_message(self, client, userdata, msg):

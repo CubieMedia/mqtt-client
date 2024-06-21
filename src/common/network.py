@@ -27,7 +27,7 @@ def get_ip_address() -> str:
                 if ip and ipaddress.ip_address(ip):
                     # is ip address
                     if not ip.startswith('169') and not ip.startswith('127'):
-                        logging.info("... found IP [%s]" % ip)
+                        logging.debug("... found IP [%s]" % ip)
                         return ip
             except (ValueError, TypeError):
                 pass
