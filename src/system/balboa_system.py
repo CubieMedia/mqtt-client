@@ -9,11 +9,14 @@ import time
 
 from common import MQTT_CUBIEMEDIA, TIMEOUT_UPDATE_AVAILABILITY, CUBIE_TYPE, QOS, \
     MQTT_HOMEASSISTANT_PREFIX, CUBIE_BALBOA, TIMEOUT_UPDATE_SPA
-from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, \
+from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, \
+    MQTT_AVAILABILITY_TOPIC, \
     MQTT_UNIQUE_ID, \
     MQTT_DEVICE, MQTT_DEVICE_IDS, MQTT_DEVICE_DESCRIPTION, PAYLOAD_SENSOR, MQTT_TEMPERATURE, \
-    MQTT_UNIT, MQTT_STATE_CLASS, MQTT_DEVICE_CLASS, MQTT_MEASUREMENT, MQTT_SWITCH, MQTT_LIGHT, MQTT_CONFIG_TOPIC, \
-    MQTT_BINARY_SENSOR, MQTT_SENSOR, PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT_OF_MEASUREMENT, PAYLOAD_SWITCH_ACTOR, \
+    MQTT_UNIT, MQTT_STATE_CLASS, MQTT_DEVICE_CLASS, MQTT_MEASUREMENT, MQTT_SWITCH, MQTT_LIGHT, \
+    MQTT_CONFIG_TOPIC, \
+    MQTT_BINARY_SENSOR, MQTT_SENSOR, PAYLOAD_SPECIAL_SENSOR, MQTT_UNIT_OF_MEASUREMENT, \
+    PAYLOAD_SWITCH_ACTOR, \
     MQTT_SUGGESTED_DISPLAY_PRECISION, MQTT_CLIMATE, PAYLOAD_SPA_ACTOR
 from system.base_system import BaseSystem
 
@@ -158,7 +161,8 @@ class BalboaSystem(BaseSystem):
             for known_device in self.config:
                 if device['id'] == known_device['id']:
                     for service, value in device['state'].items():
-                        if service == 'temperature_control' and known_device['state']['auto']:
+                        if service == 'temperature_control' and 'auto' in known_device['state'] and \
+                                known_device['state']['auto']:
                             value = 'auto'
                         logging.info(
                             f"... ... action for Spa [{device['id']}] with service [{service}] -> [{value}]")
@@ -187,18 +191,23 @@ class BalboaSystem(BaseSystem):
                 elif known_device['state']['auto']:
                     known_device['state']['auto'] = False
                     self.last_update = 0
-            old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
-            logging.info(f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
+            old_state = known_device['state'][service] if not known_device['state'][
+                'auto'] else 'auto'
+            logging.info(
+                f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
             if new_state != old_state:
                 if BALBOA_WRITE_FORMULA in attributes:
                     if BALBOA_WRITE_VALUE in attributes:
-                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](attributes[BALBOA_WRITE_VALUE])
+                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
+                            attributes[BALBOA_WRITE_VALUE])
                     else:
-                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](int(float(data['state']) * 2))
+                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
+                            int(float(data['state']) * 2))
                     length = 5 + len(payload)
                     checksum = compute_checksum(bytes([length]), msg_type + payload)
                     prefix = b'\x7e'
-                    message = prefix + bytes([length]) + msg_type + payload + bytes([checksum]) + prefix
+                    message = prefix + bytes([length]) + msg_type + payload + bytes(
+                        [checksum]) + prefix
 
                     self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     try:
@@ -209,7 +218,8 @@ class BalboaSystem(BaseSystem):
                     self._spa_socket.close()
                     self.last_update = 0
                 else:
-                    logging.warning(f"could not write value for data [{data}], no write schema defined")
+                    logging.warning(
+                        f"could not write value for data [{data}], no write schema defined")
             else:
                 logging.debug(f"state did not change or 'auto' mode [{data}], not sending data")
             return True
@@ -227,7 +237,8 @@ class BalboaSystem(BaseSystem):
                 if spa_ip == temp_device['id']:
                     known_device = temp_device
 
-            spa_json = {'id': str(spa_ip), CUBIE_TYPE: CUBIE_BALBOA, 'client_id': self.client_id, 'state': {}}
+            spa_json = {'id': str(spa_ip), CUBIE_TYPE: CUBIE_BALBOA, 'client_id': self.client_id,
+                        'state': {}}
             if known_device:
                 self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
@@ -238,10 +249,10 @@ class BalboaSystem(BaseSystem):
                     length = len_chunk[1]
                     if int(length) == 0:
                         return False
-                    data = self._spa_socket.recv(length)
+                    spa_data = self._spa_socket.recv(length)
 
-                    if data and data[0:3] == VALID_PACKAGE_START:
-                        spa_json['state'] = get_state_from(data, known_device)
+                    if spa_data and spa_data[0:3] == VALID_PACKAGE_START:
+                        spa_json['state'] = get_state_from(spa_data, known_device)
 
                     self.set_availability(True)
                     self._error_message_shown = False
@@ -249,7 +260,8 @@ class BalboaSystem(BaseSystem):
                     data['devices'] = [spa_json]
                 except Exception as e:
                     if not self._error_message_shown:
-                        logging.error(f"Connection not possible [{e}], is something else connected to your Spa?")
+                        logging.error(
+                            f"Connection not possible [{e}], is something else connected to your Spa?")
                         self._error_message_shown = True
                     self.set_availability(False)
                 self._spa_socket.close()
@@ -281,7 +293,7 @@ class BalboaSystem(BaseSystem):
         self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.98)
         super().init()
 
-        socket.setdefaulttimeout(3)
+        socket.setdefaulttimeout(5)
         self._discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self._discovery_socket.settimeout(3)
@@ -377,7 +389,8 @@ class BalboaSystem(BaseSystem):
 
             if attributes[MQTT_CONFIG_TOPIC] == MQTT_SENSOR:
                 payload = PAYLOAD_SPECIAL_SENSOR
-                payload[MQTT_SUGGESTED_DISPLAY_PRECISION] = attributes[MQTT_SUGGESTED_DISPLAY_PRECISION]
+                payload[MQTT_SUGGESTED_DISPLAY_PRECISION] = attributes[
+                    MQTT_SUGGESTED_DISPLAY_PRECISION]
                 payload[MQTT_UNIT_OF_MEASUREMENT] = attributes[MQTT_UNIT]
                 payload[MQTT_STATE_CLASS] = attributes[MQTT_STATE_CLASS]
                 payload[MQTT_DEVICE_CLASS] = attributes[MQTT_DEVICE_CLASS]
@@ -394,7 +407,8 @@ class BalboaSystem(BaseSystem):
             payload[MQTT_STATE_TOPIC] = state_topic
             payload[MQTT_AVAILABILITY_TOPIC] = availability_topic
             payload[MQTT_UNIQUE_ID] = unique_id
-            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device['id']  # f"{self.execution_mode}-{string_id}"
+            payload[MQTT_DEVICE][MQTT_DEVICE_IDS] = device[
+                'id']  # f"{self.execution_mode}-{string_id}"
             payload[MQTT_DEVICE][MQTT_NAME] = device_name
             payload[MQTT_DEVICE][MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
