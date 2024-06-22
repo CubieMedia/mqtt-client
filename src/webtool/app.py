@@ -9,7 +9,7 @@ from flask import Flask, url_for, render_template, request, send_from_directory
 from werkzeug.utils import redirect
 
 from common import CUBIE_GPIO, CUBIE_ENOCEAN, CUBIE_RELAY, CUBIE_VICTRON, CUBIE_SONAR, CUBIE_BALBOA, \
-    CUBIE_MIFLORA, DEVICES_CAN_BE_ADDED, CUBIE_SYSTEM, MQTT_CUBIEMEDIA
+    CUBIE_MIFLORA, DEVICES_CAN_BE_ADDED, CUBIE_SYSTEM, MQTT_CUBIEMEDIA, CUBIE_GIT_UPDATER
 from common.network import get_ip_address
 from common.python import get_configuration, execute_command, get_variable_type_from_string, \
     get_mqtt_configuration, get_system_configuration, set_default_configuration, set_configuration
@@ -31,7 +31,9 @@ service_list = [
     {"id": CUBIE_MIFLORA, "name": "Cubie MiFlora", "icon": "miflora.png",
      "description": "Communicate with MiFlora Plant Sensors"},
     {"id": CUBIE_SONAR, "name": "Cubie-Sonar", "icon": "sonar.png",
-     "description": "Read values from Sonar Device connected to your GPIO Pins"}
+     "description": "Read values from Sonar Device connected to your GPIO Pins"},
+    {"id": CUBIE_GIT_UPDATER, "name": "Cubie Git-Updater", "icon": "logo.png",
+     "description": "Check for updates and stay on bleading edge"}
 ]
 
 
