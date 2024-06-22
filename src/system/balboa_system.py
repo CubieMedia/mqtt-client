@@ -142,7 +142,7 @@ class BalboaSystem(BaseSystem):
     _index_of_current_spa = 0
     _scan_thread = threading.Thread()
     _scan_thread_event = threading.Event()
-    _discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    _discovery_socket = None
     _spa_socket = None
 
     _error_message_shown = False
@@ -292,6 +292,7 @@ class BalboaSystem(BaseSystem):
         super().init()
 
         socket.setdefaulttimeout(3)
+        self._discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self._discovery_socket.settimeout(3)
 
