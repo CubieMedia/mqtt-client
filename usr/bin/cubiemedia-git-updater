@@ -34,8 +34,8 @@ then
     restart_service sonar
     restart_service miflora
     restart_service balboa
-    restart_service git-updater
     restart_service webtool
+    restart_service git-updater
     echo "finished update!"
   fi
 else
