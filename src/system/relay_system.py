@@ -45,7 +45,8 @@ class RelaySystem(BaseSystem):
                         self.mqtt_client.publish(
                             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
                             device['state'][relay], True)
-                        known_device['state'][relay] = device['state'][relay]
+                        relay_index = int(relay) - 1
+                        known_device['state'][relay_index] = device['state'][relay]
                     return True
         else:
             logging.warning(f"... received action with wrong data [{device}]")
@@ -145,7 +146,6 @@ class RelaySystem(BaseSystem):
         super().announce()
         for device in self.config:
             self.announce_device(device)
-        self.set_availability(True)
 
     def save(self, device=None):
         should_save = False
