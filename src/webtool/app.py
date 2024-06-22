@@ -170,7 +170,7 @@ def show_administration():
 def application_start(application):
     logging.info(f"Start Application {application}")
     state = os.system(
-        'systemctl enable cubiemedia-mqtt-client.cubiemedia-' + application + " --now")
+        'systemctl enable cubiemedia-' + application + " --now")
     if state != 0:
         logging.warning(f"could not enable application {application}")
     return redirect(url_for('index'))
@@ -180,7 +180,7 @@ def application_start(application):
 def application_stop(application):
     logging.info(f"Stop Application {application}")
     state = os.system(
-        'systemctl disable cubiemedia-mqtt-client.cubiemedia-' + application + " --now")
+        'systemctl disable cubiemedia-' + application + " --now")
     if state != 0:
         logging.warning(f"could not enable application {application}")
     return redirect(url_for('index'))
