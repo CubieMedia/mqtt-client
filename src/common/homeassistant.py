@@ -50,7 +50,6 @@ PAYLOAD_SPA_ACTOR = {
     MQTT_PAYLOAD_NOT_AVAILABLE: "false",
     MQTT_UNIQUE_ID: "UNIQUE_ID",
     "action_topic": "cubiemedia/balboa/10_10_23_20/heating",
-    "action_template": "{%if value==0%}off{%else%}heating{%endif%}",
     "mode_command_topic": "cubiemedia/balboa/10_10_23_20/temperature_control/command",
     "mode_state_topic": "cubiemedia/balboa/10_10_23_20/temperature_control",
     "current_temperature_topic": "cubiemedia/balboa/10_10_23_20/current_temperature",

@@ -46,8 +46,8 @@ def is_blower_enable(value) -> int:
     return 1 if value & 0x0c != 0 else 0
 
 
-def is_heating_enable(value) -> int:
-    return 1 if value & 0x30 != 0 else 0
+def is_heating_enable(value) -> str:
+    return 'heating' if value & 0x30 != 0 else 'off'
 
 
 def is_circulation_pump_enable(value) -> int:
@@ -184,44 +184,49 @@ class BalboaSystem(BaseSystem):
             for temp_device in self.config:
                 if data['ip'] == temp_device['id']:
                     known_device = temp_device
-            if service == "temperature_control":
-                if new_state == 'auto':
-                    known_device['state']['auto'] = True
-                    self.last_update = 0
-                elif known_device['state']['auto']:
-                    known_device['state']['auto'] = False
-                    self.last_update = 0
-            old_state = known_device['state'][service] if not known_device['state'][
-                'auto'] else 'auto'
-            logging.info(
-                f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
-            if new_state != old_state:
-                if BALBOA_WRITE_FORMULA in attributes:
-                    if BALBOA_WRITE_VALUE in attributes:
-                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
-                            attributes[BALBOA_WRITE_VALUE])
-                    else:
-                        msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
-                            int(float(data['state']) * 2))
-                    length = 5 + len(payload)
-                    checksum = compute_checksum(bytes([length]), msg_type + payload)
-                    prefix = b'\x7e'
-                    message = prefix + bytes([length]) + msg_type + payload + bytes(
-                        [checksum]) + prefix
+            if known_device:
+                old_state = known_device['state'][service]
+                if service == "temperature_control":
+                    if new_state == 'auto':
+                        known_device['state']['auto'] = True
+                        self.last_update = 0
+                    elif known_device['state']['auto']:
+                        known_device['state']['auto'] = False
+                        self.last_update = 0
+                    old_state = known_device['state'][service] if not known_device['state'][
+                        'auto'] else 'auto'
+                logging.info(
+                    f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
+                if new_state != old_state:
+                    if BALBOA_WRITE_FORMULA in attributes:
+                        if BALBOA_WRITE_VALUE in attributes:
+                            msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
+                                attributes[BALBOA_WRITE_VALUE])
+                        else:
+                            msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
+                                int(float(data['state']) * 2))
+                        length = 5 + len(payload)
+                        checksum = compute_checksum(bytes([length]), msg_type + payload)
+                        prefix = b'\x7e'
+                        message = prefix + bytes([length]) + msg_type + payload + bytes(
+                            [checksum]) + prefix
 
-                    self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    try:
-                        self._spa_socket.connect((data['ip'], 4257))
-                        self._spa_socket.send(message)
-                    except Exception:
-                        logging.error(f"could not send message to spa [{data}]")
-                    self._spa_socket.close()
-                    self.last_update = 0
+                        self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        try:
+                            self._spa_socket.connect((data['ip'], 4257))
+                            self._spa_socket.send(message)
+                        except Exception:
+                            logging.error(f"could not send message to spa [{data}]")
+                        self._spa_socket.close()
+                        self.last_update = 0
+                    else:
+                        logging.warning(
+                            f"could not write value for data [{data}], no write schema defined")
                 else:
-                    logging.warning(
-                        f"could not write value for data [{data}], no write schema defined")
+                    logging.debug(f"state did not change or 'auto' mode [{data}], not sending data")
             else:
-                logging.debug(f"state did not change or 'auto' mode [{data}], not sending data")
+                logging.warning(f"unknown device [{data}]")
+                return False
             return True
 
         return super().send(data)
