@@ -118,7 +118,7 @@ def get_running_applications():
                 service['id'] in response:
             service['running'] = True
             applications.append(service)
-        elif service['id'] == CUBIE_GIT_UPDATER and "active" in str(
+        elif service['id'] == CUBIE_GIT_UPDATER and "active" == str(
                 execute_command(
                     ["systemctl", "is-active", "cubiemedia-webtool"]).strip()):
             service['running'] = True
