@@ -17,6 +17,8 @@ from common.homeassistant import MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC
     MQTT_SUGGESTED_DISPLAY_PRECISION, MQTT_CLIMATE, PAYLOAD_SPA_ACTOR
 from system.base_system import BaseSystem
 
+VALID_PACKAGE_START = b'\xff\xaf\x13'
+
 BALBOA_READ_BYTE = "balboa_read_byte"
 BALBOA_WRITE_VALUE = "balboa_write_byte"
 BALBOA_READ_FORMULA = "balboa_read_formula"
@@ -236,22 +238,10 @@ class BalboaSystem(BaseSystem):
                     length = len_chunk[1]
                     if int(length) == 0:
                         return False
-                    chunk = self._spa_socket.recv(length)
+                    data = self._spa_socket.recv(length)
 
-                    if chunk and chunk[0:3] == b'\xff\xaf\x13':
-                        response = chunk[3:]
-                        service_json = {}
-                        for service, attributes in SERVICES.items():
-                            formula = attributes[BALBOA_READ_FORMULA]
-                            data_byte = response[attributes[BALBOA_READ_BYTE]]
-                            value = formula(data_byte)
-                            if value is None:
-                                value = known_device['state'][service]
-                            if (service not in known_device['state'] or value != known_device['state'][service]
-                                    or service == 'temperature_control'):
-                                service_json[service] = value
-                                known_device['state'][service] = value
-                        spa_json['state'] = service_json
+                    if data and data[0:3] == VALID_PACKAGE_START:
+                        spa_json['state'] = get_state_from(data, known_device)
 
                     self.set_availability(True)
                     self._error_message_shown = False
@@ -434,6 +424,22 @@ class BalboaSystem(BaseSystem):
         self._circulation_pump = byte_array[13] & 0x02 != 0
         self._light = byte_array[14] & 0x03 != 0
         self._target_temp = byte_array[20]
+
+
+def get_state_from(chunk, known_device):
+    response = chunk[3:]
+    service_json = {}
+    for service, attributes in SERVICES.items():
+        formula = attributes[BALBOA_READ_FORMULA]
+        data_byte = response[attributes[BALBOA_READ_BYTE]]
+        value = formula(data_byte)
+        if value is None:
+            value = known_device['state'][service]
+        if (service not in known_device['state'] or value != known_device['state'][service]
+                or service == 'temperature_control'):
+            service_json[service] = value
+            known_device['state'][service] = value
+    return service_json
 
 
 def compute_checksum(len_bytes, data):

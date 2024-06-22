@@ -172,4 +172,3 @@ class GPIOSystem(BaseSystem):
         topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.string_ip}/+/command"
         logging.info("... ... subscribe to [%s] for gpio output commands" % topic)
         self.mqtt_client.subscribe(topic, 2)
-        self.set_availability(True)
