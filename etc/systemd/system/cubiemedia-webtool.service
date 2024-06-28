@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/pi/mqtt-client
-ExecStart=/usr/bin/flask run --host=0.0.0.0 --port=8888
-Environment=FLASK_APP=/home/pi/mqtt-client/src/webtool/app.py
+WorkingDirectory=/home/pi/mqtt-client/src/webtool
+ExecStart=/home/pi/.local/bin/flask run --host=0.0.0.0 --port=8888
+Environment=PYTHONPATH=/home/pi/.local/lib/python3.11/site-packages/
 KillMode=process
 KillSignal=SIGTERM
 Restart=always
