@@ -39,14 +39,14 @@ class RelaySystem(BaseSystem):
         if all(attribute in device for attribute in ['id', 'state']):
             for known_device in self.config:
                 if device['id'] == known_device['id']:
-                    for relay in device['state']:
+                    for index, state in device['state'].items():
+                        relay_id = int(index) + 1
                         logging.info("... ... action for [%s] Relay [%s] -> [%s]" % (
-                            device['id'], relay, device['state'][relay]))
+                            device['id'], relay_id, state))
                         self.mqtt_client.publish(
-                            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay}",
-                            device['state'][relay], True)
-                        relay_index = int(relay) - 1
-                        known_device['state'][relay_index] = device['state'][relay]
+                            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{relay_id}",
+                            state, True)
+                        known_device['state'][index] = state
                     return True
         else:
             logging.warning(f"... received action with wrong data [{device}]")
@@ -59,7 +59,7 @@ class RelaySystem(BaseSystem):
                 self.index_of_current_relay_board = self.config.index(known_device)
                 if 'toggle' in known_device and int(data['id']) in known_device['toggle']:
                     toggle = True
-                logging.debug("... ... send data[%s] from HA with toggle[%s]" % (data, toggle))
+                logging.info("... ... send data[%s] from HA with toggle[%s]" % (data, toggle))
                 self._set_status(data['ip'], data['id'], data['state'], toggle)
                 self.last_update = -1 if toggle else 0
                 return True
@@ -78,17 +78,15 @@ class RelaySystem(BaseSystem):
 
             relay_board_json = {'id': str(relay_board), CUBIE_TYPE: CUBIE_RELAY,
                                 'client_id': self.client_id}
-            status_list = self._read_status(relay_board)
+            status_dict = self._read_status(relay_board)
             if known_device:
                 logging.debug("... ... ... scanning for changes on known device")
                 relay_state_changed_list = {}
                 send_data = False
-                index = 0
-                for status in status_list:
+                for index, status in status_dict.items():
                     if status != known_device['state'][index]:
-                        relay_state_changed_list[str(index + 1)] = status
+                        relay_state_changed_list[index] = status
                         send_data = True
-                    index += 1
 
                 if send_data:
                     logging.debug("... ... ... found changes, sending action data")
@@ -96,7 +94,7 @@ class RelaySystem(BaseSystem):
                     data['devices'] = [relay_board_json]
             else:
                 logging.debug("... ... ... saving new device with state")
-                relay_board_json['state'] = status_list
+                relay_board_json['state'] = status_dict
                 self.save(relay_board_json)
 
             self.index_of_current_relay_board += 1
@@ -159,6 +157,7 @@ class RelaySystem(BaseSystem):
                 if add:
                     self.config.append(device)
                     should_save = True
+                    self.announce()
         else:
             should_save = True
 
@@ -200,8 +199,8 @@ class RelaySystem(BaseSystem):
         self.discovery_socket.close()
         return True
 
-    def _read_status(self, ip):
-        status_list = []
+    def _read_status(self, ip) -> dict:
+        status_dict = {}
         auth = (RELAY_USERNAME, RELAY_PASSWORD)
 
         url = "http://" + str(ip) + "/status.xml"
@@ -215,11 +214,12 @@ class RelaySystem(BaseSystem):
                 'true')
             for line in content.splitlines():
                 if "relay" in line:
+                    index = line[line.index("<relay") + 6:line.index(">")]
                     status = line[line.index(">") + 1:line.index("</")]
                     if status == "1" or status == "0":
-                        status_list.append(status)
+                        status_dict[index] = status
                     else:
-                        status_list.append(STATE_UNKNOWN)
+                        status_dict[index] = STATE_UNKNOWN
                         logging.warning("... ... WARN: state [%s] unknown" % status)
 
         except ConnectionError:
@@ -229,14 +229,14 @@ class RelaySystem(BaseSystem):
                 f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(ip).replace('.', '_')}/online",
                 'false')
         finally:
-            return status_list
+            return status_dict
 
-    def _set_status(self, ip, relay, state, toggle: bool = False):
+    def _set_status(self, ip, relay_id, state, toggle: bool = False):
         auth = (RELAY_USERNAME, RELAY_PASSWORD)
 
         url = "http://" + str(ip) + "/io.cgi?"
         url += "DOA" if state == b'1' or str(state) == "1" else "DOI"
-        url += relay
+        url += relay_id
         if toggle:
             url += '=30'  # + str(int(toggle) * 10)
         try:
@@ -259,7 +259,8 @@ class RelaySystem(BaseSystem):
                      device['state'])
         availability_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/online"
 
-        for relay_id in device['state']:
+        for index, state in device['state'].items():
+            relay_id = int(index) + 1
             relay_name = "Relay {}-{}".format(string_id, relay_id)
             state_topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{string_id}/{relay_id}"
             unique_id = f"{string_id}-light-{relay_id}"
