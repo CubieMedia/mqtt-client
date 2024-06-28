@@ -8,7 +8,7 @@ import threading
 import time
 
 import requests
-from requests import ConnectionError
+from requests import ConnectionError, ReadTimeout
 
 from common import MQTT_CUBIEMEDIA, RELAY_USERNAME, RELAY_PASSWORD, \
     STATE_UNKNOWN, \
@@ -61,7 +61,9 @@ class RelaySystem(BaseSystem):
                     toggle = True
                 logging.info("... ... send data[%s] from HA with toggle[%s]" % (data, toggle))
                 self._set_status(data['ip'], data['id'], data['state'], toggle)
-                self.last_update = -1 if toggle else 0
+                self.last_update = -1
+                self.all_relay_boards_scanned = False
+                self.index_of_current_relay_board = 0
                 return True
 
         return super().send(data)
@@ -205,7 +207,7 @@ class RelaySystem(BaseSystem):
 
         url = "http://" + str(ip) + "/status.xml"
         try:
-            r = requests.get(url, auth=auth, timeout=1)
+            r = requests.get(url, auth=auth, timeout=3)
 
             content = r.text
             logging.debug(f"... ... content:\n{content}")
@@ -240,8 +242,8 @@ class RelaySystem(BaseSystem):
         if toggle:
             url += '=30'  # + str(int(toggle) * 10)
         try:
-            requests.get(url, auth=auth, timeout=1)
-        except ConnectionError:
+            requests.get(url, auth=auth, timeout=3)
+        except (ConnectionError, ReadTimeout):
             logging.error(f"could not set value on relay board [{ip}]")
             self.last_update = -1
             self.mqtt_client.publish(

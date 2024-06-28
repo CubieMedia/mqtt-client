@@ -87,8 +87,13 @@ class EnoceanSystem(BaseSystem):
                     return True
 
             device['client_id'] = self.client_id
-            logging.info("... ... unknown device, announce [%s]" % device)
-            self.mqtt_client.publish(common.DEFAULT_TOPIC_ANNOUNCE, json.dumps(device))
+            if self.system_config[DEVICES_CAN_BE_ADDED]:
+                logging.info("... ... unknown device, announce [%s]" % device)
+                self.save(device)
+                self.announce()
+                self.last_update = - 1
+            else:
+                logging.warning(f"unknown device[{device}], will not be added - system locked")
         else:
             logging.warning(f"could not execute action on device [{device}]")
         return False

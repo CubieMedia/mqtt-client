@@ -189,7 +189,7 @@ def application_stop(application):
     state = os.system(
         'systemctl disable cubiemedia-' + application + " --now")
     if state != 0:
-        logging.warning(f"could not enable application {application}")
+        logging.warning(f"could not disable application {application}")
     return redirect(url_for('index'))
 
 

@@ -12,5 +12,9 @@ apt install -y python3-pip libglib2.0-dev
 rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED
 sudo -H -u pi bash -c 'pip install -r /home/pi/mqtt-client/requirements.txt'
 
+# access rights to serial interface
+sudo usermod -a -G tty pi
+sudo chmod g+r /dev/ttyAMA0
+
 # install software services into none snap system
 cp /home/pi/mqtt-client/etc/systemd/system/cubiemedia-* /etc/systemd/system/
