@@ -142,13 +142,12 @@ SERVICES = {
 
 
 class BalboaSystem(BaseSystem):
-    _spa_list = []
+    _spa_dict = {}
     _all_spas_scanned = False
     _index_of_current_spa = 0
     _scan_thread = threading.Thread()
     _scan_thread_event = threading.Event()
     _discovery_socket = None
-    _spa_socket = None
 
     _error_message_shown = False
 
@@ -180,9 +179,10 @@ class BalboaSystem(BaseSystem):
             service = data['id']
             attributes = SERVICES[service]
             new_state = data['state']
+            spa_ip = data['ip']
             known_device = None
             for temp_device in self.config:
-                if data['ip'] == temp_device['id']:
+                if spa_ip == temp_device['id']:
                     known_device = temp_device
             if known_device:
                 old_state = known_device['state'][service]
@@ -211,13 +211,12 @@ class BalboaSystem(BaseSystem):
                         message = prefix + bytes([length]) + msg_type + payload + bytes(
                             [checksum]) + prefix
 
-                        self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        spa_socket = self._get_spa_socket(spa_ip)
                         try:
-                            self._spa_socket.connect((data['ip'], 4257))
-                            self._spa_socket.send(message)
-                        except Exception:
-                            logging.error(f"could not send message to spa [{data}]")
-                        self._spa_socket.close()
+                            spa_socket.send(message)
+                        except Exception as e:
+                            logging.error(f"could not send message to spa [{data}]", e)
+                        self._remove_socket(spa_ip)
                         self.last_update = 0
                     else:
                         logging.warning(
@@ -234,52 +233,47 @@ class BalboaSystem(BaseSystem):
     def update(self):
         data = {}
 
-        if self.last_update < time.time() - TIMEOUT_UPDATE_SPA and len(self._spa_list) > 0:
-            spa_ip = self._spa_list[self._index_of_current_spa]
-            logging.info(f"... updating spa [{spa_ip}]")
-            known_device = None
-            for temp_device in self.config:
-                if spa_ip == temp_device['id']:
-                    known_device = temp_device
+        if self.last_update < time.time() - TIMEOUT_UPDATE_SPA and len(self._spa_dict) > 0:
+            for spa_ip, values in self._spa_dict.items():
+                logging.info(f"... updating spa [{spa_ip}]")
+                known_device = None
+                for temp_device in self.config:
+                    if spa_ip == temp_device['id']:
+                        known_device = temp_device
+                        break
 
-            spa_json = {'id': str(spa_ip), CUBIE_TYPE: CUBIE_BALBOA, 'client_id': self.client_id,
-                        'state': {}}
-            if known_device:
-                self._spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                try:
-                    self._spa_socket.connect((spa_ip, 4257))
-                    len_chunk = self._spa_socket.recv(2)
-                    if len_chunk == b'' or len(len_chunk) == 0:
-                        return False
-                    length = len_chunk[1]
-                    if int(length) == 0:
-                        return False
-                    spa_data = self._spa_socket.recv(length)
+                spa_json = {'id': str(spa_ip), CUBIE_TYPE: CUBIE_BALBOA,
+                            'client_id': self.client_id,
+                            'state': {}}
+                if known_device:
+                    spa_socket = self._get_spa_socket(spa_ip)
+                    try:
+                        len_chunk = spa_socket.recv(2)
+                        if len_chunk == b'' or len(len_chunk) == 0:
+                            return False
+                        length = len_chunk[1]
+                        if int(length) == 0:
+                            return False
+                        spa_data = spa_socket.recv(length)
 
-                    if spa_data and spa_data[0:3] == VALID_PACKAGE_START:
-                        spa_json['state'] = get_state_from(spa_data, known_device)
+                        if spa_data and spa_data[0:3] == VALID_PACKAGE_START:
+                            spa_json['state'] = get_state_from(spa_data, known_device)
 
-                    self.set_availability(True)
-                    self._error_message_shown = False
+                        self.set_availability(True)
+                        self._error_message_shown = False
 
-                    data['devices'] = [spa_json]
-                except Exception as e:
-                    if not self._error_message_shown:
-                        logging.error(
-                            f"Connection not possible [{e}], is something else connected to your Spa?")
-                        self._error_message_shown = True
-                    self.set_availability(False)
-                self._spa_socket.close()
-            else:
-                self.save(spa_json)
-                self.announce()
+                        data['devices'] = [spa_json]
+                    except Exception as e:
+                        if not self._error_message_shown:
+                            logging.error(
+                                f"Connection not possible [{e}], is something else connected to your Spa?")
+                            self._error_message_shown = True
+                        self.set_availability(False)
+                    self._remove_socket(spa_ip)
+                else:
+                    self.save(spa_json)
+                    self.announce()
 
-            self._index_of_current_spa += 1
-            if self._index_of_current_spa >= len(self._spa_list):
-                self._index_of_current_spa = 0
-                self._all_spas_scanned = True
-
-            if self._all_spas_scanned:
                 if self.last_update < 0:
                     self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.99)
                 else:
@@ -344,9 +338,9 @@ class BalboaSystem(BaseSystem):
 
     def load(self):
         super().load()
-        self._spa_list = []
+        self._spa_dict = {}
         for device in self.config:
-            self._spa_list.append(device['id'])
+            self._spa_dict[device['id']] = {}
         self.update()
 
     def _run(self):
@@ -362,9 +356,9 @@ class BalboaSystem(BaseSystem):
                 (buf, address) = self._discovery_socket.recvfrom(30303)
                 logging.debug(f"... received from {address}: {buf}")
                 if "BWGSPA" in str(buf):
-                    if not address[0] in self._spa_list:
-                        logging.info(f"... ... found new module[{address[0]}]")
-                        self._spa_list.append(address[0])
+                    if not address[0] in self._spa_dict:
+                        logging.info(f"... ... found new spa [{address[0]}]")
+                        self._spa_dict[address[0]] = {}
                         self.last_update = -1
                         continue
                 else:
@@ -376,6 +370,40 @@ class BalboaSystem(BaseSystem):
 
         self._discovery_socket.close()
         return True
+
+    def _get_spa_socket(self, spa_ip) -> socket.socket:
+        if spa_ip in self._spa_dict:
+            spa_socket = self._spa_dict[spa_ip]['socket'] if 'socket' in self._spa_dict[
+                spa_ip] else None
+            if spa_socket:
+                logging.debug(f"... ... reuse socket for spa [{self._spa_dict[spa_ip]}]")
+                return spa_socket
+            else:
+                logging.debug(f"... ... creating new socket for spa [{spa_ip}]")
+                spa_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                spa_socket.connect((spa_ip, 4257))
+                self._spa_dict[spa_ip]['socket'] = spa_socket
+                if 'socket_count' in self._spa_dict[spa_ip]:
+                    self._spa_dict[spa_ip]['socket_count'] += 1
+                else:
+                    self._spa_dict[spa_ip]['socket_count'] = 1
+
+                return spa_socket
+        raise ValueError(f"Could not find Spa [{spa_ip}]")
+
+    def _remove_socket(self, spa_ip):
+        if spa_ip in self._spa_dict:
+            if 'socket_count' in self._spa_dict[spa_ip]:
+                self._spa_dict[spa_ip]['socket_count'] -= 1
+            else:
+                self._spa_dict[spa_ip]['socket_count'] = 0
+
+            if self._spa_dict[spa_ip]['socket_count'] <= 0:
+                spa_socket = self._spa_dict[spa_ip]['socket']
+                if spa_socket:
+                    logging.debug(f"... ... closing socket for spa [{spa_ip}]")
+                    del self._spa_dict[spa_ip]['socket']
+                    spa_socket.close()
 
     def _announce_device(self, device):
         string_id = device['id'].replace('.', '_')
