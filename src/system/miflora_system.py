@@ -60,6 +60,7 @@ devices = {}
 class MiFloraSystem(BaseSystem):
     last_update = None
     scan_thread = None
+    scan_thread_event = None
 
     def __init__(self):
         self.execution_mode = CUBIE_MIFLORA
@@ -87,10 +88,10 @@ class MiFloraSystem(BaseSystem):
 
         super().shutdown()
 
-    def action(self, plant: {}):
-        logging.info("... ... action for plant [%s]" % plant)
-        for key, value in plant['state'].items():
-            plant_name = str(plant['name'] if 'name' in plant else plant['id'])
+    def action(self, device: {}):
+        logging.info("... ... action for plant [%s]" % device)
+        for key, value in device['state'].items():
+            plant_name = str(device['name'] if 'name' in device else device['id'])
             plant_name = plant_name.lower().replace(' ', '_')
             self.mqtt_client.publish(f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{plant_name}/{key}",
                                      value, True)
@@ -184,7 +185,7 @@ class MiFloraSystem(BaseSystem):
         asyncio.run(_read(device))
 
     def _check_device(self, device: BLEDevice, advertisement_data: AdvertisementData):
-        for service, value in advertisement_data.service_data.items():
+        for service in advertisement_data.service_data:
             if service == XIAOMI_FLOWER_CARE_DISCOVERY:
                 if device.address not in devices:
                     logging.info("... ... found new device: %s, %s", device.name, device.address)
