@@ -246,8 +246,8 @@ class BalboaSystem(BaseSystem):
                             'client_id': self.client_id,
                             'state': {}}
                 if known_device:
-                    spa_socket = self._get_spa_socket(spa_ip)
                     try:
+                        spa_socket = self._get_spa_socket(spa_ip)
                         len_chunk = spa_socket.recv(2)
                         if len_chunk == b'' or len(len_chunk) == 0:
                             return False
