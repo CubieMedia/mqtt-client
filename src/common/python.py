@@ -76,8 +76,11 @@ def get_default_configuration_for(config_name: str) -> str:
             config_file = "../" + config_file
             if not exists(config_file):
                 raise FileNotFoundError(f"could not find config file [{config_file}]")
-    with open(config_file, encoding='utf-8') as file:
+    try:
+        file = open(config_file, encoding='utf-8')
         config = json.load(file)
+    except JSONDecodeError:
+        config = []
     return config
 
 

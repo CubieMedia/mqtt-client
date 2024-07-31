@@ -263,13 +263,13 @@ class BalboaSystem(BaseSystem):
                         self._error_message_shown = False
 
                         data['devices'] = [spa_json]
+                        self._remove_socket(spa_ip)
                     except Exception as e:
                         if not self._error_message_shown:
                             logging.error(
                                 f"Connection not possible [{e}], is something else connected to your Spa?")
                             self._error_message_shown = True
                         self.set_availability(False)
-                    self._remove_socket(spa_ip)
                 else:
                     self.save(spa_json)
                     self.announce()
@@ -399,7 +399,7 @@ class BalboaSystem(BaseSystem):
                 self._spa_dict[spa_ip]['socket_count'] = 0
 
             if self._spa_dict[spa_ip]['socket_count'] <= 0:
-                spa_socket = self._spa_dict[spa_ip]['socket']
+                spa_socket = self._spa_dict[spa_ip]['socket'] if 'socket' in self._spa_dict[spa_ip] else None
                 if spa_socket:
                     logging.debug(f"... ... closing socket for spa [{spa_ip}]")
                     del self._spa_dict[spa_ip]['socket']
