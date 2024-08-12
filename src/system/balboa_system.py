@@ -267,9 +267,11 @@ class BalboaSystem(BaseSystem):
                     except Exception as e:
                         if not self._error_message_shown:
                             logging.error(
-                                f"Connection not possible [{e}], is something else connected to your Spa?")
+                                f"Connection to {spa_ip} not possible [{e}], is something else connected to your Spa?")
                             self._error_message_shown = True
-                        self.set_availability(False)
+                        self.mqtt_client.publish(
+                            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{spa_ip.replace('.', '_')}/online", "false")
+
                 else:
                     self.save(spa_json)
                     self.announce()
