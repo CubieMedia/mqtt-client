@@ -259,7 +259,8 @@ class BalboaSystem(BaseSystem):
                         if spa_data and spa_data[0:3] == VALID_PACKAGE_START:
                             spa_json['state'] = get_state_from(spa_data, known_device)
 
-                        self.set_availability(True)
+                        self.mqtt_client.publish(
+                            f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{spa_ip.replace('.', '_')}/online", "true")
                         self._error_message_shown = False
 
                         data['devices'] = [spa_json]
