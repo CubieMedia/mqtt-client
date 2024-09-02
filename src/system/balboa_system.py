@@ -154,21 +154,19 @@ class BalboaSystem(BaseSystem):
     def __init__(self):
         self.execution_mode = CUBIE_BALBOA
         super().__init__()
+        self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.98)
 
     def action(self, device: {}) -> bool:
         if {'id', 'state'}.issubset(device):
             for known_device in self.config:
                 if device['id'] == known_device['id']:
                     for service, value in device['state'].items():
-                        if service == 'temperature_control' and 'auto' in known_device['state'] and \
-                                known_device['state']['auto']:
-                            value = 'auto'
                         logging.info(
                             f"... ... action for Spa [{device['id']}] with service [{service}] -> [{value}]")
                         self.mqtt_client.publish(
                             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{service}",
                             value, True)
-                    self.save()
+                    self.save(device)
                 return True
         else:
             logging.warning(f"... received action with wrong data [{device}]")
@@ -185,26 +183,27 @@ class BalboaSystem(BaseSystem):
                 if spa_ip == temp_device['id']:
                     known_device = temp_device
             if known_device:
-                old_state = known_device['state'][service]
                 if service == "temperature_control":
+                    old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
                     if new_state == 'auto':
                         known_device['state']['auto'] = True
                         self.last_update = 0
+                        return True
                     elif known_device['state']['auto']:
                         known_device['state']['auto'] = False
                         self.last_update = 0
-                    old_state = known_device['state'][service] if not known_device['state'][
-                        'auto'] else 'auto'
+                        return True
+                else:
+                    old_state = known_device['state'][service]
+
                 logging.info(
                     f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
                 if new_state != old_state:
                     if BALBOA_WRITE_FORMULA in attributes:
                         if BALBOA_WRITE_VALUE in attributes:
-                            msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
-                                attributes[BALBOA_WRITE_VALUE])
+                            msg_type, payload = attributes[BALBOA_WRITE_FORMULA](attributes[BALBOA_WRITE_VALUE])
                         else:
-                            msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
-                                int(float(data['state']) * 2))
+                            msg_type, payload = attributes[BALBOA_WRITE_FORMULA](int(float(data['state']) * 2))
                         length = 5 + len(payload)
                         checksum = compute_checksum(bytes([length]), msg_type + payload)
                         prefix = b'\x7e'
@@ -292,7 +291,6 @@ class BalboaSystem(BaseSystem):
                 str(state).lower())
 
     def init(self):
-        self.last_update = time.time() - int(TIMEOUT_UPDATE_SPA * 0.98)
         super().init()
 
         socket.setdefaulttimeout(5)
@@ -353,7 +351,7 @@ class BalboaSystem(BaseSystem):
         while not self._scan_thread_event.is_set():
             try:
                 if not len(buf):
-                    logging.debug("... ... sending discovery message for relay boards")
+                    logging.debug("... ... sending discovery message for balboa spa")
                     self._discovery_socket.sendto(DISCOVERY_MESSAGE, DESTINATION_ADDRESS)
                     self._scan_thread_event.wait(1)
                 (buf, address) = self._discovery_socket.recvfrom(30303)
@@ -485,8 +483,9 @@ def get_state_from(chunk, known_device):
         value = formula(data_byte)
         if value is None:
             value = known_device['state'][service]
-        if (service not in known_device['state'] or value != known_device['state'][service]
-                or service == 'temperature_control'):
+        if service == 'temperature_control' and 'auto' in known_device['state'] and known_device['state']['auto']:
+            value = 'auto'
+        if service not in known_device['state'] or value != known_device['state'][service]:
             service_json[service] = value
             known_device['state'][service] = value
     return service_json
