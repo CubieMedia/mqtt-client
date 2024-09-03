@@ -57,8 +57,7 @@ class CubieMediaMQTTClient:
             try:
                 if msg.topic == DEFAULT_TOPIC_COMMAND:
                     message_data = json.loads(msg_payload)
-                    if "type" in message_data and message_data[
-                        "type"] == self.system.execution_mode:
+                    if "type" in message_data and message_data["type"] == self.system.execution_mode:
                         if "mode" in message_data:
                             message_mode = message_data["mode"]
                             if message_mode == "update":

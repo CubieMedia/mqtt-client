@@ -163,8 +163,8 @@ class BalboaSystem(BaseSystem):
                         if service == 'temperature_control' and 'auto' in known_device['state'] and \
                                 known_device['state']['auto']:
                             value = 'auto'
-                        logging.info(
-                            f"... ... action for Spa [{device['id']}] with service [{service}] -> [{value}]")
+
+                        logging.info(f"... ... action for Spa [{device['id']}] with service [{service}] -> [{value}]")
                         self.mqtt_client.publish(
                             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{device['id'].replace('.', '_')}/{service}",
                             value, True)
@@ -187,17 +187,15 @@ class BalboaSystem(BaseSystem):
             if known_device:
                 old_state = known_device['state'][service]
                 if service == "temperature_control":
+                    old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
                     if new_state == 'auto':
                         known_device['state']['auto'] = True
-                        self.last_update = 0
                     elif known_device['state']['auto']:
                         known_device['state']['auto'] = False
-                        self.last_update = 0
-                    old_state = known_device['state'][service] if not known_device['state'][
-                        'auto'] else 'auto'
-                logging.info(
-                    f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
-                if new_state != old_state:
+                    self.last_update = 0
+                logging.info(f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
+
+                if new_state != old_state and 'auto' != old_state and 'auto' != new_state:
                     if BALBOA_WRITE_FORMULA in attributes:
                         if BALBOA_WRITE_VALUE in attributes:
                             msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
