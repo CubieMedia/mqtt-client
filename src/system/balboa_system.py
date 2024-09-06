@@ -187,7 +187,6 @@ class BalboaSystem(BaseSystem):
             if known_device:
                 old_state = known_device['state'][service]
                 if service == "temperature_control":
-                    old_state = known_device['state'][service] if not known_device['state']['auto'] else 'auto'
                     if new_state == 'auto':
                         known_device['state']['auto'] = True
                     elif known_device['state']['auto']:
@@ -195,7 +194,7 @@ class BalboaSystem(BaseSystem):
                     self.last_update = 0
                 logging.info(f"... send service [{service}] - old state[{old_state}] -> new state[{new_state}]")
 
-                if new_state != old_state and 'auto' != old_state and 'auto' != new_state:
+                if new_state != old_state and 'auto' != new_state:
                     if BALBOA_WRITE_FORMULA in attributes:
                         if BALBOA_WRITE_VALUE in attributes:
                             msg_type, payload = attributes[BALBOA_WRITE_FORMULA](
