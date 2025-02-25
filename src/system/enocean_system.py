@@ -51,16 +51,15 @@ class EnoceanSystem(BaseSystem):
                         for topic in device['state']:
                             if 'state' not in known_device or len(known_device['state']) == 0 or \
                                     (topic in known_device['state'] and device['state'][topic] !=
-                                     known_device['state'][
-                                         topic]):
+                                     known_device['state'][topic]):
                                 channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{str(device['id']).lower()}/{topic}"
                                 value = device['state'][topic]
                                 if value == 1:
                                     self._create_timer_for(channel_topic)
                                 else:
                                     logging.info("... ... action for [%s]" % channel_topic)
-                                    if channel_topic in self.timers and self.timers[
-                                        channel_topic] is not True:
+                                    if channel_topic in self.timers and isinstance(
+                                            self.timers[channel_topic], Timer):
                                         self.mqtt_client.publish(channel_topic, 1)
                                         timer = self.timers[channel_topic]
                                         timer.cancel()
@@ -216,7 +215,7 @@ class EnoceanSystem(BaseSystem):
             if (str(device[common.CUBIE_TYPE]).upper() == "RPS" or str(
                     device[common.CUBIE_TYPE]).upper() == "TEMP") and (
                     DEVICES_CAN_BE_ADDED in self.system_config and self.system_config[
-                     'devices_can_be_added']):
+                'devices_can_be_added']):
                 add = True
                 for known_device in self.config:
                     if str(device['id']).upper() == str(known_device['id']).upper():

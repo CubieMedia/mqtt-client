@@ -8,10 +8,10 @@ import time
 
 from common import COLOR_YELLOW, COLOR_DEFAULT, CUBIE_GPIO, GPIO_PIN_TYPE_IN, GPIO_PIN_TYPE_OUT, \
     CUBIE_TYPE, MQTT_HOMEASSISTANT_PREFIX
-from common import MQTT_CUBIEMEDIA, DEFAULT_TOPIC_ANNOUNCE, TIMEOUT_UPDATE_AVAILABILITY
-from common.homeassistant import PAYLOAD_SWITCH_ACTOR, MQTT_NAME, MQTT_COMMAND_TOPIC, MQTT_STATE_TOPIC, \
-    MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_DESCRIPTION, MQTT_DEVICE_IDS, \
-    PAYLOAD_SENSOR, MQTT_BINARY_SENSOR, MQTT_LIGHT
+from common import MQTT_CUBIEMEDIA, TIMEOUT_UPDATE_AVAILABILITY
+from common.homeassistant import PAYLOAD_SWITCH_ACTOR, MQTT_NAME, MQTT_COMMAND_TOPIC, \
+    MQTT_STATE_TOPIC, MQTT_AVAILABILITY_TOPIC, MQTT_UNIQUE_ID, MQTT_DEVICE, MQTT_DEVICE_DESCRIPTION, \
+    MQTT_DEVICE_IDS, PAYLOAD_SENSOR, MQTT_BINARY_SENSOR, MQTT_LIGHT
 from system.base_system import BaseSystem
 
 try:
@@ -65,7 +65,7 @@ class GPIOSystem(BaseSystem):
         else:
             logging.warning(f"... unknown device [{device}], could not save")
 
-    def update(self) -> {}:
+    def update(self, force=False) -> {}:
         data = {}
 
         device_list = []
@@ -81,7 +81,7 @@ class GPIOSystem(BaseSystem):
                 continue
 
             # pylint: disable=used-before-assignment
-            if value != device['value']:
+            if value != device['value'] or force:
                 logging.debug(f"... ... update GPIO [{device['id']}] with value [{value}]")
                 device['value'] = value
                 device['client_id'] = self.client_id
@@ -128,6 +128,7 @@ class GPIOSystem(BaseSystem):
             self.gpio_control.cleanup()
 
     def announce(self):
+        logging.info("... ... announce [%i] gpio devices" % len(self.config))
         for gpio in self.config:
             # {"id": 15, "type": "in", "value": 0}
             gpio_id = gpio['id']
@@ -168,6 +169,10 @@ class GPIOSystem(BaseSystem):
                 logging.warning(f"unknown gpio type for [{gpio}]")
                 continue
             self.mqtt_client.publish(config_topic, json.dumps(payload))
+
+        data = self.update(True)
+        for device in data['devices']:
+            self.action(device)
 
         topic = f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{self.string_ip}/+/command"
         logging.info("... ... subscribe to [%s] for gpio output commands" % topic)
