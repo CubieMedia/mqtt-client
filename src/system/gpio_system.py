@@ -168,7 +168,7 @@ class GPIOSystem(BaseSystem):
             else:
                 logging.warning(f"unknown gpio type for [{gpio}]")
                 continue
-            self.mqtt_client.publish(config_topic, json.dumps(payload))
+            self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
 
         data = self.update(True)
         for device in data['devices']:

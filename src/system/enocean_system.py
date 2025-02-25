@@ -189,7 +189,7 @@ class EnoceanSystem(BaseSystem):
                     payload[MQTT_DEVICE][
                         MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
-                    self.mqtt_client.publish(config_topic, json.dumps(payload))
+                    self.mqtt_client.publish(config_topic, json.dumps(payload), retain=True)
 
                     # also create long push sensor for all normal sensors
                     config_topic_long_push = f"{MQTT_HOMEASSISTANT_PREFIX}/{MQTT_BINARY_SENSOR}/{device_id}-{sensor}-longpush/config"
@@ -203,7 +203,8 @@ class EnoceanSystem(BaseSystem):
                     payload[MQTT_DEVICE][
                         MQTT_DEVICE_DESCRIPTION] = f"via Gateway ({self.ip_address})"
 
-                    self.mqtt_client.publish(config_topic_long_push, json.dumps(payload))
+                    self.mqtt_client.publish(config_topic_long_push, json.dumps(payload),
+                                             retain=True)
                     if value == 1:
                         channel_topic = f"{common.MQTT_CUBIEMEDIA}/{self.execution_mode}/{device_id}/{sensor}"
                         self._create_timer_for(channel_topic, True)
