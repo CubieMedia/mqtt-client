@@ -269,6 +269,7 @@ class BalboaSystem(BaseSystem):
                             self._error_message_shown = True
                         self.mqtt_client.publish(
                             f"{MQTT_CUBIEMEDIA}/{self.execution_mode}/{spa_ip.replace('.', '_')}/online", "false")
+                        self._remove_socket(spa_ip)
 
                 else:
                     self.save(spa_json)
