@@ -141,10 +141,15 @@ class EnoceanSystem(BaseSystem):
         self._open_communicator()
 
         if self.communicator:
-            logging.info("... starting serial communicator")
-            self.communicator.start()
-            time.sleep(0.100)
-            self.set_availability(True)
+            try:
+                logging.info("... starting serial communicator")
+                self.communicator.start()
+                time.sleep(0.100)
+                self.set_availability(True)
+            except RuntimeError as exception:
+                logging.error(f"could not run serial communicator: {exception}")
+                self.communicator = None
+
 
     def shutdown(self):
         logging.info('... set devices unavailable...')
@@ -210,6 +215,7 @@ class EnoceanSystem(BaseSystem):
                         self._create_timer_for(channel_topic, True)
             else:
                 logging.debug(f"wrong data or device not managed by this gateway [{device}]")
+        self.set_availability(True)
 
     def save(self, device=None):
         if device and {'id', 'dbm', 'type'}.issubset(device.keys()):
