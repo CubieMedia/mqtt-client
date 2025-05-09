@@ -149,7 +149,8 @@ class EnoceanSystem(BaseSystem):
             except RuntimeError as exception:
                 logging.error(f"could not run serial communicator: {exception}")
                 self.communicator = None
-
+            except Exception as e:
+                logging.error(f"ERROR inside communicator: {e}")
 
     def shutdown(self):
         logging.info('... set devices unavailable...')

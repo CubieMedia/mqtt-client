@@ -16,7 +16,7 @@ EXECUTION_MODE_BASE = "base"
 
 def system_reboot(system):
     logging.info(f"... system reboot has been executed for [{system.ip_address}]")
-    execute_command("sleep 3")
+    execute_command(["reboot"])
 
 
 def system_reset(system):
