@@ -114,7 +114,7 @@ class SonarSystem(BaseSystem):
 
                 if self.communicator.in_waiting > 0:
                     response = str(self.communicator.read(self.communicator.in_waiting))
-                    if "Gap=" in response:
+                    if "Gap=" in response and "mm" in response:
                         distance = int(
                             response[response.index("Gap=") + 4:response.index("mm")]) + self.offset
 
@@ -128,7 +128,7 @@ class SonarSystem(BaseSystem):
                                 logging.warning(
                                     f"Distance [{distance}] is out of range, object too close or cable disconnected")
                     else:
-                        logging.warning(f"Could not find [Gap] in response[{response}]")
+                        logging.warning(f"Could not find [Gap or mm] in response[{response}]")
             else:
                 logging.warning("no communicator found, creating random values")
                 device = {'id': self.ip_address, CUBIE_TYPE: CUBIE_SONAR,

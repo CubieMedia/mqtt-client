@@ -24,7 +24,7 @@ then
     echo "$PULL_STATUS"
   else
     echo "... installing dependencies ..."
-    ./usr/bin/cubiemedia-install-dependencies
+    sudo ./usr/bin/cubiemedia-install-dependencies
     echo "... restarting services ..."
     systemctl daemon-reload
     restart_service relay
