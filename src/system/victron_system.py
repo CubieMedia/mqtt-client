@@ -122,9 +122,11 @@ class VictronSystem(BaseSystem):
                     payload = round(float(payload) * self._import_correction_factor, 2)
                     logging.debug("... ... ... recalculated imported payload [%s]" % payload)
                 elif topic == 'allow_charge':
-                    payload = 0 if device[topic] < 1 else 1
+                    payload = 0 if payload < 1 else 1
                 elif topic == 'allow_discharge':
-                    payload = 0 if device[topic] == 0 else 1
+                    payload = 0 if payload == 0 else 1
+                elif topic == 'grid_lost_alarm':
+                    payload = 0 if payload == 0 else 1
                 else:
                     pass  # do nothing with payload
 
